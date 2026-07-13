@@ -1,0 +1,11 @@
+﻿{
+  "Name": "Parchment",
+  "Author": "PeacefulEnd",
+  "Version": "%ProjectVersion%",
+  "Description": "Stardew Valley framework for creating a book-based UI.",
+  "UniqueID": "PeacefulEnd.Parchment",
+  "EntryDll": "Parchment.dll",
+  "MinimumApiVersion": "4.1.10",
+  "UpdateKeys": [ "Nexus:????" ],
+  "Dependencies": []
+}

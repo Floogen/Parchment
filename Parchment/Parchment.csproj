@@ -19,6 +19,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Update="Framework\Assets\Page1.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="manifest.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>

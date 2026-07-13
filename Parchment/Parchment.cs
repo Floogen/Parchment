@@ -1,11 +1,12 @@
 ﻿using HarmonyLib;
+using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
 using StardewValley;
 using System;
 
-namespace StardewSandbox
+namespace Parchment
 {
-    public class ModEntry : Mod
+    public class Parchment : Mod
     {
         // Shared static helpers
         internal static IMonitor monitor;
@@ -32,6 +33,17 @@ namespace StardewSandbox
             }
 
             // Hook into the required events
+            helper.Events.Input.ButtonPressed += OnButtonPressed;
+        }
+
+        private void OnButtonPressed(object sender, StardewModdingAPI.Events.ButtonPressedEventArgs e)
+        {
+            if (e.Button is SButton.O && Context.IsPlayerFree && Game1.activeClickableMenu is null)
+            {
+                // Consume the button press
+                Helper.Input.Suppress(e.Button);
+                Game1.activeClickableMenu = new BookMenu();
+            }
         }
     }
 }
