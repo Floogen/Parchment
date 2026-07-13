@@ -1,0 +1,11 @@
+﻿{
+  "Name": "REPLACE_ME_WITH_NAME",
+  "Author": "PeacefulEnd",
+  "Version": "%ProjectVersion%",
+  "Description": "REPLACE_ME_WITH_DESCRIPTION",
+  "UniqueID": "PeacefulEnd.REPLACE_ME_WITH_NAME",
+  "EntryDll": "StardewSandbox.dll",
+  "MinimumApiVersion": "3.14.4",
+  "UpdateKeys": [ "Nexus:????" ],
+  "Dependencies": []
+}
