@@ -32,6 +32,8 @@ namespace Parchment.Framework.Models.Data
         /// <summary>The ordered pages. Sorted by <see cref="PageData.Order"/> (stable) at load.</summary>
         public List<PageData> Pages { get; set; } = new List<PageData>();
 
+        public BookLayoutData Layout { get; set; } = new BookLayoutData();
+
         public override (bool Result, string Error) IsValid()
         {
             throw new NotImplementedException();

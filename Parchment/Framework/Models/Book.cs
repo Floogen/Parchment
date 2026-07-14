@@ -9,19 +9,19 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.Models
 {
-    public class BookEntry
+    public class Book
     {
         public BookData Data { get; }
         public IContentPack? Owner { get; }
-        public List<PageEntry> Pages { get; }
+        public List<Page> Pages { get; }
 
-        public BookEntry(BookData data, IContentPack? owner)
+        public Book(BookData data, IContentPack? owner)
         {
             Data = data;
             Owner = owner;
             Pages = data.Pages
                 .OrderBy(page => page.Order)
-                .Select(page => new PageEntry(page, owner))
+                .Select(page => new Page(page, owner))
                 .ToList();
         }
     }

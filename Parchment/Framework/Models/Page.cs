@@ -9,14 +9,14 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.Models
 {
-    public class PageEntry
+    public class Page
     {
         public PageData Data { get; }
         public IContentPack? Owner { get; }
 
         private Texture2D? _imageTexture;
 
-        public PageEntry(PageData data, IContentPack? owner)
+        public Page(PageData data, IContentPack? owner)
         {
             Data = data;
             Owner = owner;

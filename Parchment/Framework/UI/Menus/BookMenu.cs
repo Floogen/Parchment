@@ -42,12 +42,6 @@ namespace Parchment.Framework.UI.Menus
         // Adjust this for page speed
         private const float CONTENT_SWAP_PROGRESS = 0.5f;
 
-        // TODO: Adjust this and make it a parameter?
-        private int PAGE_MARGIN_OUTER = 40;
-        private int PAGE_MARGIN_SPINE = 24;
-        private int PAGE_MARGIN_TOP = 32;
-        private int PAGE_MARGIN_BOTTOM = 90;
-
         private readonly List<Rectangle> _openFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageCurlFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageTurnFrames = new List<Rectangle>();
@@ -60,7 +54,10 @@ namespace Parchment.Framework.UI.Menus
         private Rectangle _previousPageHotspot;
         private Rectangle _nextPageHotspot;
 
-        private readonly List<PageEntry> _pages;
+        private readonly Book _book;
+        private readonly List<Page> _pages;
+        private readonly bool _debug = false; // TODO: Make this an option on the BookData or command?
+
         private int _currentSpread = 0;
         private int _pendingSpread;
         private bool _isTurningForward;
@@ -75,14 +72,15 @@ namespace Parchment.Framework.UI.Menus
 
         private readonly bool _previousHudState;
 
-        public BookMenu(List<PageEntry> pages) : base((int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).X, (int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).Y, 1280, 720, showUpperRightCloseButton: true)
+        public BookMenu(Book book) : base((int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).X, (int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).Y, 1280, 720, showUpperRightCloseButton: true)
         {
             Vector2 topLeft = Utility.getTopLeftPositionForCenteringOnScreen(base.width, base.height);
             base.xPositionOnScreen = (int)topLeft.X;
             base.yPositionOnScreen = (int)topLeft.Y;
             base.upperRightCloseButton = new ClickableTextureComponent(new Rectangle(xPositionOnScreen + width - 36, yPositionOnScreen - 8, 48, 48), Game1.mouseCursors, new Rectangle(337, 494, 12, 12), 4f);
 
-            _pages = pages;
+            _book = book;
+            _pages = book.Pages;
 
             _pageCurlTexture = Parchment.modHelper.ModContent.Load<Texture2D>("Framework/Assets/curlPage.png");
             _bookTexture = Parchment.modHelper.ModContent.Load<Texture2D>("Framework/Assets/smallBook.png");
@@ -162,19 +160,15 @@ namespace Parchment.Framework.UI.Menus
 
         private Rectangle GetLeftPageBounds()
         {
-            PAGE_MARGIN_OUTER = 55;
-            PAGE_MARGIN_SPINE = 24;
-            PAGE_MARGIN_TOP = 145;
-            PAGE_MARGIN_BOTTOM = 75;
             Rectangle bookBounds = GetBookScreenBounds();
-            return new Rectangle(bookBounds.X + PAGE_MARGIN_OUTER, bookBounds.Y + PAGE_MARGIN_TOP, bookBounds.Width / 2 - PAGE_MARGIN_OUTER - PAGE_MARGIN_SPINE, bookBounds.Height - PAGE_MARGIN_TOP - PAGE_MARGIN_BOTTOM);
+            return new Rectangle(bookBounds.X + _book.Data.Layout.MarginOuter, bookBounds.Y + _book.Data.Layout.MarginTop, bookBounds.Width / 2 - _book.Data.Layout.MarginOuter - _book.Data.Layout.MarginSpine, bookBounds.Height - _book.Data.Layout.MarginTop - _book.Data.Layout.MarginBottom);
         }
 
         private Rectangle GetRightPageBounds()
         {
             Rectangle bookBounds = GetBookScreenBounds();
             int spineX = bookBounds.X + bookBounds.Width / 2;
-            return new Rectangle(spineX + PAGE_MARGIN_SPINE, bookBounds.Y + PAGE_MARGIN_TOP, bookBounds.Width / 2 - PAGE_MARGIN_OUTER - PAGE_MARGIN_SPINE, bookBounds.Height - PAGE_MARGIN_TOP - PAGE_MARGIN_BOTTOM);
+            return new Rectangle(spineX + _book.Data.Layout.MarginSpine, bookBounds.Y + _book.Data.Layout.MarginTop, bookBounds.Width / 2 - _book.Data.Layout.MarginOuter - _book.Data.Layout.MarginSpine, bookBounds.Height - _book.Data.Layout.MarginTop - _book.Data.Layout.MarginBottom);
         }
 
         private void UpdateCornerAnimation(ref float animationTimer, ref int currentFrame, bool isHovering, float elapsedMilliseconds)
@@ -427,8 +421,12 @@ namespace Parchment.Framework.UI.Menus
             {
                 b.Draw(_pageCurlTexture, nextCornerPosition, _pageCurlFrames[_nextCornerFrame], Color.White, 0f, Vector2.Zero, 5f, SpriteEffects.None, 0.99f);
             }
-            b.Draw(Game1.staminaRect, GetLeftPageBounds(), Color.Red * 0.4f);
-            b.Draw(Game1.staminaRect, GetRightPageBounds(), Color.Red * 0.4f);
+
+            if (_debug is true)
+            {
+                b.Draw(Game1.staminaRect, GetLeftPageBounds(), Color.Red * 0.4f);
+                b.Draw(Game1.staminaRect, GetRightPageBounds(), Color.Red * 0.4f);
+            }
         }
 
         private void DrawPages(SpriteBatch b)
@@ -488,13 +486,13 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            PageEntry entry = _pages[pageIndex];
+            Page entry = _pages[pageIndex];
             PageData data = entry.Data;
 
             switch (data.Type)
             {
                 case PageType.Title:
-                    SpriteText.drawStringHorizontallyCenteredAt(b, data.Title ?? string.Empty, bounds.Center.X, bounds.Y + 32);
+                    SpriteText.drawStringHorizontallyCenteredAt(b, data.Title ?? string.Empty, bounds.Center.X, bounds.Y);
                     break;
 
                 case PageType.Text:

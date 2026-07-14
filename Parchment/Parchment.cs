@@ -47,14 +47,29 @@ namespace Parchment
                 // Consume the button press
                 Helper.Input.Suppress(e.Button);
 
-                var testPages = new List<PageEntry>
-                {
-                    new PageEntry(new PageData { Id = "cover", Type = PageType.Title, Title = "Camping Guide" }, owner: null),
-                    new PageEntry(new PageData { Id = "intro", Type = PageType.Text, Title = "Chapter 1", Text = "Hello" }, owner: null),
-                    new PageEntry(new PageData { Id = "tent", Type = PageType.Text, Text = "0123" }, owner: null),
-                };
-                Game1.activeClickableMenu = new BookMenu(testPages);
+                Game1.activeClickableMenu = new BookMenu(CreateTestBook());
             }
+        }
+
+        private Book CreateTestBook()
+        {
+            BookData bookData = new BookData
+            {
+                Format = "1.0.0",
+                Id = "Parchment.Test_CampingGuide",
+                Title = "Camping Guide",
+                Description = "A test book for exercising the BookMenu.",
+                Pages = new List<PageData>
+        {
+            new PageData { Id = "cover", Type = PageType.Title, Title = "Camping Guide" },
+            new PageData { Id = "intro", Type = PageType.Text, Title = "Chapter 1", Text = "Welcome to the wilderness! This chapter covers the basics of setting up camp, keeping warm, and not being eaten by anything larger than you are." },
+            new PageData { Id = "tents", Type = PageType.Text, Title = "Tents", Text = "A good tent keeps the rain out and the warmth in. Pitch on flat ground, away from dead branches." },
+            new PageData { Id = "tent-diagram", Type = PageType.Image, ImagePath = "Framework/Assets/testDiagram.png", ImageScale = 4f },
+            new PageData { Id = "campfires", Type = PageType.Text, Title = "Campfires", Text = "Ring your fire with stones. Never leave it unattended. Marshmallows optional but recommended." },
+        }
+            };
+
+            return new Book(bookData, owner: null);
         }
     }
 }
