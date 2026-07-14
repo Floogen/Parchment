@@ -478,7 +478,6 @@ namespace Parchment.Framework.UI.Menus
                 DrawPage(b, pageIndex, left ? GetLeftPageBounds() : GetRightPageBounds());
             }
         }
-
         private void DrawPage(SpriteBatch b, int pageIndex, Rectangle bounds)
         {
             if (pageIndex >= _pages.Count)
@@ -486,43 +485,85 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            Page entry = _pages[pageIndex];
-            PageData data = entry.Data;
+            float currentY = bounds.Y;
 
-            switch (data.Type)
+            foreach (PageElementData element in _pages[pageIndex].Data.Elements)
             {
-                case PageType.Title:
-                    SpriteText.drawStringHorizontallyCenteredAt(b, data.Title ?? string.Empty, bounds.Center.X, bounds.Y);
-                    break;
+                float elementHeight = DrawElement(b, element, bounds, currentY);
+                currentY += elementHeight + element.SpacingAfter;
 
-                case PageType.Text:
-                    if (data.Title is not null)
-                    {
-                        Utility.drawTextWithShadow(b, data.Title, Game1.dialogueFont, new Vector2(bounds.X, bounds.Y), Game1.textColor);
-                    }
-                    if (data.Text is not null)
-                    {
-                        string wrappedText = Game1.parseText(data.Text, Game1.smallFont, bounds.Width);
-                        Utility.drawTextWithShadow(b, wrappedText, Game1.smallFont, new Vector2(bounds.X, bounds.Y + 64), Game1.textColor);
-                    }
+                if (currentY > bounds.Bottom)
+                {
+                    // TODO: Handle moving overflow content to new page
                     break;
-
-                case PageType.Image:
-                    Texture2D? imageTexture = entry.GetImageTexture();
-                    if (imageTexture is not null)
-                    {
-                        Rectangle sourceRectangle = data.ImageSourceRectangle ?? new Rectangle(0, 0, imageTexture.Width, imageTexture.Height);
-
-                        Vector2 imagePosition = new Vector2(bounds.Center.X - (sourceRectangle.Width * data.ImageScale) / 2f, bounds.Center.Y - (sourceRectangle.Height * data.ImageScale) / 2f);
-                        b.Draw(imageTexture, imagePosition, sourceRectangle, Color.White, 0f, Vector2.Zero, data.ImageScale, SpriteEffects.None, 0.9f);
-                    }
-                    break;
-
-                case PageType.Unknown:
-                default:
-                    // Unhandled, don't render
-                    break;
+                }
             }
+        }
+
+        private float DrawElement(SpriteBatch b, PageElementData element, Rectangle bounds, float y)
+        {
+            switch (element.Type)
+            {
+                case PageElementType.Title:
+                    {
+                        string text = element.Text ?? string.Empty;
+                        Vector2 size = new Vector2(SpriteText.getWidthOfString(text, bounds.Width), SpriteText.getHeightOfString(text, bounds.Width));
+                        float x = GetAlignedX(bounds, size.X, element.Alignment);
+                        SpriteText.drawStringHorizontallyCenteredAt(b, text, (int)x, (int)y);
+                        return size.Y;
+                    }
+                case PageElementType.Header:
+                    {
+                        string text = element.Text ?? string.Empty;
+                        Vector2 size = Game1.dialogueFont.MeasureString(text);
+                        float x = GetAlignedX(bounds, size.X, element.Alignment);
+                        Utility.drawTextWithShadow(b, text, Game1.dialogueFont, new Vector2(x, y), Game1.textColor);
+                        return size.Y;
+                    }
+                case PageElementType.Paragraph:
+                    {
+                        string wrapped = Game1.parseText(element.Text ?? string.Empty, Game1.smallFont, bounds.Width);
+                        Vector2 size = Game1.smallFont.MeasureString(wrapped);
+                        Utility.drawTextWithShadow(b, wrapped, Game1.smallFont, new Vector2(bounds.X, y), Game1.textColor);
+                        return size.Y;
+                    }
+                case PageElementType.Image:
+                    {
+                        // TODO: Handle this
+                        return 0f;
+                        /*
+                        Texture2D? texture = GetElementTexture(element);   // lazy-load via the owner, cached per element
+                        if (texture is null)
+                        {
+                            return 0f;
+                        }
+
+                        Rectangle source = element.ImageSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
+                        float drawnWidth = source.Width * element.ImageScale;
+                        float x = GetAlignedX(bounds, drawnWidth, element.Alignment);
+                        b.Draw(texture, new Vector2(x, y), source, Color.White, 0f, Vector2.Zero, element.ImageScale, SpriteEffects.None, 0.9f);
+                        return source.Height * element.ImageScale;
+                        */
+                    }
+                case PageElementType.Divider:
+                    {
+                        int lineY = (int)y + 4;
+                        b.Draw(Game1.staminaRect, new Rectangle(bounds.X + 16, lineY, bounds.Width - 32, 2), Game1.textColor * 0.4f);
+                        return 10f;
+                    }
+
+                default:
+                    return 0f;
+            }
+        }
+
+        private float GetAlignedX(Rectangle bounds, float contentWidth, AlignmentType alignment)
+        {
+            return alignment switch
+            {
+                AlignmentType.Center => bounds.X + (bounds.Width - contentWidth) / 2f,
+                AlignmentType.Right => bounds.Right - contentWidth, _ => bounds.X
+            };
         }
     }
 }

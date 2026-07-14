@@ -14,7 +14,7 @@ namespace Parchment.Framework.Models
         public PageData Data { get; }
         public IContentPack? Owner { get; }
 
-        private Texture2D? _imageTexture;
+        private Dictionary<PageElementData, Texture2D> _imageTextures = new Dictionary<PageElementData, Texture2D>();
 
         public Page(PageData data, IContentPack? owner)
         {
@@ -22,14 +22,19 @@ namespace Parchment.Framework.Models
             Owner = owner;
         }
 
-        public Texture2D? GetImageTexture()
+        public Texture2D? GetImageTexture(PageElementData data)
         {
-            if (Data.ImagePath is null || Owner is null)
+            if (data.ImagePath is null || Owner is null)
             {
                 return null;
             }
 
-            return _imageTexture ??= Owner.ModContent.Load<Texture2D>(Data.ImagePath);
+            if (_imageTextures.ContainsKey(data) is false)
+            {
+                _imageTextures[data] = Owner.ModContent.Load<Texture2D>(data.ImagePath);
+            }
+
+            return _imageTextures[data];
         }
     }
 }

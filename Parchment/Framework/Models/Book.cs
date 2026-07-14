@@ -20,7 +20,6 @@ namespace Parchment.Framework.Models
             Data = data;
             Owner = owner;
             Pages = data.Pages
-                .OrderBy(page => page.Order)
                 .Select(page => new Page(page, owner))
                 .ToList();
         }
