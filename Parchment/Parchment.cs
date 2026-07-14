@@ -1,8 +1,12 @@
 ﻿using HarmonyLib;
+using Parchment.Framework.Models;
+using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
 using StardewValley;
 using System;
+using System.Collections.Generic;
 
 namespace Parchment
 {
@@ -42,7 +46,14 @@ namespace Parchment
             {
                 // Consume the button press
                 Helper.Input.Suppress(e.Button);
-                Game1.activeClickableMenu = new BookMenu();
+
+                var testPages = new List<PageEntry>
+                {
+                    new PageEntry(new PageData { Id = "cover", Type = PageType.Title, Title = "Camping Guide" }, owner: null),
+                    new PageEntry(new PageData { Id = "intro", Type = PageType.Text, Title = "Chapter 1", Text = "Hello" }, owner: null),
+                    new PageEntry(new PageData { Id = "tent", Type = PageType.Text, Text = "0123" }, owner: null),
+                };
+                Game1.activeClickableMenu = new BookMenu(testPages);
             }
         }
     }
