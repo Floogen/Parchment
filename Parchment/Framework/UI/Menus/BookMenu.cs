@@ -36,7 +36,7 @@ namespace Parchment.Framework.UI.Menus
         private const float SLIDE_DURATION = 350f;
         private const float OPEN_DURATION = 400f;
         private const float CURL_DURATION = 250f;
-        private const float TURN_DURATION = 1000f;
+        private float TURN_DURATION = 500f;
         private const float CLOSE_DURATION = 400f;
 
         // Adjust this for page speed
