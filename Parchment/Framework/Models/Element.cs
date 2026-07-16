@@ -4,6 +4,7 @@ using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Interfaces;
 using StardewModdingAPI;
+using StardewValley;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,7 @@ namespace Parchment.Framework.Models
         public IElementRenderer Renderer { get; }
         public Rectangle Bounds { get; set; }
 
+        public Color Color { get; init; } = Game1.textColor;
         public IFont? Font { get; set; }
 
         public IAssetName? TextureAssetName { get; init; }

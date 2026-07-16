@@ -554,7 +554,7 @@ namespace Parchment.Framework.UI.Menus
 
         private ElementRenderContext BuildRenderContext(Rectangle pageBounds)
         {
-            return new ElementRenderContext(pageBounds.Width, pageBounds.Height, null);
+            return new ElementRenderContext(pageBounds.Width, pageBounds.Height);
         }
 
         private float DrawElement(SpriteBatch b, Page page, ElementData element, Rectangle bounds, float y)

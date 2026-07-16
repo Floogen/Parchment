@@ -21,6 +21,7 @@ namespace Parchment.Framework.Utilities
             { ElementType.Paragraph, typeof(ParagraphElementData) },
             { ElementType.Image, typeof(ImageElementData) },
             { ElementType.Panel, typeof(PanelElementData) },
+            { ElementType.Banner, typeof(BannerElementData) },
         };
 
         public override bool CanConvert(Type objectType)

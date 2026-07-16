@@ -13,7 +13,7 @@ namespace Parchment.Framework.UI.Layouts
         public float DrawScale { get; }
         public Vector2 DrawSize { get; }
 
-        internal ImageLayout(Rectangle sourceRectangle, float drawScale, Vector2 drawSize)
+        public ImageLayout(Rectangle sourceRectangle, float drawScale, Vector2 drawSize)
         {
             SourceRectangle = sourceRectangle;
             DrawScale = drawScale;

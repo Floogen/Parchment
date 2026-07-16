@@ -125,7 +125,7 @@ namespace Parchment.Framework.Managers
                     new PageData {
                         Id = "info", Elements = new List<ElementData>()
                         {
-                            new HeadingElementData() { Text = "Test Text" },
+                            new BannerElementData() { Text = "Test Text", FontType = FontType.Dialogue, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
                             new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow" },
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2", Height = 64,
                                 TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4,

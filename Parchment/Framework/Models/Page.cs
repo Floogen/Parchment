@@ -8,6 +8,7 @@ using Parchment.Framework.UI.Rendering;
 using Parchment.Framework.UI.Rendering.Elements;
 using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
+using StardewValley;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -61,10 +62,12 @@ namespace Parchment.Framework.Models
 
             var element = new Element(data, registration.Renderer)
             { 
-                Font = font, 
+                Font = font,
+                Color = ResolveColor(data) ?? Game1.textColor,
                 TextureAssetName = ResolveTextureAssetName(data),
                 Children = CreateChildren(data, registry, fontResolver)
             };
+
             RefreshTexture(element);
 
             return element;
@@ -88,6 +91,22 @@ namespace Parchment.Framework.Models
             }
 
             return children;
+        }
+
+        private static Color? ResolveColor(ElementData data)
+        {
+            if (data is not ITextContent textContent || string.IsNullOrWhiteSpace(textContent.Color))
+            {
+                return null;
+            }
+
+            if (ColorParser.TryParse(textContent.Color, out Color parsedColor) is false)
+            {
+                Parchment.monitor.Log($"Element has an unparsable color '{textContent.Color}'; using the default.", LogLevel.Warn);
+                return null;
+            }
+
+            return parsedColor;
         }
 
         private static IAssetName? ResolveTextureAssetName(ElementData data)

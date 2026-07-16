@@ -44,7 +44,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             return wrappedText is not null;
         }
 
-        protected void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, Color textColor, float scale)
+        protected void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale)
         {
             float currentY = bounds.Y;
             foreach (WrappedLine line in wrappedText.Lines)
