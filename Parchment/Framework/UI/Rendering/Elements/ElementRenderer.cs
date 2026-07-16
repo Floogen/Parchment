@@ -35,18 +35,5 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 this.Draw(spriteBatch, typedData, element, bounds, context);
             }
         }
-
-        public float GetAlignedX(Rectangle bounds, float contentWidth, AlignmentType alignment)
-        {
-            switch (alignment)
-            {
-                case AlignmentType.Center:
-                    return bounds.X + (bounds.Width - contentWidth) / 2f;
-                case AlignmentType.Right:
-                    return bounds.Right - contentWidth;
-            }
-
-            return bounds.X;
-        }
     }
 }

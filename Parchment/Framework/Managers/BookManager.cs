@@ -112,7 +112,14 @@ namespace Parchment.Framework.Managers
                     new PageData {
                         Id = "cover", Elements = new List<ElementData>() {
                             new TitleElementData() { Text = "Example Guide", Alignment = AlignmentType.Center },
-                            new HeadingElementData() { Text = "By ...", Alignment = AlignmentType.Center }
+                            new HeadingElementData() { Text = "By ...", Alignment = AlignmentType.Center },
+                            new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
+                                TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fixed, Alignment = AlignmentType.Center, Scale = 4,
+                                Children = new List<ElementData>() {
+
+                            new ParagraphElementData() { Text = "This is a fixed panel. Probably. Maybe." },
+                                }
+                            }
                         }
                     },
                     new PageData {
@@ -120,20 +127,21 @@ namespace Parchment.Framework.Managers
                         {
                             new HeadingElementData() { Text = "Test Text" },
                             new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow" },
-                            new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 48, 80), Scale = 2, Alignment = AlignmentType.Center }
+                            new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
+                                TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4,
+                                Children = new List<ElementData>() {
 
+                            new ParagraphElementData() { Text = "This is a fill panel!", Alignment = AlignmentType.Center },
+                                }
+                            }
                         }
                     },
                     new PageData {
                         Id = "test", Elements = new List<ElementData>()
                         {
                             new HeadingElementData() { Text = "Next Page?" },
-                            new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
-                                TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Width = 256, Alignment = AlignmentType.Center,
-                                Children = new List<ElementData>() {
-                                    new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 48, 80), Scale = 2, Alignment = AlignmentType.Center }
-                                }
-                            }
+                            new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center }
+
                         }
                     }
                 }

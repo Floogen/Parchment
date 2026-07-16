@@ -33,7 +33,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             WrappedText wrappedText = TextWrapper.Wrap(this.GetText(data), element.Font, context.AvailableWidth, element.Data.Scale);
             element.LayoutState = wrappedText;
 
-            return new Vector2(context.AvailableWidth, wrappedText.Size.Y);
+            return wrappedText.Size;
         }
 
         protected bool TryGetWrappedText(Element element, out WrappedText wrappedText)

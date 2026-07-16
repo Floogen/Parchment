@@ -6,6 +6,7 @@ using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Layouts;
+using Parchment.Framework.Utilities.Helpers;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
 using System;
@@ -32,7 +33,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
             Vector2 textSize = wrappedText.Size * data.Scale;
             Color textColor = context.DefaultTextColor ?? Game1.textColor;
-            float drawX = GetAlignedX(bounds, wrappedText.Size.X, element.Data.Alignment);
+            float drawX = AlignmentHelper.GetAlignedX(bounds, wrappedText.Size.X, element.Data.Alignment);
 
             element.Font.DrawString(spriteBatch, wrappedText.Text, new Vector2(drawX, bounds.Y), textColor, data.Scale);
         }

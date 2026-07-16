@@ -517,6 +517,7 @@ namespace Parchment.Framework.UI.Menus
                 DrawPage(b, pageIndex, left ? GetLeftPageBounds() : GetRightPageBounds());
             }
         }
+
         private void DrawPage(SpriteBatch b, int pageIndex, Rectangle pageBounds)
         {
             if (pageIndex >= _pages.Count)
@@ -524,22 +525,17 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            float currentY = pageBounds.Y;
-
             var page = _pages[pageIndex];
-
             ElementRenderContext context = EnsureLayout(page, pageBounds);
             foreach (var element in page.Elements)
             {
-                Rectangle screenBounds = new Rectangle(pageBounds.X, element.Bounds.Y + pageBounds.Y, pageBounds.Width, pageBounds.Height);
-                element.Renderer.Draw(b, element, screenBounds, context);
-
-                currentY = screenBounds.Y;
-                if (currentY > pageBounds.Bottom)
+                if (element.Bounds == Rectangle.Empty)
                 {
-                    // TODO: Handle moving overflow content to new page
-                    break;
+                    continue;
                 }
+
+                Rectangle screenBounds = new Rectangle(element.Bounds.X + pageBounds.X, element.Bounds.Y + pageBounds.Y, element.Bounds.Width, element.Bounds.Height);
+                element.Renderer.Draw(b, element, screenBounds, context);
             }
         }
 
@@ -556,12 +552,9 @@ namespace Parchment.Framework.UI.Menus
             return context;
         }
 
-        private ElementRenderContext BuildRenderContext(Rectangle pageContentBounds)
+        private ElementRenderContext BuildRenderContext(Rectangle pageBounds)
         {
-            return new ElementRenderContext()
-            {
-                AvailableWidth = pageContentBounds.Width
-            };
+            return new ElementRenderContext(pageBounds.Width, pageBounds.Height, null);
         }
 
         private float DrawElement(SpriteBatch b, Page page, ElementData element, Rectangle bounds, float y)

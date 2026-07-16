@@ -26,6 +26,8 @@ namespace Parchment.Framework.Models
 
         internal object? LayoutState { get; set; }
 
+        public IReadOnlyList<Element> Children { get; init; } = Array.Empty<Element>();
+
         public Element(ElementData data, IElementRenderer renderer)
         {
             this.Data = data;

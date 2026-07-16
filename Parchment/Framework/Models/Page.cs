@@ -5,6 +5,8 @@ using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Rendering;
+using Parchment.Framework.UI.Rendering.Elements;
+using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using System;
 using System.Collections.Generic;
@@ -57,10 +59,35 @@ namespace Parchment.Framework.Models
                 font = fontResolver.Resolve(textContent.FontType);
             }
 
-            var element = new Element(data, registration.Renderer) { Font = font, TextureAssetName = ResolveTextureAssetName(data) };
+            var element = new Element(data, registration.Renderer)
+            { 
+                Font = font, 
+                TextureAssetName = ResolveTextureAssetName(data),
+                Children = CreateChildren(data, registry, fontResolver)
+            };
             RefreshTexture(element);
 
             return element;
+        }
+
+        private IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver)
+        {
+            if (data is not IContainer container || container.Children is null)
+            {
+                return Array.Empty<Element>();
+            }
+
+            var children = new List<Element>();
+            foreach (ElementData childData in container.Children)
+            {
+                var child = Create(childData, registry, fontResolver);
+                if (child is not null)
+                {
+                    children.Add(child);
+                }
+            }
+
+            return children;
         }
 
         private static IAssetName? ResolveTextureAssetName(ElementData data)
@@ -126,18 +153,49 @@ namespace Parchment.Framework.Models
             }
         }
 
+        // Keep this static so it can be called outside Page
+        public static float StackElements(IReadOnlyList<Element> elements, ElementRenderContext context)
+        {
+            float currentY = 0f;
+
+            for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++)
+            {
+                Element element = elements[elementIndex];
+
+                // Only stop rendering if it is past the AvailableHeight AND it already has rendered at least one element
+                if (elementIndex > 0 && currentY >= context.AvailableHeight)
+                {
+                    element.Bounds = Rectangle.Empty;
+                    continue;
+                }
+
+                Vector2 elementSize = element.Renderer.Measure(element, context);
+                float elementX = AlignmentHelper.GetAlignedX(availableWidth: context.AvailableWidth, contentWidth: elementSize.X, alignment: element.Data.Alignment);
+
+                element.Bounds = new Rectangle((int)elementX, (int)currentY, (int)elementSize.X, (int)elementSize.Y);
+                currentY += elementSize.Y;
+
+                if (elementIndex < elements.Count - 1)
+                {
+                    currentY += element.Data.SpacingAfter * element.Data.Scale;
+                }
+            }
+
+            return currentY;
+        }
+
+
+
         /// <summary>
         /// This should be called anytime the UI changes for scaling / width
         /// </summary>
         public void PerformLayout(ElementRenderContext context)
         {
-            float currentY = 0f;
+            float contentHeight = StackElements(Elements, context);
 
-            foreach (Element element in this.Elements)
+            if (contentHeight > context.AvailableHeight)
             {
-                Vector2 elementSize = element.Renderer.Measure(element, context);
-                element.Bounds = new Rectangle(0, (int)currentY, (int)elementSize.X, (int)elementSize.Y);
-                currentY += elementSize.Y + element.Data.SpacingAfter * element.Data.Scale;
+                Parchment.monitor.LogOnce($"Page content is {(int)contentHeight}px tall but the page is only {(int)context.AvailableHeight}px, content will overflow!", LogLevel.Warn);
             }
 
             LastLayoutContext = context;

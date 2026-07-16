@@ -7,6 +7,7 @@ using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Layouts;
 using Parchment.Framework.Utilities;
+using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
@@ -44,9 +45,11 @@ namespace Parchment.Framework.UI.Rendering.Elements
             }
 
             Vector2 drawSize = new Vector2(sourceRectangle.Width * drawScale, sourceRectangle.Height * drawScale);
-            element.LayoutState = new ImageLayout(sourceRectangle, drawScale, drawSize);
+            var imageLayout = new ImageLayout(sourceRectangle, drawScale, drawSize);
+            element.LayoutState = imageLayout;
 
-            return new Vector2(context.AvailableWidth, drawSize.Y);
+            // ImageElementRenderer.Measure
+            return new Vector2(imageLayout.DrawSize.X, imageLayout.DrawSize.Y);
         }
 
         protected override void Draw(SpriteBatch spriteBatch, ImageElementData data, Element element, Rectangle bounds, ElementRenderContext context)
@@ -62,8 +65,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             }
 
             //float drawX = bounds.X + (bounds.Width - imageLayout.DrawSize.X) / 2f;
-            float drawX = GetAlignedX(bounds, imageLayout.DrawSize.X, element.Data.Alignment);
-            spriteBatch.Draw(element.Texture, new Vector2(drawX, bounds.Y), imageLayout.SourceRectangle, Color.White, 0f, Vector2.Zero, imageLayout.DrawScale, SpriteEffects.None, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), imageLayout.SourceRectangle, Color.White, 0f, Vector2.Zero, imageLayout.DrawScale, SpriteEffects.None, LAYER_DEPTH);
         }
     }
 }

@@ -9,10 +9,15 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.UI.Rendering
 {
-    public class ElementRenderContext
+    public readonly record struct ElementRenderContext(float AvailableWidth, float AvailableHeight, Color? DefaultTextColor)
     {
-        public float AvailableWidth { get; init; }
-
-        public Color? DefaultTextColor { get; init; }
+        public ElementRenderContext WithWidth(float availableWidth)
+        {
+            return this with { AvailableWidth = availableWidth };
+        }
+        public ElementRenderContext WithSize(float availableWidth, float availableHeight)
+        {
+            return this with { AvailableWidth = availableWidth, AvailableHeight = availableHeight };
+        }
     }
 }

@@ -11,28 +11,40 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.Models.Data
 {
-    public class PanelElementData : ElementData, ISprite
+    public class PanelElementData : ElementData, ISprite, IContainer
     {
         public override ElementType Type => ElementType.Panel;
 
+        /// <summary>
+        /// Optional. If not given, the panel will have no background.
+        /// Note: Texture must support 9-slice scaling
+        /// </summary>
         public string? TexturePath { get; set; }
         public Rectangle? TextureSourceRectangle { get; set; }
 
-        /// <summary>
-        /// Optional. If not given, fill the entire Page's width
-        /// </summary>
-        public int? Width { get; set; }
-        /// <summary>
-        /// Optional. If not given, increase based on total height needed by Children
-        /// </summary>
-        public int Height { get; set; }
-
-        // Sub-elements
         public List<ElementData>? Children { get; set; }
+
+        /// <summary>
+        /// Increases space between children and panel's border.
+        /// </summary>
+        public int Padding { get; set; } = 0;
+
+        public SizingMode Sizing { get; set; } = SizingMode.Fill;
+        public int? Width { get; set; }
 
         public override (bool Result, string Error) IsValid()
         {
-            throw new NotImplementedException();
+            if (Sizing is SizingMode.Fixed && Width is null)
+            {
+                return (false, $"\"Width\" is required when \"Sizing\" is {nameof(SizingMode.Fixed)}.");
+            }
+
+            if (Width is int width && width <= 0)
+            {
+                return (false, $"\"Width\" must be positive.");
+            }
+
+            return (true, string.Empty);
         }
     }
 }
