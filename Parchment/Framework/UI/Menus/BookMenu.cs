@@ -487,9 +487,10 @@ namespace Parchment.Framework.UI.Menus
 
             float currentY = bounds.Y;
 
-            foreach (PageElementData element in _pages[pageIndex].Data.Elements)
+            var page = _pages[pageIndex];
+            foreach (PageElementData element in page.Data.Elements)
             {
-                float elementHeight = DrawElement(b, element, bounds, currentY);
+                float elementHeight = DrawElement(b, page, element, bounds, currentY);
                 currentY += elementHeight + element.SpacingAfter;
 
                 if (currentY > bounds.Bottom)
@@ -500,17 +501,17 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
-        private float DrawElement(SpriteBatch b, PageElementData element, Rectangle bounds, float y)
+        private float DrawElement(SpriteBatch b, Page page, PageElementData element, Rectangle bounds, float y)
         {
             switch (element.Type)
             {
                 case PageElementType.Title:
                     {
                         string text = element.Text ?? string.Empty;
-                        Vector2 size = new Vector2(SpriteText.getWidthOfString(text, bounds.Width), SpriteText.getHeightOfString(text, bounds.Width));
-                        float x = GetAlignedX(bounds, size.X, element.Alignment);
-                        SpriteText.drawStringHorizontallyCenteredAt(b, text, (int)x, (int)y);
-                        return size.Y;
+                        float textWidth = SpriteText.getWidthOfString(text);
+                        float x = GetAlignedX(bounds, textWidth, element.Alignment);
+                        SpriteText.drawString(b, text, (int)x, (int)y);
+                        return SpriteText.getHeightOfString(text);
                     }
                 case PageElementType.Header:
                     {
@@ -529,10 +530,7 @@ namespace Parchment.Framework.UI.Menus
                     }
                 case PageElementType.Image:
                     {
-                        // TODO: Handle this
-                        return 0f;
-                        /*
-                        Texture2D? texture = GetElementTexture(element);   // lazy-load via the owner, cached per element
+                        Texture2D? texture = page.GetElementTexture(element);
                         if (texture is null)
                         {
                             return 0f;
@@ -543,7 +541,6 @@ namespace Parchment.Framework.UI.Menus
                         float x = GetAlignedX(bounds, drawnWidth, element.Alignment);
                         b.Draw(texture, new Vector2(x, y), source, Color.White, 0f, Vector2.Zero, element.ImageScale, SpriteEffects.None, 0.9f);
                         return source.Height * element.ImageScale;
-                        */
                     }
                 case PageElementType.Divider:
                     {

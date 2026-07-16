@@ -63,7 +63,7 @@ namespace Parchment
                 {
                     new PageData { Id = "cover", Elements = new List<PageElementData>() { new PageElementData() { Type = PageElementType.Title, Text = "Camping Guide", Alignment = AlignmentType.Center } } },
                     new PageData { Id = "info", Elements = new List<PageElementData>() { new PageElementData() { Type = PageElementType.Header, Text = "Test Text" }, new PageElementData() { Type = PageElementType.Paragraph, Text = "Wow wow" } } },
-                    new PageData { Id = "test", Elements = new List<PageElementData>() { new PageElementData() { Type = PageElementType.Header, Text = "Next Page?" } } }
+                    new PageData { Id = "test", Elements = new List<PageElementData>() { new PageElementData() { Type = PageElementType.Header, Text = "Next Page?" }, new PageElementData { Type = PageElementType.Image, ImagePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", ImageSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 48, 80) , Alignment = AlignmentType.Center } } }
                 }
             };
 
