@@ -15,6 +15,7 @@ namespace Parchment.Framework.Models.Data
     public class ParagraphElementData : ElementData, ITextContent
     {
         public override ElementType Type => ElementType.Paragraph;
+        public FontType FontType { get; set; } = FontType.Small;
 
         public string? Text { get; set; }
 

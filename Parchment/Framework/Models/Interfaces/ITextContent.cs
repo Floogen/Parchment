@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Parchment.Framework.Models.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,7 @@ namespace Parchment.Framework.Models.Interfaces
 {
     public interface ITextContent
     {
+        public FontType FontType { get; }
         public string? Text { get; set; }
     }
 }

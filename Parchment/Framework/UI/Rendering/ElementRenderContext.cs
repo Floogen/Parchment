@@ -13,10 +13,6 @@ namespace Parchment.Framework.UI.Rendering
     {
         public float AvailableWidth { get; init; }
 
-        public SpriteFont? TitleFont { get; init; }
-        public SpriteFont? HeaderFont { get; init; }
-        public SpriteFont? BodyFont { get; init; }
-
         public Color? DefaultTextColor { get; init; }
     }
 }

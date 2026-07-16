@@ -6,6 +6,7 @@ using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.Utilities;
+using StardewModdingAPI;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
 using System;
@@ -19,16 +20,20 @@ namespace Parchment.Framework.UI.Rendering.Elements
     public abstract class TextElementRenderer<TElement> : ElementRenderer<TElement> where TElement : ElementData
     {
         protected abstract string GetText(TElement data);
-        protected abstract SpriteFont GetFont(TElement data, ElementRenderContext context);
-
 
         protected override Vector2 Measure(TElement data, Element element, ElementRenderContext context)
         {
-            SpriteFont font = this.GetFont(data, context);
-            WrappedText wrappedText = TextWrapper.Wrap(this.GetText(data), font, context.AvailableWidth / data.Scale);
+            if (element.Font is null)
+            {
+                Parchment.monitor.Log($"{this.GetType().Name} has no resolved font (element will not render).", LogLevel.Warn);
+                element.LayoutState = null;
+                return Vector2.Zero;
+            }
+
+            WrappedText wrappedText = TextWrapper.Wrap(this.GetText(data), element.Font, context.AvailableWidth, element.Data.Scale);
             element.LayoutState = wrappedText;
 
-            return new Vector2(context.AvailableWidth, wrappedText.Size.Y * data.Scale);
+            return new Vector2(context.AvailableWidth, wrappedText.Size.Y);
         }
 
         protected bool TryGetWrappedText(Element element, out WrappedText wrappedText)

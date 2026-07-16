@@ -15,6 +15,7 @@ namespace Parchment.Framework.Models.Data
     public class TitleElementData : ElementData, ITextContent
     {
         public override ElementType Type => ElementType.Title;
+        public FontType FontType { get; set; } = FontType.SpriteText;
 
         public string? Text { get; set; }
 

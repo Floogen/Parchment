@@ -2,6 +2,8 @@
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Interfaces;
+using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Rendering;
 using StardewModdingAPI;
 using System;
@@ -83,7 +85,13 @@ namespace Parchment.Framework.Models
                 return null;
             }
 
-            return new Element(data, registration.Renderer);
+            IFont? font = null;
+            if (data is ITextContent textContent)
+            {
+                font = FontResolver.Resolve(textContent.FontType);
+            }
+
+            return new Element(data, registration.Renderer) { Font = font};
         }
     }
 }

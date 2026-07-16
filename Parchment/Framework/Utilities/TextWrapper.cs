@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Parchment.Framework.Models.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +25,7 @@ namespace Parchment.Framework.Utilities
     {
         private const char HYPHEN = '-';
 
-        public static WrappedText Wrap(string text, SpriteFont font, float maxWidth, bool hyphenateBrokenWords = false)
+        public static WrappedText Wrap(string text, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords = false)
         {
             if (string.IsNullOrEmpty(text) || maxWidth <= 0f)
             {
@@ -35,15 +36,15 @@ namespace Parchment.Framework.Utilities
 
             foreach (string hardLine in text.Replace("\r\n", "\n").Split('\n'))
             {
-                WrapSingleLine(lines, hardLine, font, maxWidth, hyphenateBrokenWords);
+                WrapSingleLine(lines, hardLine, font, maxWidth, scale, hyphenateBrokenWords);
             }
 
             string wrappedText = string.Join("\n", lines);
 
-            return new WrappedText(wrappedText, font.MeasureString(wrappedText));
+            return new WrappedText(wrappedText, font.MeasureString(wrappedText, scale));
         }
 
-        private static void WrapSingleLine(List<string> lines, string line, SpriteFont font, float maxWidth, bool hyphenateBrokenWords)
+        private static void WrapSingleLine(List<string> lines, string line, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords)
         {
             if (line.Length is 0)
             {
@@ -57,7 +58,7 @@ namespace Parchment.Framework.Utilities
             {
                 string candidateLine = currentLine.Length is 0 ? word : $"{currentLine} {word}";
 
-                if (font.MeasureString(candidateLine).X <= maxWidth)
+                if (font.MeasureString(candidateLine, scale).X <= maxWidth)
                 {
                     currentLine = candidateLine;
                     continue;
@@ -69,13 +70,13 @@ namespace Parchment.Framework.Utilities
                     currentLine = string.Empty;
                 }
 
-                if (font.MeasureString(word).X <= maxWidth)
+                if (font.MeasureString(word, scale).X <= maxWidth)
                 {
                     currentLine = word;
                     continue;
                 }
 
-                currentLine = BreakLongWord(lines, word, font, maxWidth, hyphenateBrokenWords);
+                currentLine = BreakLongWord(lines, word, font, maxWidth, scale, hyphenateBrokenWords);
             }
 
             if (currentLine.Length > 0)
@@ -84,7 +85,7 @@ namespace Parchment.Framework.Utilities
             }
         }
 
-        private static string BreakLongWord(List<string> lines, string word, SpriteFont font, float maxWidth, bool hyphenateBrokenWords)
+        private static string BreakLongWord(List<string> lines, string word, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords)
         {
             int segmentStart = 0;
 
@@ -103,7 +104,7 @@ namespace Parchment.Framework.Utilities
                         candidateSegment += HYPHEN;
                     }
 
-                    if (font.MeasureString(candidateSegment).X > maxWidth)
+                    if (font.MeasureString(candidateSegment, scale).X > maxWidth)
                     {
                         break;
                     }

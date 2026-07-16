@@ -23,14 +23,9 @@ namespace Parchment.Framework.UI.Rendering.Elements
             return data.Text ?? string.Empty;
         }
 
-        protected override SpriteFont GetFont(HeadingElementData data, ElementRenderContext context)
-        {
-            return context.TitleFont ?? Game1.dialogueFont;
-        }
-
         protected override void Draw(SpriteBatch spriteBatch, HeadingElementData data, Element element, Rectangle bounds, ElementRenderContext context)
         {
-            if (this.TryGetWrappedText(element, out WrappedText wrappedText) is false)
+            if (this.TryGetWrappedText(element, out WrappedText wrappedText) is false || element.Font is null)
             {
                 return;
             }
@@ -39,7 +34,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             Color textColor = context.DefaultTextColor ?? Game1.textColor;
             float drawX = GetAlignedX(bounds, wrappedText.Size.X, element.Data.Alignment);
 
-            Utility.drawTextWithShadow(spriteBatch, wrappedText.Text, GetFont(data, context), new Vector2(drawX, bounds.Y), textColor, data.Scale);
+            element.Font.DrawString(spriteBatch, wrappedText.Text, new Vector2(drawX, bounds.Y), textColor, data.Scale);
         }
     }
 }
