@@ -10,13 +10,11 @@ namespace Parchment.Framework.UI.Rendering
     public class ElementRegistration
     {
         public string Key { get; }
-        public Type DataType { get; }
         public IElementRenderer Renderer { get; }
 
-        public ElementRegistration(string key, Type type, IElementRenderer elementRenderer)
+        public ElementRegistration(string key, IElementRenderer elementRenderer)
         {
             Key = key;
-            DataType = type;
             Renderer = elementRenderer;
         }
     }

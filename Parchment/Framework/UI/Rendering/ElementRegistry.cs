@@ -23,7 +23,7 @@ namespace Parchment.Framework.UI.Rendering
             }
         }
 
-        public void Register(string key, Type dataType, IElementRenderer renderer)
+        public void Register(string key, IElementRenderer renderer)
         {
             if (string.IsNullOrWhiteSpace(key))
             {
@@ -35,29 +35,24 @@ namespace Parchment.Framework.UI.Rendering
                 throw new ArgumentException($"Element key {key} is already registered.", nameof(key));
             }
 
-            if (typeof(ElementData).IsAssignableFrom(dataType) is false)
-            {
-                throw new ArgumentException($"Data type {dataType.Name} must derive from ElementData.", nameof(dataType));
-            }
-
-            _registrationsByKey[key] = new ElementRegistration(key, dataType, renderer);
+            _registrationsByKey[key] = new ElementRegistration(key, renderer);
         }
 
-        public void Register(ElementType elementType, Type dataType, IElementRenderer renderer)
+        public void Register(ElementType elementType, IElementRenderer renderer)
         {
             if (elementType is ElementType.Unknown)
             {
                 throw new ArgumentException("Cannot register a renderer for ElementType.Unknown.", nameof(elementType));
             }
 
-            this.Register(elementType.ToString(), dataType, renderer);
+            this.Register(elementType.ToString(), renderer);
         }
 
         public void RegisterDefaults()
         {
-            this.Register(ElementType.Title, typeof(TitleElementData), new TitleElementRenderer());
-            this.Register(ElementType.Heading, typeof(HeadingElementData), new HeadingElementRenderer());
-            this.Register(ElementType.Paragraph, typeof(ParagraphElementData), new ParagraphElementRenderer());
+            this.Register(ElementType.Title, new TitleElementRenderer());
+            this.Register(ElementType.Heading, new HeadingElementRenderer());
+            this.Register(ElementType.Paragraph, new ParagraphElementRenderer());
         }
 
         public bool TryResolve(string key, out ElementRegistration registration)

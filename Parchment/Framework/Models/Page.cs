@@ -18,6 +18,8 @@ namespace Parchment.Framework.Models
         public PageData Data { get; }
 
         public List<Element> Elements { get; } =  new List<Element>();
+        public ElementRenderContext LastLayoutContext;
+
         private Dictionary<ElementData, Texture2D> _imageTextures = new Dictionary<ElementData, Texture2D>();
 
         public Page(PageData data, ElementRegistry registry)
@@ -32,8 +34,6 @@ namespace Parchment.Framework.Models
                     Elements.Add(element);
                 }
             }
-
-            PerformLayout();
         }
 
         public Texture2D? GetElementTexture(ElementData data)
@@ -61,16 +61,18 @@ namespace Parchment.Framework.Models
         /// <summary>
         /// This should be called anytime the UI changes for scaling / width
         /// </summary>
-        public void PerformLayout()
+        public void PerformLayout(ElementRenderContext context)
         {
             float currentY = 0f;
 
             foreach (Element element in this.Elements)
             {
-                Vector2 elementSize = element.Renderer.Measure(element.Data);
+                Vector2 elementSize = element.Renderer.Measure(element, context);
                 element.Bounds = new Rectangle(0, (int)currentY, (int)elementSize.X, (int)elementSize.Y);
                 currentY += elementSize.Y + element.Data.SpacingAfter * element.Data.Scale;
             }
+
+            LastLayoutContext = context;
         }
 
         private Element? Create(ElementData data, ElementRegistry registry)

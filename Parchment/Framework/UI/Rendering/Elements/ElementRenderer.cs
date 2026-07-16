@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
@@ -13,24 +14,25 @@ namespace Parchment.Framework.UI.Rendering.Elements
 {
     public abstract class ElementRenderer<TElement> : IElementRenderer where TElement : ElementData
     {
-        protected abstract Vector2 Measure(TElement element);
-        protected abstract void Draw(SpriteBatch spriteBatch, TElement element, Rectangle bounds);
+        public Type DataType => typeof(TElement);
+        protected abstract Vector2 Measure(TElement data, Element element, ElementRenderContext context);
+        protected abstract void Draw(SpriteBatch spriteBatch, TElement data, Element element, Rectangle bounds, ElementRenderContext context);
 
-        Vector2 IElementRenderer.Measure(ElementData element)
+        Vector2 IElementRenderer.Measure(Element element, ElementRenderContext context)
         {
-            if (element is TElement typedElement)
+            if (element.Data is TElement typedData)
             {
-                return this.Measure(typedElement);
+                return this.Measure(typedData, element, context);
             }
 
             return Vector2.Zero;
         }
 
-        void IElementRenderer.Draw(SpriteBatch spriteBatch, ElementData element, Rectangle bounds)
+        void IElementRenderer.Draw(SpriteBatch spriteBatch, Element element, Rectangle bounds, ElementRenderContext context)
         {
-            if (element is TElement typedElement)
+            if (element.Data is TElement typedData)
             {
-                this.Draw(spriteBatch, typedElement, bounds);
+                this.Draw(spriteBatch, typedData, element, bounds, context);
             }
         }
 

@@ -22,7 +22,7 @@ namespace Parchment.Framework.Models.Data.Elements
         /// Optional. If given, increases buffer between elements.
         /// </summary>
         public virtual int SpacingAfter { get; set; } = 8;
-        public float Scale { get; set; } = 4f;
+        public float Scale { get; set; } = 1f;
 
         public override (bool Result, string Error) IsValid()
         {

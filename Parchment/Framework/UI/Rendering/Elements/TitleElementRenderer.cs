@@ -1,9 +1,11 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
+using Parchment.Framework.Utilities;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
 using System;
@@ -14,21 +16,30 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.UI.Rendering.Elements
 {
-    public class TitleElementRenderer : ElementRenderer<TitleElementData>
+    public class TitleElementRenderer : TextElementRenderer<TitleElementData>
     {
-        protected override Vector2 Measure(TitleElementData element)
+        protected override string GetText(TitleElementData data)
         {
-            string text = element.Text ?? string.Empty;
-
-            return new Vector2(SpriteText.getWidthOfString(text), SpriteText.getHeightOfString(text));
+            return data.Text ?? string.Empty;
         }
 
-        protected override void Draw(SpriteBatch spriteBatch, TitleElementData element, Rectangle bounds)
+        protected override SpriteFont GetFont(TitleElementData data, ElementRenderContext context)
         {
-            string text = element.Text ?? string.Empty;
-            float textWidth = SpriteText.getWidthOfString(text);
-            float x = GetAlignedX(bounds, textWidth, element.Alignment);
-            SpriteText.drawString(spriteBatch, text, (int)x, (int)bounds.Y);
+            return context.TitleFont ?? Game1.dialogueFont;
+        }
+
+        protected override void Draw(SpriteBatch spriteBatch, TitleElementData data, Element element, Rectangle bounds, ElementRenderContext context)
+        {
+            if (this.TryGetWrappedText(element, out WrappedText wrappedText) is false)
+            {
+                return;
+            }
+
+            Vector2 textSize = wrappedText.Size * data.Scale;
+            Color textColor = context.DefaultTextColor ?? Game1.textColor;
+            float drawX = GetAlignedX(bounds, wrappedText.Size.X, element.Data.Alignment);
+
+            Utility.drawTextWithShadow(spriteBatch, wrappedText.Text, GetFont(data, context), new Vector2(drawX, bounds.Y), textColor, data.Scale);
         }
     }
 }

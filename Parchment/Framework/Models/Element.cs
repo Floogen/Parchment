@@ -19,6 +19,8 @@ namespace Parchment.Framework.Models
         public IElementRenderer Renderer { get; }
         public Rectangle Bounds { get; set; }
 
+        internal object LayoutState { get; set; }
+
         public Element(ElementData data, IElementRenderer renderer)
         {
             this.Data = data;

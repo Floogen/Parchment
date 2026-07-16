@@ -110,7 +110,7 @@ namespace Parchment
                         Id = "info", Elements = new List<ElementData>()
                         { 
                             new HeadingElementData() { Text = "Test Text" }, 
-                            new ParagraphElementData() { Text = "Wow wow" }
+                            new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow" }
                         }
                     },
                     new PageData {

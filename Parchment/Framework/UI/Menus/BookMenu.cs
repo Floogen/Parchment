@@ -5,6 +5,7 @@ using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
+using Parchment.Framework.UI.Rendering;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
 using StardewValley.Menus;
@@ -480,28 +481,51 @@ namespace Parchment.Framework.UI.Menus
                 DrawPage(b, pageIndex, left ? GetLeftPageBounds() : GetRightPageBounds());
             }
         }
-        private void DrawPage(SpriteBatch b, int pageIndex, Rectangle bounds)
+        private void DrawPage(SpriteBatch b, int pageIndex, Rectangle pageBounds)
         {
             if (pageIndex >= _pages.Count)
             {
                 return;
             }
 
-            float currentY = bounds.Y;
+            float currentY = pageBounds.Y;
 
             var page = _pages[pageIndex];
+
+            ElementRenderContext context = EnsureLayout(page, pageBounds);
             foreach (var element in page.Elements)
             {
-                Rectangle screenBounds = new Rectangle(bounds.X, element.Bounds.Y + bounds.Y, bounds.Width, bounds.Height);
-                element.Renderer.Draw(b, element.Data, screenBounds);
+                Rectangle screenBounds = new Rectangle(pageBounds.X, element.Bounds.Y + pageBounds.Y, pageBounds.Width, pageBounds.Height);
+                element.Renderer.Draw(b, element, screenBounds, context);
 
                 currentY = screenBounds.Y;
-                if (currentY > bounds.Bottom)
+                if (currentY > pageBounds.Bottom)
                 {
                     // TODO: Handle moving overflow content to new page
                     break;
                 }
             }
+        }
+
+        private ElementRenderContext EnsureLayout(Page page, Rectangle pageContentBounds)
+        {
+            ElementRenderContext context = this.BuildRenderContext(pageContentBounds);
+
+            if (page.LastLayoutContext != context)
+            {
+                page.PerformLayout(context);
+                page.LastLayoutContext = context;
+            }
+
+            return context;
+        }
+
+        private ElementRenderContext BuildRenderContext(Rectangle pageContentBounds)
+        {
+            return new ElementRenderContext()
+            {
+                AvailableWidth = pageContentBounds.Width
+            };
         }
 
         private float DrawElement(SpriteBatch b, Page page, ElementData element, Rectangle bounds, float y)
@@ -514,7 +538,7 @@ namespace Parchment.Framework.UI.Menus
                     {
                         string text = element.Text ?? string.Empty;
                         float textWidth = SpriteText.getWidthOfString(text);
-                        float x = GetAlignedX(bounds, textWidth, element.Alignment);
+                        float x = GetAlignedX(pageBounds, textWidth, element.Alignment);
                         SpriteText.drawString(b, text, (int)x, (int)y);
                         return SpriteText.getHeightOfString(text);
                     }
@@ -522,15 +546,15 @@ namespace Parchment.Framework.UI.Menus
                     {
                         string text = element.Text ?? string.Empty;
                         Vector2 size = Game1.dialogueFont.MeasureString(text);
-                        float x = GetAlignedX(bounds, size.X, element.Alignment);
+                        float x = GetAlignedX(pageBounds, size.X, element.Alignment);
                         Utility.drawTextWithShadow(b, text, Game1.dialogueFont, new Vector2(x, y), Game1.textColor);
                         return size.Y;
                     }
                 case ElementType.Paragraph:
                     {
-                        string wrapped = Game1.parseText(element.Text ?? string.Empty, Game1.smallFont, bounds.Width);
+                        string wrapped = Game1.parseText(element.Text ?? string.Empty, Game1.smallFont, pageBounds.Width);
                         Vector2 size = Game1.smallFont.MeasureString(wrapped);
-                        Utility.drawTextWithShadow(b, wrapped, Game1.smallFont, new Vector2(bounds.X, y), Game1.textColor);
+                        Utility.drawTextWithShadow(b, wrapped, Game1.smallFont, new Vector2(pageBounds.X, y), Game1.textColor);
                         return size.Y;
                     }
                 case ElementType.Image:
@@ -543,23 +567,23 @@ namespace Parchment.Framework.UI.Menus
 
                         Rectangle source = element.TextureSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
                         float drawnWidth = source.Width * element.Scale;
-                        float x = GetAlignedX(bounds, drawnWidth, element.Alignment);
+                        float x = GetAlignedX(pageBounds, drawnWidth, element.Alignment);
                         b.Draw(texture, new Vector2(x, y), source, Color.White, 0f, Vector2.Zero, element.Scale, SpriteEffects.None, 0.9f);
                         return source.Height * element.Scale;
                     }
                 case ElementType.Divider:
                     {
                         int lineY = (int)y + 4;
-                        b.Draw(Game1.staminaRect, new Rectangle(bounds.X + 16, lineY, bounds.Width - 32, 2), Game1.textColor * 0.4f);
+                        b.Draw(Game1.staminaRect, new Rectangle(pageBounds.X + 16, lineY, pageBounds.Width - 32, 2), Game1.textColor * 0.4f);
                         return 10f;
                     }
                 case ElementType.Panel:
                     {
                         var panel = element as PanelElementData;
 
-                        float panelHeight = MeasureElement(page, element, bounds.Width);
-                        int panelWidth = panel.Width ?? bounds.Width;
-                        float x = GetAlignedX(bounds, panelWidth, element.Alignment);
+                        float panelHeight = MeasureElement(page, element, pageBounds.Width);
+                        int panelWidth = panel.Width ?? pageBounds.Width;
+                        float x = GetAlignedX(pageBounds, panelWidth, element.Alignment);
 
                         if (element.TexturePath is null)
                         {
@@ -584,7 +608,7 @@ namespace Parchment.Framework.UI.Menus
 
                             foreach (var child in panel.Children)
                             {
-                                DrawElement(b, page, child, bounds, y);
+                                DrawElement(b, page, child, pageBounds, y);
                             }
                         }
 
