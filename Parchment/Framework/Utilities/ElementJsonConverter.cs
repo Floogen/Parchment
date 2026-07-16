@@ -13,6 +13,7 @@ namespace Parchment.Framework.Utilities
 {
     public class ElementJsonConverter : JsonConverter
     {
+        // When a new ElementType is created, it should be mapped here to a Data model
         private static readonly Dictionary<ElementType, Type> ELEMENT_TYPE_MAP = new Dictionary<ElementType, Type>()
         {
             { ElementType.Title, typeof(TitleElementData) },

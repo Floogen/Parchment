@@ -48,6 +48,7 @@ namespace Parchment.Framework.UI.Rendering
             this.Register(elementType.ToString(), renderer);
         }
 
+        // When a new ElementType is created, its renderer should be registered here
         public void RegisterDefaults()
         {
             this.Register(ElementType.Title, new TitleElementRenderer());
