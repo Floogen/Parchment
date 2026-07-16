@@ -7,6 +7,34 @@
       "Target": "Assets/PeacefulEnd.Parchment/panelFrame1, Assets/PeacefulEnd.Parchment/panelFrame2, Assets/PeacefulEnd.Parchment/imageBackground1, Assets/PeacefulEnd.Parchment/imageBackground2, Assets/PeacefulEnd.Parchment/backgroundNoise1, Assets/PeacefulEnd.Parchment/curlPage, Assets/PeacefulEnd.Parchment/smallBook, Assets/PeacefulEnd.Parchment/smallBookGrayscale",
       "FromFile": "assets/{{TargetWithoutPath}}.png"
     },
+    {
+      "Action": "EditData",
+      "Target": "Data/PeacefulEnd.Parchment/Books",
+      "Entries": {
+        "PeacefulEnd.Parchment.Test": {
+          "Id": "PeacefulEnd.Parchment.Test",
+          "Format": "1.0.0",
+          "Title": "Camping Guide",
+          "Description": "A test book for exercising the BookMenu.",
+
+          "Pages": [
+            {
+              "Id": "cover",
+              "Elements": [
+                {
+                  "Type": "Title",
+                  "Text": "Test!"
+                },
+                {
+                  "Type": "Panel",
+                  "CustomTest": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
 
     // Add example book(s)
     {

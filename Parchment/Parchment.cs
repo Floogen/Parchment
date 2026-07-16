@@ -19,6 +19,9 @@ namespace Parchment
         internal static IModHelper modHelper;
         internal static Multiplayer multiplayer;
 
+
+        public const string BOOKS_DATA_PATH = "Data/PeacefulEnd.Parchment/Books";
+
         public override void Entry(IModHelper helper)
         {
             // Set up the monitor, helper and multiplayer
@@ -40,12 +43,41 @@ namespace Parchment
 
             // Hook into the required events
             helper.Events.Input.ButtonPressed += OnButtonPressed;
+
+            helper.Events.Content.AssetRequested += OnAssetRequested;
+            helper.Events.Content.AssetsInvalidated += Content_AssetsInvalidated; ;
+        }
+
+        private void Content_AssetsInvalidated(object? sender, AssetsInvalidatedEventArgs e)
+        {
+            var campData = e.NamesWithoutLocale.FirstOrDefault(a => a.IsEquivalentTo(BOOKS_DATA_PATH));
+            if (campData is not null)
+            {
+                var test = Helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
+                _ = test;
+            }
+        }
+
+        private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
+        {
+            if (e.NameWithoutLocale.IsEquivalentTo(BOOKS_DATA_PATH))
+            {
+                var testBook = CreateTestBook();
+                e.LoadFrom(() => new List<BookData>() { testBook.Data }, AssetLoadPriority.Medium);
+            }
+        }
+
+        private void GameLoop_GameLaunched(object? sender, StardewModdingAPI.Events.GameLaunchedEventArgs e)
+        {
         }
 
         private void OnButtonPressed(object sender, StardewModdingAPI.Events.ButtonPressedEventArgs e)
         {
             if (e.Button is SButton.O && Context.IsPlayerFree && Game1.activeClickableMenu is null)
             {
+                var test = Helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
+                _ = test;
+
                 // Consume the button press
                 Helper.Input.Suppress(e.Button);
 
