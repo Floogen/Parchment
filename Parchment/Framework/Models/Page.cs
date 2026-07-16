@@ -22,8 +22,6 @@ namespace Parchment.Framework.Models
         public List<Element> Elements { get; }
         public ElementRenderContext? LastLayoutContext;
 
-        private Dictionary<ElementData, Texture2D> _imageTextures = new Dictionary<ElementData, Texture2D>();
-
         public Page(PageData data, ElementRegistry registry, FontResolver fontResolver)
         {
             Data = data;
@@ -33,7 +31,7 @@ namespace Parchment.Framework.Models
         private List<Element> CreateElements(ElementRegistry registry, FontResolver fontResolver)
         {
             var elements = new List<Element>();
-            foreach (var elementData in Data.Elements)
+            foreach (var elementData in Data.Elements ?? Enumerable.Empty<ElementData>())
             {
                 var element = Create(elementData, registry, fontResolver);
                 if (element is not null)
@@ -49,7 +47,7 @@ namespace Parchment.Framework.Models
         {
             if (registry.TryResolve(data.Type, out ElementRegistration registration) is false)
             {
-                Parchment.monitor.Log($"No renderer registered for element type {data.Type}; skipping element.", LogLevel.Warn);
+                Parchment.monitor.Log($"No renderer registered for element type {data.Type}; skipping element!", LogLevel.Warn);
                 return null;
             }
 
@@ -59,7 +57,73 @@ namespace Parchment.Framework.Models
                 font = fontResolver.Resolve(textContent.FontType);
             }
 
-            return new Element(data, registration.Renderer) { Font = font };
+            var element = new Element(data, registration.Renderer) { Font = font, TextureAssetName = ResolveTextureAssetName(data) };
+            RefreshTexture(element);
+
+            return element;
+        }
+
+        private static IAssetName? ResolveTextureAssetName(ElementData data)
+        {
+            if (data is not ISprite sprite || string.IsNullOrWhiteSpace(sprite.TexturePath))
+            {
+                return null;
+            }
+
+            try
+            {
+                return Parchment.modHelper.GameContent.ParseAssetName(sprite.TexturePath);
+            }
+            catch (Exception exception)
+            {
+                Parchment.monitor.Log($"Element has an unparsable texture path '{sprite.TexturePath}': {exception.Message}", LogLevel.Warn);
+                return null;
+            }
+        }
+
+        private static void RefreshTexture(Element element)
+        {
+            if (element.TextureAssetName is null)
+            {
+                return;
+            }
+
+            try
+            {
+                element.Texture = Parchment.modHelper.GameContent.Load<Texture2D>(element.TextureAssetName.Name);
+            }
+            catch (Exception exception)
+            {
+                element.Texture = null;
+                Parchment.monitor.Log($"Failed to load texture '{element.TextureAssetName.Name}': {exception.Message}", LogLevel.Warn);
+            }
+
+            element.LayoutState = null;
+        }
+
+        public void RefreshTextures(IReadOnlyCollection<IAssetName> invalidatedAssetNames)
+        {
+            bool wasAnyTextureRefreshed = false;
+            foreach (Element element in Elements)
+            {
+                if (element.TextureAssetName is null)
+                {
+                    continue;
+                }
+
+                if (invalidatedAssetNames.Any(assetName => assetName.IsEquivalentTo(element.TextureAssetName)) is false)
+                {
+                    continue;
+                }
+
+                RefreshTexture(element);
+                wasAnyTextureRefreshed = true;
+            }
+
+            if (wasAnyTextureRefreshed)
+            {
+                LastLayoutContext = null;
+            }
         }
 
         /// <summary>
@@ -77,28 +141,6 @@ namespace Parchment.Framework.Models
             }
 
             LastLayoutContext = context;
-        }
-
-        public Texture2D? GetElementTexture(ElementData data)
-        {
-            /*
-            if (data.TexturePath is null)
-            {
-                return null;
-            }
-
-            if (_imageTextures.TryGetValue(data, out Texture2D? cachedTexture))
-            {
-                return cachedTexture;
-            }
-
-            Texture2D texture = Owner is not null ? Owner.ModContent.Load<Texture2D>(data.TexturePath) : Parchment.modHelper.GameContent.Load<Texture2D>(data.TexturePath);
-            _imageTextures[data] = texture;
-
-            return texture;
-            */
-
-            return null;
         }
     }
 }

@@ -5,7 +5,7 @@ using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
-using Parchment.Framework.Utilities;
+using Parchment.Framework.UI.Layouts;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.BellsAndWhistles;

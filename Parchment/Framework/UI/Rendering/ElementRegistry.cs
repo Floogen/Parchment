@@ -54,6 +54,7 @@ namespace Parchment.Framework.UI.Rendering
             this.Register(ElementType.Title, new TitleElementRenderer());
             this.Register(ElementType.Heading, new HeadingElementRenderer());
             this.Register(ElementType.Paragraph, new ParagraphElementRenderer());
+            this.Register(ElementType.Image, new ImageElementRenderer());
         }
 
         public bool TryResolve(string key, out ElementRegistration registration)

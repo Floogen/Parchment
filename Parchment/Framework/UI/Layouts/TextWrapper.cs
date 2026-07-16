@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Parchment.Framework.Utilities
+namespace Parchment.Framework.UI.Layouts
 {
     public class WrappedText
     {
@@ -16,8 +16,8 @@ namespace Parchment.Framework.Utilities
 
         internal WrappedText(string text, Vector2 size)
         {
-            this.Text = text;
-            this.Size = size;
+            Text = text;
+            Size = size;
         }
     }
 

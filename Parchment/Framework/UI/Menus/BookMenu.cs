@@ -21,6 +21,8 @@ namespace Parchment.Framework.UI.Menus
 {
     public class BookMenu : IClickableMenu
     {
+        public Book Book { get; }
+
         private enum MenuState { Sliding, Opening, Ready, Turning, Closing }
         private MenuState _menuState = MenuState.Sliding;
 
@@ -59,7 +61,6 @@ namespace Parchment.Framework.UI.Menus
         private Rectangle _previousPageHotspot;
         private Rectangle _nextPageHotspot;
 
-        private readonly Book _book;
         private readonly List<Page> _pages;
         private readonly bool _debug = false; // TODO: Make this an option on the BookData or command?
 
@@ -83,7 +84,7 @@ namespace Parchment.Framework.UI.Menus
             base.xPositionOnScreen = (int)topLeft.X;
             base.yPositionOnScreen = (int)topLeft.Y;
 
-            _book = book;
+            Book = book;
             _pages = book.Pages;
 
             _pageCurlTexture = Parchment.modHelper.GameContent.Load<Texture2D>("Assets/PeacefulEnd.Parchment/curlPage");
@@ -166,14 +167,14 @@ namespace Parchment.Framework.UI.Menus
         private Rectangle GetLeftPageBounds()
         {
             Rectangle bookBounds = GetBookScreenBounds();
-            return new Rectangle(bookBounds.X + _book.Data.Layout.MarginOuter, bookBounds.Y + _book.Data.Layout.MarginTop, bookBounds.Width / 2 - _book.Data.Layout.MarginOuter - _book.Data.Layout.MarginSpine, bookBounds.Height - _book.Data.Layout.MarginTop - _book.Data.Layout.MarginBottom);
+            return new Rectangle(bookBounds.X + Book.Data.Layout.MarginOuter, bookBounds.Y + Book.Data.Layout.MarginTop, bookBounds.Width / 2 - Book.Data.Layout.MarginOuter - Book.Data.Layout.MarginSpine, bookBounds.Height - Book.Data.Layout.MarginTop - Book.Data.Layout.MarginBottom);
         }
 
         private Rectangle GetRightPageBounds()
         {
             Rectangle bookBounds = GetBookScreenBounds();
             int spineX = bookBounds.X + bookBounds.Width / 2;
-            return new Rectangle(spineX + _book.Data.Layout.MarginSpine, bookBounds.Y + _book.Data.Layout.MarginTop, bookBounds.Width / 2 - _book.Data.Layout.MarginOuter - _book.Data.Layout.MarginSpine, bookBounds.Height - _book.Data.Layout.MarginTop - _book.Data.Layout.MarginBottom);
+            return new Rectangle(spineX + Book.Data.Layout.MarginSpine, bookBounds.Y + Book.Data.Layout.MarginTop, bookBounds.Width / 2 - Book.Data.Layout.MarginOuter - Book.Data.Layout.MarginSpine, bookBounds.Height - Book.Data.Layout.MarginTop - Book.Data.Layout.MarginBottom);
         }
 
         private void UpdateCornerAnimation(ref float animationTimer, ref int currentFrame, bool isHovering, float elapsedMilliseconds)

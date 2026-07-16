@@ -54,5 +54,13 @@ namespace Parchment.Framework.Models
 
             return new Page(pageData, elementRegistry, fontResolver);
         }
+
+        public void RefreshTextures(IReadOnlyCollection<IAssetName> invalidatedAssetNames)
+        {
+            foreach (Page page in Pages)
+            {
+                page.RefreshTextures(invalidatedAssetNames);
+            }
+        }
     }
 }

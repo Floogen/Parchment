@@ -21,7 +21,17 @@ namespace Parchment.Framework.Models.Data
 
         public override (bool Result, string Error) IsValid()
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(TexturePath))
+            {
+                return (false, $"{nameof(TexturePath)} is required!");
+            }
+
+            if (TextureSourceRectangle is Rectangle sourceRectangle && (sourceRectangle.Width <= 0 || sourceRectangle.Height <= 0))
+            {
+                return (false, $"{nameof(TextureSourceRectangle)} must have a positive width and height!");
+            }
+
+            return (true, string.Empty);
         }
     }
 }

@@ -3,9 +3,11 @@ using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Fonts;
+using Parchment.Framework.UI.Menus;
 using Parchment.Framework.UI.Rendering;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
+using StardewValley;
 using StardewValley.Extensions;
 using StardewValley.GameData.Tools;
 using System;
@@ -56,6 +58,11 @@ namespace Parchment.Framework.Managers
             if (books is not null)
             {
                 Books = helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
+            }
+
+            if (Game1.activeClickableMenu is BookMenu bookMenu)
+            {
+                bookMenu.Book.RefreshTextures(e.NamesWithoutLocale);
             }
         }
 
@@ -112,7 +119,9 @@ namespace Parchment.Framework.Managers
                         Id = "info", Elements = new List<ElementData>()
                         {
                             new HeadingElementData() { Text = "Test Text" },
-                            new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow" }
+                            new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow" },
+                            new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 48, 80), Scale = 2, Alignment = AlignmentType.Center }
+
                         }
                     },
                     new PageData {

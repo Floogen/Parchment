@@ -21,6 +21,9 @@ namespace Parchment.Framework.Models
 
         public IFont? Font { get; set; }
 
+        public IAssetName? TextureAssetName { get; init; }
+        public Texture2D? Texture { get; set; }
+
         internal object? LayoutState { get; set; }
 
         public Element(ElementData data, IElementRenderer renderer)
