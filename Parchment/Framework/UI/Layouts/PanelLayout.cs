@@ -11,12 +11,12 @@ namespace Parchment.Framework.UI.Layouts
     public class PanelLayout
     {
         public ElementRenderContext ChildContext { get; }
-        public int Padding { get; }
+        public int Inset { get; }
 
-        public PanelLayout(ElementRenderContext childContext, int padding)
+        public PanelLayout(ElementRenderContext childContext, int inset)
         {
             ChildContext = childContext;
-            Padding = padding;
+            Inset = inset;
         }
     }
 }

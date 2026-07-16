@@ -14,6 +14,7 @@ namespace Parchment.Framework.Models.Interfaces
     {
         Type DataType { get; }
 
+        Rectangle GetContentBounds(Element element, Rectangle bounds);
         Vector2 Measure(Element element, ElementRenderContext context);
         void Draw(SpriteBatch spriteBatch, Element element, Rectangle bounds, ElementRenderContext context);
     }

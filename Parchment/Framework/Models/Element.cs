@@ -28,6 +28,7 @@ namespace Parchment.Framework.Models
         public Texture2D? Texture { get; set; }
 
         internal object? LayoutState { get; set; }
+        public bool IsHovered { get; set; }
 
         public IReadOnlyList<Element> Children { get; init; } = Array.Empty<Element>();
 

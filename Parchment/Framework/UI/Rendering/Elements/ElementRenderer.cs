@@ -18,6 +18,11 @@ namespace Parchment.Framework.UI.Rendering.Elements
         protected abstract Vector2 Measure(TElement data, Element element, ElementRenderContext context);
         protected abstract void Draw(SpriteBatch spriteBatch, TElement data, Element element, Rectangle bounds, ElementRenderContext context);
 
+        public virtual Rectangle GetContentBounds(Element element, Rectangle bounds)
+        {
+            return bounds;
+        }
+
         Vector2 IElementRenderer.Measure(Element element, ElementRenderContext context)
         {
             if (element.Data is TElement typedData)

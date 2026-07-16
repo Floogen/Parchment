@@ -21,6 +21,16 @@ namespace Parchment.Framework.UI.Rendering.Elements
 {
     public class PanelElementRenderer : ElementRenderer<PanelElementData>
     {
+        public override Rectangle GetContentBounds(Element element, Rectangle bounds)
+        {
+            if (element.LayoutState is not PanelLayout panelLayout)
+            {
+                return bounds;
+            }
+
+            return new Rectangle(bounds.X + panelLayout.Inset, bounds.Y + panelLayout.Inset, bounds.Width - panelLayout.Inset * 2, bounds.Height - panelLayout.Inset * 2);
+        }
+
         protected override Vector2 Measure(PanelElementData data, Element element, ElementRenderContext context)
         {
             int borderThickness = GetBorderThickness(data, element);
@@ -95,14 +105,11 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 IClickableMenu.drawTextureBox(spriteBatch, element.Texture, data.TextureSourceRectangle ?? element.Texture.Bounds, bounds.X, bounds.Y, bounds.Width, bounds.Height, Color.White, data.Scale, false);
             }
 
+            Rectangle contentBounds = GetContentBounds(element, bounds);
+
             foreach (Element child in element.Children)
             {
-                Rectangle childBounds = new Rectangle(
-                    bounds.X + panelLayout.Padding + child.Bounds.X,
-                    bounds.Y + panelLayout.Padding + child.Bounds.Y,
-                    child.Bounds.Width,
-                    child.Bounds.Height);
-
+                Rectangle childBounds = new Rectangle(contentBounds.X + child.Bounds.X, contentBounds.Y + child.Bounds.Y, child.Bounds.Width, child.Bounds.Height);
                 child.Renderer.Draw(spriteBatch, child, childBounds, panelLayout.ChildContext);
             }
         }

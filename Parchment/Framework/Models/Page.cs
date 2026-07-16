@@ -200,7 +200,7 @@ namespace Parchment.Framework.Models
             {
                 float elementY = currentY + pendingSpacing;
 
-                // Only stop rendering if it is past the AvailableHeight AND at least one element has been laid out.
+                // Only stop rendering if it is past the AvailableHeight AND at least one element has been laid out
                 if (hasPrecedingElement && elementY >= context.AvailableHeight)
                 {
                     element.Bounds = Rectangle.Empty;
@@ -230,6 +230,31 @@ namespace Parchment.Framework.Models
             }
 
             return currentY;
+        }
+
+        public static Element? HitTest(IReadOnlyList<Element> elements, Rectangle containerBounds, Point screenPosition)
+        {
+            foreach (Element element in elements)
+            {
+                if (element.Bounds == Rectangle.Empty)
+                {
+                    continue;
+                }
+
+                Rectangle screenBounds = new Rectangle(element.Bounds.X + containerBounds.X, element.Bounds.Y + containerBounds.Y, element.Bounds.Width, element.Bounds.Height);
+
+                if (screenBounds.Contains(screenPosition) is false)
+                {
+                    continue;
+                }
+
+                Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
+                Element? hitChild = HitTest(element.Children, contentBounds, screenPosition);
+
+                return hitChild ?? element;
+            }
+
+            return null;
         }
 
         /// <summary>

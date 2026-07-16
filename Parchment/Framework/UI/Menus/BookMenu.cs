@@ -42,7 +42,7 @@ namespace Parchment.Framework.UI.Menus
         private const float SLIDE_DURATION = 350f;
         private const float OPEN_DURATION = 250f;
         private const float CURL_DURATION = 250f;
-        private float TURN_DURATION = 500f;
+        private const float TURN_DURATION = 500f;
         private const float CLOSE_DURATION = 400f;
 
         // Adjust this for page speed
@@ -69,6 +69,7 @@ namespace Parchment.Framework.UI.Menus
         private bool _isTurningForward;
         private int _pendingPage;
 
+        private Element? _hoveredElement;
         private bool _isHoveringPreviousPage;
         private bool _isHoveringNextPage;
 
@@ -208,32 +209,85 @@ namespace Parchment.Framework.UI.Menus
 
         private void BeginPageTurn(bool forward)
         {
-            _menuState = MenuState.Turning;
-            _animationTimer = 0f;
-            _animationFrame = 0;
             _isTurningForward = forward;
             _pendingSpread = forward ? _currentSpread + 1 : _currentSpread - 1;
 
-            // Stop the curl instantly
-            _previousCornerFrame = 0;
-            _nextCornerFrame = 0;
-            _isHoveringPreviousPage = false;
-            _isHoveringNextPage = false;
+            SetMenuState(MenuState.Turning);
 
             Game1.playSound("shwip");
         }
 
         private void BeginClose()
         {
-            if (_menuState == MenuState.Closing)
+            if (_menuState is MenuState.Closing)
             {
                 return;
             }
 
-            // TODO: Change this so _menuState is changed via method, which resets _animationFrame and _animationTimer
-            _menuState = MenuState.Closing;
-            _animationFrame = 0;
+            SetMenuState(MenuState.Closing);
+        }
+
+        private void CommitPageTurn()
+        {
+            _currentSpread = _pendingSpread;
+        }
+
+        private Element? GetElementAt(Point screenPosition)
+        {
+            Element? hitElement = HitTestPage(GetLeftPageIndex(), GetLeftPageBounds(), screenPosition);
+
+            return hitElement ?? HitTestPage(GetRightPageIndex(), GetRightPageBounds(), screenPosition);
+        }
+
+        private Element? HitTestPage(int pageIndex, Rectangle pageBounds, Point screenPosition)
+        {
+            if (pageIndex >= _pages.Count)
+            {
+                return null;
+            }
+
+            return Page.HitTest(_pages[pageIndex].Elements, pageBounds, screenPosition);
+        }
+
+        private void SetHoveredElement(Element? element)
+        {
+            if (ReferenceEquals(_hoveredElement, element))
+            {
+                return;
+            }
+
+            if (_hoveredElement is not null)
+            {
+                _hoveredElement.IsHovered = false;
+            }
+
+            _hoveredElement = element;
+
+            if (_hoveredElement is not null)
+            {
+                _hoveredElement.IsHovered = true;
+            }
+        }
+
+        private void SetMenuState(MenuState menuState)
+        {
+            _menuState = menuState;
             _animationTimer = 0f;
+            _animationFrame = 0;
+
+            ClearHoverState();
+        }
+
+        private void ClearHoverState()
+        {
+            SetHoveredElement(null);
+
+            _isHoveringPreviousPage = false;
+            _isHoveringNextPage = false;
+            _previousCornerFrame = 0;
+            _nextCornerFrame = 0;
+            _previousCornerAnimationTimer = 0f;
+            _nextCornerAnimationTimer = 0f;
         }
 
         protected override void cleanupBeforeExit()
@@ -287,16 +341,15 @@ namespace Parchment.Framework.UI.Menus
             {
                 // Skip intro
                 _currentPosition = _targetPosition;
-                _menuState = MenuState.Ready;
-                _animationTimer = OPEN_DURATION;
+                SetMenuState(MenuState.Ready);
                 return;
             }
 
             if (_menuState == MenuState.Turning)
             {
+                // Skip turn
                 _currentSpread = _pendingSpread;
-                _menuState = MenuState.Ready;
-                _animationTimer = 0f;
+                SetMenuState(MenuState.Ready);
                 return;
             }
 
@@ -329,15 +382,19 @@ namespace Parchment.Framework.UI.Menus
 
             _isHoveringPreviousPage = _previousPageHotspot.Contains(x, y) && _currentSpread > 0;
             _isHoveringNextPage = _nextPageHotspot.Contains(x, y) && _currentSpread < GetSpreadCount() - 1;
+
+            SetHoveredElement(GetElementAt(new Point(x, y)));
         }
 
         public override void update(GameTime time)
         {
             base.update(time);
 
-            if (_menuState == MenuState.Sliding)
+            float elapsedMilliseconds = (float)time.ElapsedGameTime.TotalMilliseconds;
+
+            if (_menuState is MenuState.Sliding)
             {
-                _animationTimer += (float)time.ElapsedGameTime.TotalMilliseconds;
+                _animationTimer += elapsedMilliseconds;
 
                 float progress = Math.Clamp(_animationTimer / SLIDE_DURATION, 0f, 1f);
 
@@ -345,55 +402,51 @@ namespace Parchment.Framework.UI.Menus
                 float easedProgress = 1f - (1f - progress) * (1f - progress);
 
                 _currentPosition = Vector2.Lerp(_startPosition, _targetPosition, easedProgress);
+
                 if (_animationTimer >= SLIDE_DURATION)
                 {
                     _currentPosition = _targetPosition;
-                    _menuState = MenuState.Opening;
-                    _animationTimer = 0f;
+
+                    SetMenuState(MenuState.Opening);
                     Game1.playSound("shwip");
                 }
             }
-            else if (_menuState == MenuState.Opening)
+            else if (_menuState is MenuState.Opening)
             {
-                _animationTimer += (float)time.ElapsedGameTime.TotalMilliseconds;
+                _animationTimer += elapsedMilliseconds;
 
                 // Advance frames evenly across the duration
                 _animationFrame = Math.Min((int)(_animationTimer / OPEN_DURATION * _openFrames.Count), _openFrames.Count - 1);
 
                 if (_animationTimer >= OPEN_DURATION)
                 {
-                    _menuState = MenuState.Ready;
+                    SetMenuState(MenuState.Ready);
                     Game1.playSound("shwip");
                 }
             }
-            else if (_menuState == MenuState.Ready)
+            else if (_menuState is MenuState.Ready)
             {
-                float elapsed = (float)time.ElapsedGameTime.TotalMilliseconds;
-
-                UpdateCornerAnimation(ref _nextCornerAnimationTimer, ref _nextCornerFrame, _isHoveringNextPage, elapsed);
-                UpdateCornerAnimation(ref _previousCornerAnimationTimer, ref _previousCornerFrame, _isHoveringPreviousPage, elapsed);
+                UpdateCornerAnimation(ref _nextCornerAnimationTimer, ref _nextCornerFrame, _isHoveringNextPage, elapsedMilliseconds);
+                UpdateCornerAnimation(ref _previousCornerAnimationTimer, ref _previousCornerFrame, _isHoveringPreviousPage, elapsedMilliseconds);
             }
-            else if (_menuState == MenuState.Turning)
+            else if (_menuState is MenuState.Turning)
             {
-                _animationTimer += (float)time.ElapsedGameTime.TotalMilliseconds;
+                _animationTimer += elapsedMilliseconds;
 
                 _animationFrame = Math.Min((int)(_animationTimer / TURN_DURATION * _pageTurnFrames.Count), _pageTurnFrames.Count - 1);
 
                 if (_animationTimer >= TURN_DURATION)
                 {
-                    _currentSpread = _pendingSpread;
-                    _menuState = MenuState.Ready;
-                    _animationTimer = 0f;
+                    CommitPageTurn();
+                    SetMenuState(MenuState.Ready);
                 }
             }
-            else if (_menuState == MenuState.Closing)
+            else if (_menuState is MenuState.Closing)
             {
-                _animationTimer += (float)time.ElapsedGameTime.TotalMilliseconds;
+                _animationTimer += elapsedMilliseconds;
 
                 // Run the frames backwards
-                float progress = Math.Clamp(_animationTimer / CLOSE_DURATION, 0f, 1f);
-
-                _animationFrame = Math.Min((int)(_animationTimer / OPEN_DURATION * _closeFrames.Count), _closeFrames.Count - 1);
+                _animationFrame = Math.Min((int)(_animationTimer / CLOSE_DURATION * _closeFrames.Count), _closeFrames.Count - 1);
 
                 if (_animationTimer >= CLOSE_DURATION)
                 {
