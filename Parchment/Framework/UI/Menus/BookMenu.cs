@@ -550,13 +550,15 @@ namespace Parchment.Framework.UI.Menus
                     }
                 case PageElementType.Panel:
                     {
+                        var panel = element as PanelElementData;
+
                         float panelHeight = MeasureElement(page, element, bounds.Width);
-                        int panelWidth = element.Width ?? bounds.Width;
+                        int panelWidth = panel.Width ?? bounds.Width;
                         float x = GetAlignedX(bounds, panelWidth, element.Alignment);
 
                         if (element.ImagePath is null)
                         {
-                            IClickableMenu.drawTextureBox(b, (int)x, (int)y, panelWidth, element.Height, Color.White);
+                            IClickableMenu.drawTextureBox(b, (int)x, (int)y, panelWidth, panel.Height, Color.White);
                         }
                         else
                         {
@@ -567,15 +569,15 @@ namespace Parchment.Framework.UI.Menus
                             }
 
                             Rectangle sourceRectangle = element.ImageSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
-                            IClickableMenu.drawTextureBox(b, texture, sourceRectangle, (int)x, (int)y, panelWidth, (int)panelHeight, Color.White, element.PanelScale, drawShadow: false);
+                            IClickableMenu.drawTextureBox(b, texture, sourceRectangle, (int)x, (int)y, panelWidth, (int)panelHeight, Color.White, element.Scale, drawShadow: false);
                         }
 
-                        if (element.Children is not null)
+                        if (panel.Children is not null)
                         {
                             int borderInset = GetPanelBorderInset(element);
                             Rectangle innerBounds = new Rectangle((int)x + borderInset, (int)y + borderInset, panelWidth - borderInset * 2, (int)panelHeight - (int)(borderInset * 2));
 
-                            foreach (var child in element.Children)
+                            foreach (var child in panel.Children)
                             {
                                 DrawElement(b, page, child, bounds, y);
                             }
@@ -632,14 +634,15 @@ namespace Parchment.Framework.UI.Menus
 
                 case PageElementType.Panel:
                     {
-                        if (element.Children is null || element.Children.Count == 0)
+                        var panel = element as PanelElementData;
+                        if (panel.Children is null || panel.Children.Count == 0)
                         {
-                            return element.Height;
+                            return panel.Height;
                         }
 
                         int borderInset = GetPanelBorderInset(element);
-                        int innerWidth = (element.Width ?? availableWidth) - borderInset * 2;
-                        float childrenHeight = MeasureElementList(page, element.Children, innerWidth);
+                        int innerWidth = (panel.Width ?? availableWidth) - borderInset * 2;
+                        float childrenHeight = MeasureElementList(page, panel.Children, innerWidth);
                         return childrenHeight;// + borderInset;
                     }
 
@@ -672,7 +675,7 @@ namespace Parchment.Framework.UI.Menus
             }
 
             Rectangle sourceRectangle = element.ImageSourceRectangle ?? new Rectangle(0, 0, 48, 48);
-            return (int)(Math.Min(sourceRectangle.Width, sourceRectangle.Height) / 3f * element.PanelScale);
+            return (int)(Math.Min(sourceRectangle.Width, sourceRectangle.Height) / 3f * element.Scale);
         }
     }
 }

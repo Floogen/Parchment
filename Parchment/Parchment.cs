@@ -4,9 +4,11 @@ using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
+using StardewModdingAPI.Events;
 using StardewValley;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Parchment
 {
@@ -75,9 +77,10 @@ namespace Parchment
                     },
                     new PageData {
                         Id = "test", Elements = new List<PageElementData>()
-                        { 
+                        {
                             new PageElementData() { Type = PageElementType.Header, Text = "Next Page?" },
-                            new PageElementData { Type = PageElementType.Panel, ImagePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
+                            new PanelElementData() { Type = PageElementType.Panel, Text = "THIS IS TEST" },
+                            new PanelElementData { Type = PageElementType.Panel, ImagePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
                                 ImageSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Width = 256, Alignment = AlignmentType.Center,
                                 Children = new List<PageElementData>() {
                                     new PageElementData { Type = PageElementType.Image, ImagePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", ImageSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 48, 80), ImageScale = 2, Alignment = AlignmentType.Center } 

@@ -14,6 +14,7 @@ namespace Parchment.Framework.Models.Enums
         Paragraph,
         Image,
         Divider,
-        Panel
+        Panel,
+        Banner
     }
 }
