@@ -114,9 +114,10 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 bounds.X + bannerLayout.CapWidth + bannerLayout.Padding,
                 bounds.Y + (int)((bounds.Height - bannerLayout.WrappedText.Size.Y) / 2f),
                 bounds.Width - (bannerLayout.CapWidth + bannerLayout.Padding) * 2,
-                (int)bannerLayout.WrappedText.Size.Y);
+                (int)bannerLayout.WrappedText.Size.Y
+            );
 
-            DrawLines(spriteBatch, element, bannerLayout.WrappedText, textBounds, AlignmentType.Center, element.Color, bannerLayout.TextScale);
+            StringHelper.DrawLines(spriteBatch, element, bannerLayout.WrappedText, textBounds, AlignmentType.Center, element.Color, bannerLayout.TextScale);
         }
     }
 }

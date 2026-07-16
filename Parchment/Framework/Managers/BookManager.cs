@@ -111,7 +111,7 @@ namespace Parchment.Framework.Managers
                 {
                     new PageData {
                         Id = "cover", Elements = new List<ElementData>() {
-                            new TitleElementData() { Text = "Example Guide", Alignment = AlignmentType.Center },
+                            new ImageElementData() { Text = "Example Guide", FontType = FontType.SpriteText, Alignment = AlignmentType.Center, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle2", Scale = 4 },
                             new HeadingElementData() { Text = "By ...", Alignment = AlignmentType.Center },
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
                                 TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fixed, Alignment = AlignmentType.Center, Scale = 4,

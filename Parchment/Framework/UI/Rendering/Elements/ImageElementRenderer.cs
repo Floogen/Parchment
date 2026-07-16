@@ -45,11 +45,34 @@ namespace Parchment.Framework.UI.Rendering.Elements
             }
 
             Vector2 drawSize = new Vector2(sourceRectangle.Width * drawScale, sourceRectangle.Height * drawScale);
-            var imageLayout = new ImageLayout(sourceRectangle, drawScale, drawSize);
-            element.LayoutState = imageLayout;
+            WrappedText? wrappedText = MeasureText(data, element, drawSize);
 
-            // ImageElementRenderer.Measure
-            return new Vector2(imageLayout.DrawSize.X, imageLayout.DrawSize.Y);
+            element.LayoutState = new ImageLayout(sourceRectangle, drawScale, drawSize, wrappedText, data.TextScale);
+
+            return drawSize;
+        }
+
+        private static WrappedText? MeasureText(ImageElementData data, Element element, Vector2 drawSize)
+        {
+            if (string.IsNullOrEmpty(data.Text))
+            {
+                return null;
+            }
+
+            if (element.Font is null)
+            {
+                Parchment.monitor.LogOnce($"Image element has text but no resolved font; the text will not render.", LogLevel.Warn);
+                return null;
+            }
+
+            WrappedText wrappedText = TextWrapper.Wrap(data.Text, element.Font, drawSize.X, data.TextScale);
+
+            if (wrappedText.Size.Y > drawSize.Y)
+            {
+                Parchment.monitor.LogOnce($"Image text is {(int)wrappedText.Size.Y}px tall but the image is only {(int)drawSize.Y}px; the text will overflow. Try a smaller {nameof(data.TextScale)}.", LogLevel.Warn);
+            }
+
+            return wrappedText;
         }
 
         protected override void Draw(SpriteBatch spriteBatch, ImageElementData data, Element element, Rectangle bounds, ElementRenderContext context)
@@ -64,8 +87,15 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return;
             }
 
-            //float drawX = bounds.X + (bounds.Width - imageLayout.DrawSize.X) / 2f;
             spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), imageLayout.SourceRectangle, Color.White, 0f, Vector2.Zero, imageLayout.DrawScale, SpriteEffects.None, LAYER_DEPTH);
+
+            if (imageLayout.WrappedText is null || element.Font is null)
+            {
+                return;
+            }
+
+            Rectangle textBounds = new Rectangle(bounds.X, bounds.Y + (int)((bounds.Height - imageLayout.WrappedText.Size.Y) / 2f), bounds.Width, (int)imageLayout.WrappedText.Size.Y);
+            StringHelper.DrawLines(spriteBatch, element, imageLayout.WrappedText, textBounds, data.TextAlignment, element.Color, imageLayout.TextScale);
         }
     }
 }

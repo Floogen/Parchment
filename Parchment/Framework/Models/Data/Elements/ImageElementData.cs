@@ -12,12 +12,18 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.Models.Data
 {
-    public class ImageElementData : ElementData, ISprite
+    public class ImageElementData : ElementData, ISprite, ITextContent
     {
         public override ElementType Type => ElementType.Image;
 
         public string? TexturePath { get; set; }
         public Rectangle? TextureSourceRectangle { get; set; }
+
+        public FontType FontType { get; set; }
+        public string? Text { get; set; }
+        public string? Color { get; set; }
+        public float TextScale { get; set; } = 1f;
+        public AlignmentType TextAlignment { get; set; } = AlignmentType.Center;
 
         public override (bool Result, string Error) IsValid()
         {
