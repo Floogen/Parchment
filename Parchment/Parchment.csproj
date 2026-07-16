@@ -29,7 +29,6 @@
 	<ItemGroup>
 	  <Folder Include="Content Packs\[CP] Parchment\data\parchment\" />
 	  <Folder Include="Framework\Assets\" />
-	  <Folder Include="Framework\Managers\" />
 	</ItemGroup>
 	
 	<ItemGroup>

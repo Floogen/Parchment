@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.UI.Fonts
 {
-    public static class FontResolver
+    public class FontResolver
     {
-        private static readonly Dictionary<FontType, IFont> _fontsByType = new Dictionary<FontType, IFont>();
+        private readonly Dictionary<FontType, IFont> _fontsByType = new Dictionary<FontType, IFont>();
 
-        public static IFont Resolve(FontType fontType)
+        public IFont Resolve(FontType fontType)
         {
             if (_fontsByType.TryGetValue(fontType, out IFont font))
             {
@@ -26,7 +26,7 @@ namespace Parchment.Framework.UI.Fonts
             return font;
         }
 
-        private static IFont Create(FontType fontType)
+        private IFont Create(FontType fontType)
         {
             switch (fontType)
             {
