@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static StardewValley.FarmerSprite;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Parchment.Framework.UI.Menus
@@ -37,7 +38,7 @@ namespace Parchment.Framework.UI.Menus
         private Vector2 BOOK_ORIGIN = new Vector2(20f, 24f);
 
         private const float SLIDE_DURATION = 350f;
-        private const float OPEN_DURATION = 400f;
+        private const float OPEN_DURATION = 250f;
         private const float CURL_DURATION = 250f;
         private float TURN_DURATION = 500f;
         private const float CLOSE_DURATION = 400f;
@@ -46,6 +47,7 @@ namespace Parchment.Framework.UI.Menus
         private const float CONTENT_SWAP_PROGRESS = 0.5f;
 
         private readonly List<Rectangle> _openFrames = new List<Rectangle>();
+        private readonly List<Rectangle> _closeFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageCurlFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageTurnFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageTurnFramesReversed = new List<Rectangle>();
@@ -75,12 +77,11 @@ namespace Parchment.Framework.UI.Menus
 
         private readonly bool _previousHudState;
 
-        public BookMenu(Book book) : base((int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).X, (int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).Y, 1280, 720, showUpperRightCloseButton: true)
+        public BookMenu(Book book) : base((int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).X, (int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).Y, 1280, 720, showUpperRightCloseButton: false)
         {
             Vector2 topLeft = Utility.getTopLeftPositionForCenteringOnScreen(base.width, base.height);
             base.xPositionOnScreen = (int)topLeft.X;
             base.yPositionOnScreen = (int)topLeft.Y;
-            base.upperRightCloseButton = new ClickableTextureComponent(new Rectangle(xPositionOnScreen + width - 36, yPositionOnScreen - 8, 48, 48), Game1.mouseCursors, new Rectangle(337, 494, 12, 12), 4f);
 
             _book = book;
             _pages = book.Pages;
@@ -98,6 +99,7 @@ namespace Parchment.Framework.UI.Menus
             {
                 _openFrames.Add(new Rectangle(219 * i, 0, 219, 158));
             }
+            _closeFrames = Enumerable.Reverse(_openFrames).ToList();
 
             // Set page curl frames
             for (int i = 0; i < 7; i++)
@@ -220,6 +222,19 @@ namespace Parchment.Framework.UI.Menus
             Game1.playSound("shwip");
         }
 
+        private void BeginClose()
+        {
+            if (_menuState == MenuState.Closing)
+            {
+                return;
+            }
+
+            // TODO: Change this so _menuState is changed via method, which resets _animationFrame and _animationTimer
+            _menuState = MenuState.Closing;
+            _animationFrame = 0;
+            _animationTimer = 0f;
+        }
+
         protected override void cleanupBeforeExit()
         {
             Game1.displayHUD = _previousHudState;
@@ -232,15 +247,27 @@ namespace Parchment.Framework.UI.Menus
             base.emergencyShutDown();
         }
 
+        public override bool readyToClose()
+        {
+            return _menuState != MenuState.Closing || _animationTimer >= CLOSE_DURATION;
+        }
+
         public override void receiveKeyPress(Keys key)
         {
+            if (_menuState == MenuState.Closing)
+            {
+                exitThisMenu(playSound: false);
+                return;
+            }
+
+            if (Game1.options.doesInputListContain(Game1.options.menuButton, key))
+            {
+                BeginClose();
+                return;
+            }
+
             if (_menuState != MenuState.Ready)
             {
-                if (Game1.options.doesInputListContain(Game1.options.menuButton, key))
-                {
-                    exitThisMenu();
-                }
-
                 return;
             }
 
@@ -249,6 +276,12 @@ namespace Parchment.Framework.UI.Menus
 
         public override void receiveLeftClick(int x, int y, bool playSound = true)
         {
+            if (_menuState == MenuState.Closing)
+            {
+                exitThisMenu(playSound: false);
+                return;
+            }
+
             if (_menuState == MenuState.Sliding || _menuState == MenuState.Opening)
             {
                 // Skip intro
@@ -274,7 +307,6 @@ namespace Parchment.Framework.UI.Menus
             {
                 BeginPageTurn(forward: true); return;
             }
-
         }
 
         public override void receiveRightClick(int x, int y, bool playSound = true)
@@ -325,9 +357,9 @@ namespace Parchment.Framework.UI.Menus
                 _animationTimer += (float)time.ElapsedGameTime.TotalMilliseconds;
 
                 // Advance frames evenly across the duration
-                _animationFrame = Math.Min((int)(_animationTimer / 250f * _openFrames.Count), _openFrames.Count - 1);
+                _animationFrame = Math.Min((int)(_animationTimer / OPEN_DURATION * _openFrames.Count), _openFrames.Count - 1);
 
-                if (_animationTimer >= 250f)
+                if (_animationTimer >= OPEN_DURATION)
                 {
                     _menuState = MenuState.Ready;
                     Game1.playSound("shwip");
@@ -360,8 +392,7 @@ namespace Parchment.Framework.UI.Menus
                 // Run the frames backwards
                 float progress = Math.Clamp(_animationTimer / CLOSE_DURATION, 0f, 1f);
 
-                _animationFrame = Math.Max((int)((1f - progress) * _openFrames.Count), 0);
-                _animationFrame = Math.Min(_animationFrame, _openFrames.Count - 1);
+                _animationFrame = Math.Min((int)(_animationTimer / OPEN_DURATION * _closeFrames.Count), _closeFrames.Count - 1);
 
                 if (_animationTimer >= CLOSE_DURATION)
                 {
@@ -389,6 +420,10 @@ namespace Parchment.Framework.UI.Menus
             else if (_menuState == MenuState.Turning)
             {
                 textureBounds = _isTurningForward ? _pageTurnFrames[_animationFrame] : _pageTurnFramesReversed[_animationFrame];
+            }
+            else if (_menuState == MenuState.Closing)
+            {
+                textureBounds = _closeFrames[_animationFrame];
             }
 
             //Vector2 centerPosition = new Vector2(xPositionOnScreen + width / 2, yPositionOnScreen + height / 2);

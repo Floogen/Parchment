@@ -102,7 +102,7 @@ namespace Parchment
                 {
                     new PageData { 
                         Id = "cover", Elements = new List<ElementData>() {
-                            new TitleElementData() { Text = "Camping Guide", Alignment = AlignmentType.Center },
+                            new TitleElementData() { Text = "Example Guide", Alignment = AlignmentType.Center },
                             new HeadingElementData() { Text = "By ...", Alignment = AlignmentType.Center }
                         }
                     },
