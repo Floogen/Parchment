@@ -13,6 +13,7 @@ namespace Parchment.Framework.Models.Enums
         Header,
         Paragraph,
         Image,
-        Divider
+        Divider,
+        Panel
     }
 }

@@ -20,20 +20,17 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Update="Framework\Assets\Page1.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Framework\Assets\smallBook.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Framework\Assets\smallBookGrayscale.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Framework\Assets\curlPage.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
 		<None Update="manifest.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Content Packs\[CP] Parchment\data\parchment\" />
+	  <Folder Include="Framework\Assets\" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<ContentPacks Include="Content Packs\[CP] Parchment" Version="$(Version)" IgnoreModFilePatterns="\.aseprite$" />
 	</ItemGroup>
 </Project>

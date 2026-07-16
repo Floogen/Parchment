@@ -82,9 +82,9 @@ namespace Parchment.Framework.UI.Menus
             _book = book;
             _pages = book.Pages;
 
-            _pageCurlTexture = Parchment.modHelper.ModContent.Load<Texture2D>("Framework/Assets/curlPage.png");
-            _bookTexture = Parchment.modHelper.ModContent.Load<Texture2D>("Framework/Assets/smallBook.png");
-            _bookGrayscaleTexture = Parchment.modHelper.ModContent.Load<Texture2D>("Framework/Assets/smallBookGrayscale.png");
+            _pageCurlTexture = Parchment.modHelper.GameContent.Load<Texture2D>("Assets/PeacefulEnd.Parchment/curlPage");
+            _bookTexture = Parchment.modHelper.GameContent.Load<Texture2D>("Assets/PeacefulEnd.Parchment/smallBook");
+            _bookGrayscaleTexture = Parchment.modHelper.GameContent.Load<Texture2D>("Assets/PeacefulEnd.Parchment/smallBookGrayscale");
 
             // Cache HUD state
             _previousHudState = Game1.displayHUD;
@@ -548,6 +548,41 @@ namespace Parchment.Framework.UI.Menus
                         b.Draw(Game1.staminaRect, new Rectangle(bounds.X + 16, lineY, bounds.Width - 32, 2), Game1.textColor * 0.4f);
                         return 10f;
                     }
+                case PageElementType.Panel:
+                    {
+                        float panelHeight = MeasureElement(page, element, bounds.Width);
+                        int panelWidth = element.Width ?? bounds.Width;
+                        float x = GetAlignedX(bounds, panelWidth, element.Alignment);
+
+                        if (element.ImagePath is null)
+                        {
+                            IClickableMenu.drawTextureBox(b, (int)x, (int)y, panelWidth, element.Height, Color.White);
+                        }
+                        else
+                        {
+                            Texture2D? texture = page.GetElementTexture(element);
+                            if (texture is null)
+                            {
+                                return 0f;
+                            }
+
+                            Rectangle sourceRectangle = element.ImageSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
+                            IClickableMenu.drawTextureBox(b, texture, sourceRectangle, (int)x, (int)y, panelWidth, (int)panelHeight, Color.White, element.PanelScale, drawShadow: false);
+                        }
+
+                        if (element.Children is not null)
+                        {
+                            int borderInset = GetPanelBorderInset(element);
+                            Rectangle innerBounds = new Rectangle((int)x + borderInset, (int)y + borderInset, panelWidth - borderInset * 2, (int)panelHeight - (int)(borderInset * 2));
+
+                            foreach (var child in element.Children)
+                            {
+                                DrawElement(b, page, child, bounds, y);
+                            }
+                        }
+
+                        return panelHeight;
+                    }
 
                 default:
                     return 0f;
@@ -561,6 +596,83 @@ namespace Parchment.Framework.UI.Menus
                 AlignmentType.Center => bounds.X + (bounds.Width - contentWidth) / 2f,
                 AlignmentType.Right => bounds.Right - contentWidth, _ => bounds.X
             };
+        }
+
+        private float MeasureElement(Page page, PageElementData element, int availableWidth)
+        {
+            switch (element.Type)
+            {
+                case PageElementType.Header:
+                    {
+                        return Game1.dialogueFont.MeasureString(element.Text ?? string.Empty).Y;
+                    }
+
+                case PageElementType.Paragraph:
+                    {
+                        string wrappedText = Game1.parseText(element.Text ?? string.Empty, Game1.smallFont, availableWidth);
+                        return Game1.smallFont.MeasureString(wrappedText).Y;
+                    }
+
+                case PageElementType.Image:
+                    {
+                        Texture2D? texture = page.GetElementTexture(element);
+                        if (texture is null)
+                        {
+                            return 0f;
+                        }
+
+                        Rectangle sourceRectangle = element.ImageSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
+                        return sourceRectangle.Height * element.ImageScale;
+                    }
+
+                case PageElementType.Divider:
+                    {
+                        return 10f;
+                    }
+
+                case PageElementType.Panel:
+                    {
+                        if (element.Children is null || element.Children.Count == 0)
+                        {
+                            return element.Height;
+                        }
+
+                        int borderInset = GetPanelBorderInset(element);
+                        int innerWidth = (element.Width ?? availableWidth) - borderInset * 2;
+                        float childrenHeight = MeasureElementList(page, element.Children, innerWidth);
+                        return childrenHeight;// + borderInset;
+                    }
+
+                default:
+                    {
+                        return 0f;
+                    }
+            }
+        }
+
+        private float MeasureElementList(Page page, List<PageElementData> elements, int availableWidth)
+        {
+            float totalHeight = 0f;
+            for (int i = 0; i < elements.Count; i++)
+            {
+                totalHeight += MeasureElement(page, elements[i], availableWidth);
+                if (i < elements.Count - 1)
+                {
+                    totalHeight += elements[i].SpacingAfter;
+                }
+            }
+            return totalHeight;
+        }
+
+        private int GetPanelBorderInset(PageElementData element)
+        {
+            if (element.ImagePath is null)
+            {
+                return 16;
+            }
+
+            Rectangle sourceRectangle = element.ImageSourceRectangle ?? new Rectangle(0, 0, 48, 48);
+            return (int)(Math.Min(sourceRectangle.Width, sourceRectangle.Height) / 3f * element.PanelScale);
         }
     }
 }

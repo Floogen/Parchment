@@ -1,0 +1,19 @@
+﻿{
+  "Name": "[CP] Parchment",
+  "Author": "PeacefulEnd",
+  "Version": "%ProjectVersion%",
+  "Description": "...",
+  "UniqueID": "PeacefulEnd.Parchment.ContentPatcher",
+  "MinimumApiVersion": "4.1.10",
+  "UpdateKeys": [ "Nexus:????" ],
+  "Dependencies": [
+    {
+      "UniqueID": "PeacefulEnd.Parchment.Core",
+      "IsRequired": true,
+      "MinimumVersion": "%ProjectVersion%"
+    }
+  ],
+  "ContentPackFor": {
+    "UniqueID": "Pathoschild.ContentPatcher"
+  }
+}
