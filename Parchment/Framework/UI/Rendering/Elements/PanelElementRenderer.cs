@@ -26,7 +26,8 @@ namespace Parchment.Framework.UI.Rendering.Elements
             int borderThickness = GetBorderThickness(data, element);
             int inset = borderThickness + (int)(data.Padding * data.Scale);
 
-            float childHeight = Math.Max(0f, context.AvailableHeight - inset * 2f);
+            float availableChildHeight = Math.Max(0f, context.AvailableHeight - inset * 2f);
+            float childHeight = data.Height is int fixedHeight ? Math.Min(fixedHeight * data.Scale, availableChildHeight) : availableChildHeight;
 
             float panelWidth;
             switch (data.Sizing)
@@ -50,7 +51,12 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
             float contentHeight = Page.StackElements(element.Children, childContext);
 
-            return new Vector2(panelWidth, contentHeight + inset * 2f);
+            if (data.Height is not null)
+            {
+                contentHeight = childHeight;
+            }
+
+            return new Vector2(Math.Max(panelWidth, borderThickness * 2f), Math.Max(contentHeight + inset * 2f, borderThickness * 2f));
         }
 
         private static int GetBorderThickness(PanelElementData data, Element element)

@@ -33,9 +33,8 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
             Vector2 textSize = wrappedText.Size * data.Scale;
             Color textColor = context.DefaultTextColor ?? Game1.textColor;
-            float drawX = AlignmentHelper.GetAlignedX(bounds, wrappedText.Size.X, element.Data.Alignment);
 
-            element.Font.DrawString(spriteBatch, wrappedText.Text, new Vector2(drawX, bounds.Y), textColor, data.Scale);
+            DrawLines(spriteBatch, element, wrappedText, bounds, textColor, data.Scale);
         }
     }
 }

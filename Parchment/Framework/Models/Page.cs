@@ -169,7 +169,8 @@ namespace Parchment.Framework.Models
                     continue;
                 }
 
-                Vector2 elementSize = element.Renderer.Measure(element, context);
+                ElementRenderContext elementContext = context.WithSize(context.AvailableWidth, Math.Max(0f, context.AvailableHeight - currentY));
+                Vector2 elementSize = element.Renderer.Measure(element, elementContext);
                 float elementX = AlignmentHelper.GetAlignedX(availableWidth: context.AvailableWidth, contentWidth: elementSize.X, alignment: element.Data.Alignment);
 
                 element.Bounds = new Rectangle((int)elementX, (int)currentY, (int)elementSize.X, (int)elementSize.Y);

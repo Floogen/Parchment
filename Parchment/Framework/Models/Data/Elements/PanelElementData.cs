@@ -32,16 +32,28 @@ namespace Parchment.Framework.Models.Data
         public SizingMode Sizing { get; set; } = SizingMode.Fill;
         public int? Width { get; set; }
 
+        /// <summary>
+        /// The height of the panel's content area, in unscaled sprite pixels (multiplied by <see cref="ElementData.Scale"/>).
+        /// When null, the panel is as tall as its stacked children need. When set, the content area is exactly this tall
+        /// and children that would stack past it are dropped. Independent of <see cref="Sizing"/>, which controls width only.
+        /// </summary>
+        public int? Height { get; set; }
+
         public override (bool Result, string Error) IsValid()
         {
             if (Sizing is SizingMode.Fixed && Width is null)
             {
-                return (false, $"\"Width\" is required when \"Sizing\" is {nameof(SizingMode.Fixed)}.");
+                return (false, $"\"Width\" is required when \"Sizing\" is {nameof(SizingMode.Fixed)}!");
             }
 
             if (Width is int width && width <= 0)
             {
-                return (false, $"\"Width\" must be positive.");
+                return (false, $"\"Width\" must be positive!");
+            }
+
+            if (Height is int height && height <= 0)
+            {
+                return (false, $"\"Height\" must be positive!");
             }
 
             return (true, string.Empty);

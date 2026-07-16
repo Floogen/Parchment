@@ -127,11 +127,12 @@ namespace Parchment.Framework.Managers
                         {
                             new HeadingElementData() { Text = "Test Text" },
                             new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow" },
-                            new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
+                            new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2", Height = 64,
                                 TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4,
                                 Children = new List<ElementData>() {
 
-                            new ParagraphElementData() { Text = "This is a fill panel!", Alignment = AlignmentType.Center },
+                            new ParagraphElementData() { Text = "This is a fill panel with a set height of 64px", Alignment = AlignmentType.Center, SpacingAfter = 32 },
+                            new ParagraphElementData() { Text = "Much detail", Alignment = AlignmentType.Center },
                                 }
                             }
                         }
