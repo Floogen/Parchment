@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
@@ -12,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Parchment.Framework.UI.Menus
 {
@@ -488,11 +490,12 @@ namespace Parchment.Framework.UI.Menus
             float currentY = bounds.Y;
 
             var page = _pages[pageIndex];
-            foreach (PageElementData element in page.Data.Elements)
+            foreach (var element in page.Elements)
             {
-                float elementHeight = DrawElement(b, page, element, bounds, currentY);
-                currentY += elementHeight + element.SpacingAfter;
+                Rectangle screenBounds = new Rectangle(bounds.X, element.Bounds.Y + bounds.Y, bounds.Width, bounds.Height);
+                element.Renderer.Draw(b, element.Data, screenBounds);
 
+                currentY = screenBounds.Y;
                 if (currentY > bounds.Bottom)
                 {
                     // TODO: Handle moving overflow content to new page
@@ -501,11 +504,13 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
-        private float DrawElement(SpriteBatch b, Page page, PageElementData element, Rectangle bounds, float y)
+        private float DrawElement(SpriteBatch b, Page page, ElementData element, Rectangle bounds, float y)
         {
+            return 0f;
+            /*
             switch (element.Type)
             {
-                case PageElementType.Title:
+                case ElementType.Title:
                     {
                         string text = element.Text ?? string.Empty;
                         float textWidth = SpriteText.getWidthOfString(text);
@@ -513,7 +518,7 @@ namespace Parchment.Framework.UI.Menus
                         SpriteText.drawString(b, text, (int)x, (int)y);
                         return SpriteText.getHeightOfString(text);
                     }
-                case PageElementType.Header:
+                case ElementType.Heading:
                     {
                         string text = element.Text ?? string.Empty;
                         Vector2 size = Game1.dialogueFont.MeasureString(text);
@@ -521,14 +526,14 @@ namespace Parchment.Framework.UI.Menus
                         Utility.drawTextWithShadow(b, text, Game1.dialogueFont, new Vector2(x, y), Game1.textColor);
                         return size.Y;
                     }
-                case PageElementType.Paragraph:
+                case ElementType.Paragraph:
                     {
                         string wrapped = Game1.parseText(element.Text ?? string.Empty, Game1.smallFont, bounds.Width);
                         Vector2 size = Game1.smallFont.MeasureString(wrapped);
                         Utility.drawTextWithShadow(b, wrapped, Game1.smallFont, new Vector2(bounds.X, y), Game1.textColor);
                         return size.Y;
                     }
-                case PageElementType.Image:
+                case ElementType.Image:
                     {
                         Texture2D? texture = page.GetElementTexture(element);
                         if (texture is null)
@@ -536,19 +541,19 @@ namespace Parchment.Framework.UI.Menus
                             return 0f;
                         }
 
-                        Rectangle source = element.ImageSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
-                        float drawnWidth = source.Width * element.ImageScale;
+                        Rectangle source = element.TextureSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
+                        float drawnWidth = source.Width * element.Scale;
                         float x = GetAlignedX(bounds, drawnWidth, element.Alignment);
-                        b.Draw(texture, new Vector2(x, y), source, Color.White, 0f, Vector2.Zero, element.ImageScale, SpriteEffects.None, 0.9f);
-                        return source.Height * element.ImageScale;
+                        b.Draw(texture, new Vector2(x, y), source, Color.White, 0f, Vector2.Zero, element.Scale, SpriteEffects.None, 0.9f);
+                        return source.Height * element.Scale;
                     }
-                case PageElementType.Divider:
+                case ElementType.Divider:
                     {
                         int lineY = (int)y + 4;
                         b.Draw(Game1.staminaRect, new Rectangle(bounds.X + 16, lineY, bounds.Width - 32, 2), Game1.textColor * 0.4f);
                         return 10f;
                     }
-                case PageElementType.Panel:
+                case ElementType.Panel:
                     {
                         var panel = element as PanelElementData;
 
@@ -556,7 +561,7 @@ namespace Parchment.Framework.UI.Menus
                         int panelWidth = panel.Width ?? bounds.Width;
                         float x = GetAlignedX(bounds, panelWidth, element.Alignment);
 
-                        if (element.ImagePath is null)
+                        if (element.TexturePath is null)
                         {
                             IClickableMenu.drawTextureBox(b, (int)x, (int)y, panelWidth, panel.Height, Color.White);
                         }
@@ -568,7 +573,7 @@ namespace Parchment.Framework.UI.Menus
                                 return 0f;
                             }
 
-                            Rectangle sourceRectangle = element.ImageSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
+                            Rectangle sourceRectangle = element.TextureSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
                             IClickableMenu.drawTextureBox(b, texture, sourceRectangle, (int)x, (int)y, panelWidth, (int)panelHeight, Color.White, element.Scale, drawShadow: false);
                         }
 
@@ -589,6 +594,7 @@ namespace Parchment.Framework.UI.Menus
                 default:
                     return 0f;
             }
+            */
         }
 
         private float GetAlignedX(Rectangle bounds, float contentWidth, AlignmentType alignment)
@@ -600,22 +606,28 @@ namespace Parchment.Framework.UI.Menus
             };
         }
 
-        private float MeasureElement(Page page, PageElementData element, int availableWidth)
+        private float MeasureElement(Page page, ElementData element, int availableWidth)
         {
+            return 0f;
+            /*
             switch (element.Type)
             {
-                case PageElementType.Header:
+                case ElementType.Title:
+                    {
+                        return SpriteText.getHeightOfString(element.Text ?? string.Empty);
+                    }
+                case ElementType.Heading:
                     {
                         return Game1.dialogueFont.MeasureString(element.Text ?? string.Empty).Y;
                     }
 
-                case PageElementType.Paragraph:
+                case ElementType.Paragraph:
                     {
                         string wrappedText = Game1.parseText(element.Text ?? string.Empty, Game1.smallFont, availableWidth);
                         return Game1.smallFont.MeasureString(wrappedText).Y;
                     }
 
-                case PageElementType.Image:
+                case ElementType.Image:
                     {
                         Texture2D? texture = page.GetElementTexture(element);
                         if (texture is null)
@@ -623,16 +635,16 @@ namespace Parchment.Framework.UI.Menus
                             return 0f;
                         }
 
-                        Rectangle sourceRectangle = element.ImageSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
-                        return sourceRectangle.Height * element.ImageScale;
+                        Rectangle sourceRectangle = element.TextureSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
+                        return sourceRectangle.Height * element.Scale;
                     }
 
-                case PageElementType.Divider:
+                case ElementType.Divider:
                     {
                         return 10f;
                     }
 
-                case PageElementType.Panel:
+                case ElementType.Panel:
                     {
                         var panel = element as PanelElementData;
                         if (panel.Children is null || panel.Children.Count == 0)
@@ -651,9 +663,10 @@ namespace Parchment.Framework.UI.Menus
                         return 0f;
                     }
             }
+            */
         }
 
-        private float MeasureElementList(Page page, List<PageElementData> elements, int availableWidth)
+        private float MeasureElementList(Page page, List<ElementData> elements, int availableWidth)
         {
             float totalHeight = 0f;
             for (int i = 0; i < elements.Count; i++)
@@ -667,15 +680,17 @@ namespace Parchment.Framework.UI.Menus
             return totalHeight;
         }
 
-        private int GetPanelBorderInset(PageElementData element)
+        /*
+        private int GetPanelBorderInset(ElementData element)
         {
-            if (element.ImagePath is null)
+            if (element.TexturePath is null)
             {
                 return 16;
             }
 
-            Rectangle sourceRectangle = element.ImageSourceRectangle ?? new Rectangle(0, 0, 48, 48);
+            Rectangle sourceRectangle = element.TextureSourceRectangle ?? new Rectangle(0, 0, 48, 48);
             return (int)(Math.Min(sourceRectangle.Width, sourceRectangle.Height) / 3f * element.Scale);
         }
+        */
     }
 }

@@ -6,11 +6,15 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.Models.Enums
 {
-    public enum PageType
+    public enum ElementType
     {
         Unknown,
-        Text,
+        Title,
+        Heading,
+        Paragraph,
         Image,
-        Title
+        Divider,
+        Panel,
+        Banner
     }
 }

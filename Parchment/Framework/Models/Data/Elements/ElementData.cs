@@ -8,27 +8,20 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Parchment.Framework.Models.Data
+namespace Parchment.Framework.Models.Data.Elements
 {
     [Newtonsoft.Json.JsonConverter(typeof(ElementJsonConverter))]
-    public class PageElementData : BaseModel
+    public abstract class ElementData : BaseModel
     {
         public string? Id { get; set; }
-
-        public PageElementType Type { get; set; } = PageElementType.Unknown;
-
-        public string? Text { get; set; }
-
-        // Image elements
-        public string? ImagePath { get; set; }
-        public Rectangle? ImageSourceRectangle { get; set; }
-        public float ImageScale { get; set; } = 4f;
-
-        // Optional spacing
-        public int SpacingAfter { get; set; } = 8;
+        public abstract ElementType Type { get; }
 
         public AlignmentType Alignment { get; set; } = AlignmentType.Left;
 
+        /// <summary>
+        /// Optional. If given, increases buffer between elements.
+        /// </summary>
+        public virtual int SpacingAfter { get; set; } = 8;
         public float Scale { get; set; } = 4f;
 
         public override (bool Result, string Error) IsValid()

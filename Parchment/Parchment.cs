@@ -1,8 +1,10 @@
 ﻿using HarmonyLib;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Menus;
+using Parchment.Framework.UI.Rendering;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
@@ -18,7 +20,7 @@ namespace Parchment
         internal static IMonitor monitor;
         internal static IModHelper modHelper;
         internal static Multiplayer multiplayer;
-
+        internal static ElementRegistry elementRegistery;
 
         public const string BOOKS_DATA_PATH = "Data/PeacefulEnd.Parchment/Books";
 
@@ -28,6 +30,9 @@ namespace Parchment
             monitor = Monitor;
             modHelper = helper;
             multiplayer = helper.Reflection.GetField<Multiplayer>(typeof(Game1), "multiplayer").GetValue();
+
+            // Create ElementRegistery
+            elementRegistery = new ElementRegistry(registerDefaults: true);
 
             try
             {
@@ -96,26 +101,26 @@ namespace Parchment
                 Pages = new List<PageData>
                 {
                     new PageData { 
-                        Id = "cover", Elements = new List<PageElementData>() { 
-                            new PageElementData() { Type = PageElementType.Title, Text = "Camping Guide", Alignment = AlignmentType.Center } 
+                        Id = "cover", Elements = new List<ElementData>() {
+                            new TitleElementData() { Text = "Camping Guide", Alignment = AlignmentType.Center },
+                            new HeadingElementData() { Text = "By ...", Alignment = AlignmentType.Center }
                         }
                     },
                     new PageData {
-                        Id = "info", Elements = new List<PageElementData>()
+                        Id = "info", Elements = new List<ElementData>()
                         { 
-                            new PageElementData() { Type = PageElementType.Header, Text = "Test Text" }, 
-                            new PageElementData() { Type = PageElementType.Paragraph, Text = "Wow wow" }
+                            new HeadingElementData() { Text = "Test Text" }, 
+                            new ParagraphElementData() { Text = "Wow wow" }
                         }
                     },
                     new PageData {
-                        Id = "test", Elements = new List<PageElementData>()
+                        Id = "test", Elements = new List<ElementData>()
                         {
-                            new PageElementData() { Type = PageElementType.Header, Text = "Next Page?" },
-                            new PanelElementData() { Type = PageElementType.Panel, Text = "THIS IS TEST" },
-                            new PanelElementData { Type = PageElementType.Panel, ImagePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
-                                ImageSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Width = 256, Alignment = AlignmentType.Center,
-                                Children = new List<PageElementData>() {
-                                    new PageElementData { Type = PageElementType.Image, ImagePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", ImageSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 48, 80), ImageScale = 2, Alignment = AlignmentType.Center } 
+                            new HeadingElementData() { Text = "Next Page?" },
+                            new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
+                                TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Width = 256, Alignment = AlignmentType.Center,
+                                Children = new List<ElementData>() {
+                                    new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 48, 80), Scale = 2, Alignment = AlignmentType.Center } 
                                 } 
                             }
                         }
@@ -123,7 +128,7 @@ namespace Parchment
                 }
             };
 
-            return new Book(bookData, owner: null);
+            return new Book(bookData, elementRegistery, owner: null);
         }
     }
 }

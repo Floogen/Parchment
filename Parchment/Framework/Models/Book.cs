@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.UI.Rendering;
 using StardewModdingAPI;
 using System;
 using System.Collections.Generic;
@@ -15,12 +16,12 @@ namespace Parchment.Framework.Models
         public IContentPack? Owner { get; }
         public List<Page> Pages { get; }
 
-        public Book(BookData data, IContentPack? owner)
+        public Book(BookData data, ElementRegistry elementRegistry, IContentPack? owner)
         {
             Data = data;
             Owner = owner;
             Pages = data.Pages
-                .Select(page => new Page(page, owner))
+                .Select(page => new Page(page, elementRegistry))
                 .ToList();
         }
     }

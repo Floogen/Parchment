@@ -1,5 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
+using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
+using Parchment.Framework.Models.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,8 +11,13 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.Models.Data
 {
-    public class PanelElementData : PageElementData
+    public class PanelElementData : ElementData, ISprite
     {
+        public override ElementType Type => ElementType.Panel;
+
+        public string? TexturePath { get; set; }
+        public Rectangle? TextureSourceRectangle { get; set; }
+
         /// <summary>
         /// Optional. If not given, fill the entire Page's width
         /// </summary>
@@ -21,7 +28,7 @@ namespace Parchment.Framework.Models.Data
         public int Height { get; set; }
 
         // Sub-elements
-        public List<PageElementData>? Children { get; set; }
+        public List<ElementData>? Children { get; set; }
 
         public override (bool Result, string Error) IsValid()
         {
