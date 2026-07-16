@@ -1,4 +1,5 @@
-﻿using Parchment.Framework.Models;
+﻿using Microsoft.Xna.Framework;
+using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
@@ -111,7 +112,7 @@ namespace Parchment.Framework.Managers
                 {
                     new PageData {
                         Id = "cover", Elements = new List<ElementData>() {
-                            new ImageElementData() { Text = "Example Guide", FontType = FontType.SpriteText, Alignment = AlignmentType.Center, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle2", Scale = 4 },
+                            new ImageElementData() { Text = "Example Guide", FontType = FontType.SpriteText, TextArea = new Rectangle(15, 5, 65, 10), Alignment = AlignmentType.Center, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle2", Scale = 5 },
                             new HeadingElementData() { Text = "By ...", Alignment = AlignmentType.Center },
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
                                 TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fixed, Alignment = AlignmentType.Center, Scale = 4,
@@ -128,19 +129,20 @@ namespace Parchment.Framework.Managers
                             new BannerElementData() { Text = "Test Text", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
                             new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow", MarginLeft = 16 },
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2", Height = 48,
-                                TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4,
+                                TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4, SpacingAfter = 4,
                                 Children = new List<ElementData>() {
-                                    new ParagraphElementData() { Text = "This is a fill panel with a set height of 48", Alignment = AlignmentType.Center, SpacingAfter = 32 },
+                                    new ParagraphElementData() { Text = "This is a fill panel with a set height of 48px", Alignment = AlignmentType.Center, SpacingAfter = 32 },
                                     new ParagraphElementData() { Text = "Much detail", Alignment = AlignmentType.Center },
                                 }
-                            }
+                            },
+                            new BannerElementData() { Text = "...", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
                         }
                     },
                     new PageData {
                         Id = "test", Elements = new List<ElementData>()
                         {
                             new HeadingElementData() { Text = "Next Page?" },
-                            new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center }
+                            new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center }
 
                         }
                     }

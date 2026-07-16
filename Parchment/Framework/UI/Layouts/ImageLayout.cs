@@ -12,14 +12,16 @@ namespace Parchment.Framework.UI.Layouts
         public Rectangle SourceRectangle { get; }
         public float DrawScale { get; }
         public Vector2 DrawSize { get; }
+        public Rectangle TextArea { get; }
         public WrappedText? WrappedText { get; }
         public float TextScale { get; }
 
-        public ImageLayout(Rectangle sourceRectangle, float drawScale, Vector2 drawSize, WrappedText? wrappedText, float textScale)
+        public ImageLayout(Rectangle sourceRectangle, float drawScale, Vector2 drawSize, Rectangle textArea, WrappedText? wrappedText, float textScale)
         {
             SourceRectangle = sourceRectangle;
             DrawScale = drawScale;
             DrawSize = drawSize;
+            TextArea = textArea;
             WrappedText = wrappedText;
             TextScale = textScale;
         }

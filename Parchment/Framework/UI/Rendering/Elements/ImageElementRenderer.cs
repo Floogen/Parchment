@@ -38,21 +38,32 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return Vector2.Zero;
             }
 
-            float drawScale = data.Scale * data.Scale;
+            float drawScale = data.Scale;
             if (sourceRectangle.Width * drawScale > context.AvailableWidth)
             {
                 drawScale = context.AvailableWidth / sourceRectangle.Width;
             }
 
             Vector2 drawSize = new Vector2(sourceRectangle.Width * drawScale, sourceRectangle.Height * drawScale);
-            WrappedText? wrappedText = MeasureText(data, element, drawSize);
+            Rectangle textArea = GetScaledTextArea(data, sourceRectangle, drawScale);
+            WrappedText? wrappedText = MeasureText(data, element, textArea);
 
-            element.LayoutState = new ImageLayout(sourceRectangle, drawScale, drawSize, wrappedText, data.TextScale);
+            element.LayoutState = new ImageLayout(sourceRectangle, drawScale, drawSize, textArea, wrappedText, data.TextScale);
 
             return drawSize;
         }
 
-        private static WrappedText? MeasureText(ImageElementData data, Element element, Vector2 drawSize)
+        private static Rectangle GetScaledTextArea(ImageElementData data, Rectangle sourceRectangle, float drawScale)
+        {
+            if (data.TextArea is not Rectangle textArea)
+            {
+                return new Rectangle(0, 0, (int)(sourceRectangle.Width * drawScale), (int)(sourceRectangle.Height * drawScale));
+            }
+
+            return new Rectangle((int)(textArea.X * drawScale), (int)(textArea.Y * drawScale), (int)(textArea.Width * drawScale), (int)(textArea.Height * drawScale));
+        }
+
+        private static WrappedText? MeasureText(ImageElementData data, Element element, Rectangle textArea)
         {
             if (string.IsNullOrEmpty(data.Text))
             {
@@ -65,11 +76,10 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return null;
             }
 
-            WrappedText wrappedText = TextWrapper.Wrap(data.Text, element.Font, drawSize.X, data.TextScale);
-
-            if (wrappedText.Size.Y > drawSize.Y)
+            WrappedText wrappedText = TextWrapper.Wrap(data.Text, element.Font, textArea.Width, data.TextScale);
+            if (wrappedText.Size.Y > textArea.Height)
             {
-                Parchment.monitor.LogOnce($"Image text is {(int)wrappedText.Size.Y}px tall but the image is only {(int)drawSize.Y}px; the text will overflow. Try a smaller {nameof(data.TextScale)}.", LogLevel.Warn);
+                Parchment.monitor.LogOnce($"Image text is {(int)wrappedText.Size.Y}px tall but the text area is only {(int)textArea.Height}px; the text will overflow. Try a smaller {nameof(data.TextScale)}.", LogLevel.Warn);
             }
 
             return wrappedText;
@@ -89,12 +99,14 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
             spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), imageLayout.SourceRectangle, Color.White, 0f, Vector2.Zero, imageLayout.DrawScale, SpriteEffects.None, LAYER_DEPTH);
 
-            if (imageLayout.WrappedText is null || element.Font is null)
+            if (imageLayout.WrappedText is null)
             {
                 return;
             }
 
-            Rectangle textBounds = new Rectangle(bounds.X, bounds.Y + (int)((bounds.Height - imageLayout.WrappedText.Size.Y) / 2f), bounds.Width, (int)imageLayout.WrappedText.Size.Y);
+            Rectangle textRegion = new Rectangle(bounds.X + imageLayout.TextArea.X, bounds.Y + imageLayout.TextArea.Y, imageLayout.TextArea.Width, imageLayout.TextArea.Height);
+            Rectangle textBounds = new Rectangle(textRegion.X, textRegion.Y + (int)((textRegion.Height - imageLayout.WrappedText.Size.Y) / 2f), textRegion.Width, (int)imageLayout.WrappedText.Size.Y);
+
             StringHelper.DrawLines(spriteBatch, element, imageLayout.WrappedText, textBounds, data.TextAlignment, element.Color, imageLayout.TextScale);
         }
     }

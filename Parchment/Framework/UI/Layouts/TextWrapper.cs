@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Interfaces;
+using StardewModdingAPI;
 using System;
 using System.Collections.Generic;
 
@@ -66,6 +67,11 @@ namespace Parchment.Framework.UI.Layouts
 
         public static WrappedText Wrap(string text, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords = false)
         {
+            if (string.IsNullOrEmpty(text) is false && maxWidth <= 0f)
+            {
+                Parchment.monitor.LogOnce($"Cannot wrap '{text}': the available width is {maxWidth}.", LogLevel.Warn);
+            }
+
             if (string.IsNullOrEmpty(text) || maxWidth <= 0f)
             {
                 return new WrappedText(Array.Empty<WrappedLine>(), Vector2.Zero);
