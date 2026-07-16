@@ -597,7 +597,7 @@ namespace Parchment.Framework.UI.Menus
                         Rectangle source = element.TextureSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
                         float drawnWidth = source.Width * element.Scale;
                         float x = GetAlignedX(pageBounds, drawnWidth, element.Alignment);
-                        b.Draw(texture, new Vector2(x, y), source, Color.White, 0f, Vector2.Zero, element.Scale, SpriteEffects.None, 0.9f);
+                        b.Draw(texture, new Vector2(x, y), source, TextColor.White, 0f, Vector2.Zero, element.Scale, SpriteEffects.None, 0.9f);
                         return source.Height * element.Scale;
                     }
                 case ElementType.Divider:
@@ -616,7 +616,7 @@ namespace Parchment.Framework.UI.Menus
 
                         if (element.TexturePath is null)
                         {
-                            IClickableMenu.drawTextureBox(b, (int)x, (int)y, panelWidth, panel.Height, Color.White);
+                            IClickableMenu.drawTextureBox(b, (int)x, (int)y, panelWidth, panel.Height, TextColor.White);
                         }
                         else
                         {
@@ -627,7 +627,7 @@ namespace Parchment.Framework.UI.Menus
                             }
 
                             Rectangle sourceRectangle = element.TextureSourceRectangle ?? new Rectangle(0, 0, texture.Width, texture.Height);
-                            IClickableMenu.drawTextureBox(b, texture, sourceRectangle, (int)x, (int)y, panelWidth, (int)panelHeight, Color.White, element.Scale, drawShadow: false);
+                            IClickableMenu.drawTextureBox(b, texture, sourceRectangle, (int)x, (int)y, panelWidth, (int)panelHeight, TextColor.White, element.Scale, drawShadow: false);
                         }
 
                         if (panel.Children is not null)

@@ -97,7 +97,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return;
             }
 
-            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), imageLayout.SourceRectangle, Color.White, 0f, Vector2.Zero, imageLayout.DrawScale, SpriteEffects.None, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), imageLayout.SourceRectangle, element.TintColor, 0f, Vector2.Zero, imageLayout.DrawScale, SpriteEffects.None, LAYER_DEPTH);
 
             if (imageLayout.WrappedText is null)
             {
@@ -107,7 +107,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             Rectangle textRegion = new Rectangle(bounds.X + imageLayout.TextArea.X, bounds.Y + imageLayout.TextArea.Y, imageLayout.TextArea.Width, imageLayout.TextArea.Height);
             Rectangle textBounds = new Rectangle(textRegion.X, textRegion.Y + (int)((textRegion.Height - imageLayout.WrappedText.Size.Y) / 2f), textRegion.Width, (int)imageLayout.WrappedText.Size.Y);
 
-            StringHelper.DrawLines(spriteBatch, element, imageLayout.WrappedText, textBounds, data.TextAlignment, element.Color, imageLayout.TextScale);
+            StringHelper.DrawLines(spriteBatch, element, imageLayout.WrappedText, textBounds, data.TextAlignment, element.TextColor, imageLayout.TextScale);
         }
     }
 }

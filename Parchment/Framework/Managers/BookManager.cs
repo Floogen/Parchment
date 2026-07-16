@@ -115,10 +115,9 @@ namespace Parchment.Framework.Managers
                             new ImageElementData() { Text = "Example Guide", FontType = FontType.SpriteText, TextArea = new Rectangle(15, 5, 65, 10), Alignment = AlignmentType.Center, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle2", Scale = 5 },
                             new HeadingElementData() { Text = "By ...", Alignment = AlignmentType.Center },
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
-                                TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fixed, Alignment = AlignmentType.Center, Scale = 4,
+                                TextureSourceRectangle = new Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fixed, Alignment = AlignmentType.Center, Scale = 4,
                                 Children = new List<ElementData>() {
-
-                            new ParagraphElementData() { Text = "This is a fixed panel. Probably. Maybe." },
+                                    new ParagraphElementData() { Text = "This is a fixed panel. Probably. Maybe." },
                                 }
                             }
                         }
@@ -129,21 +128,35 @@ namespace Parchment.Framework.Managers
                             new BannerElementData() { Text = "Test Text", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
                             new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow", MarginLeft = 16 },
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2", Height = 48,
-                                TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4, SpacingAfter = 4,
+                                TextureSourceRectangle = new Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4, SpacingAfter = 4,
                                 Children = new List<ElementData>() {
                                     new ParagraphElementData() { Text = "This is a fill panel with a set height of 48px", Alignment = AlignmentType.Center, SpacingAfter = 32 },
                                     new ParagraphElementData() { Text = "Much detail", Alignment = AlignmentType.Center },
                                 }
                             },
-                            new BannerElementData() { Text = "...", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
+                            new BannerElementData() { Text = "---Size & Color---", TintColor = "255 0 0 100", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
                         }
                     },
                     new PageData {
                         Id = "test", Elements = new List<ElementData>()
                         {
-                            new HeadingElementData() { Text = "Next Page?" },
-                            new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center }
-
+                            new HeadingElementData() { Text = "Manually offset text?", MarginLeft = 32 },
+                            new HeadingElementData() { Text = "No offset here!" },
+                            new HeadingElementData() { Text = "Right aligned", Alignment = AlignmentType.Right },
+                            new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center },
+                            new HeadingElementData() { Text = "This is a tent (probably)", FontType = FontType.Small, Alignment = AlignmentType.Center },
+                        }
+                    },
+                    new PageData {
+                        Id = "huh", Elements = new List<ElementData>()
+                        {
+                            new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2", Height = 48,
+                                TextureSourceRectangle = new Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4, SpacingAfter = 4,
+                                Children = new List<ElementData>() {
+                                    new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center },
+                                    new HeadingElementData() { Text = "This is a tent (in a panel)", FontType = FontType.Small, Alignment = AlignmentType.Center },
+                                }
+                            },
                         }
                     }
                 }

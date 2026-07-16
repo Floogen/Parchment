@@ -16,7 +16,7 @@ namespace Parchment.Framework.Models.Data
     {
         public override ElementType Type => ElementType.Heading;
 
-        public string? Color { get; set; }
+        public string? TextColor { get; set; }
         public FontType FontType { get; set; } = FontType.Dialogue;
 
         public string? Text { get; set; }

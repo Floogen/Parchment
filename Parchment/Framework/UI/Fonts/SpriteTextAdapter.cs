@@ -38,7 +38,7 @@ namespace Parchment.Framework.UI.Fonts
             }
         }
 
-        // Color does nothing for SpriteText
+        // TextColor does nothing for SpriteText
         public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float scale)
         {
             float previousFontPixelZoom = SpriteText.fontPixelZoom;

@@ -63,7 +63,8 @@ namespace Parchment.Framework.Models
             var element = new Element(data, registration.Renderer)
             { 
                 Font = font,
-                Color = ResolveColor(data) ?? Game1.textColor,
+                TextColor = ResolveTextColor(data) ?? Game1.textColor,
+                TintColor = ResolveTintColor(data) ?? Color.White,
                 TextureAssetName = ResolveTextureAssetName(data),
                 Children = CreateChildren(data, registry, fontResolver)
             };
@@ -93,16 +94,32 @@ namespace Parchment.Framework.Models
             return children;
         }
 
-        private static Color? ResolveColor(ElementData data)
+        private static Color? ResolveTintColor(ElementData data)
         {
-            if (data is not ITextContent textContent || string.IsNullOrWhiteSpace(textContent.Color))
+            if (data is not ISprite sprite || string.IsNullOrWhiteSpace(sprite.TintColor))
             {
                 return null;
             }
 
-            if (ColorParser.TryParse(textContent.Color, out Color parsedColor) is false)
+            if (ColorParser.TryParse(sprite.TintColor, out Color parsedColor) is false)
             {
-                Parchment.monitor.Log($"Element has an unparsable color '{textContent.Color}'; using the default.", LogLevel.Warn);
+                Parchment.monitor.Log($"Element has an unparsable tint color '{sprite.TintColor}'; the sprite will not be tinted.", LogLevel.Warn);
+                return null;
+            }
+
+            return parsedColor;
+        }
+
+        private static Color? ResolveTextColor(ElementData data)
+        {
+            if (data is not ITextContent textContent || string.IsNullOrWhiteSpace(textContent.TextColor))
+            {
+                return null;
+            }
+
+            if (ColorParser.TryParse(textContent.TextColor, out Color parsedColor) is false)
+            {
+                Parchment.monitor.Log($"Element has an unparsable color '{textContent.TextColor}'; using the default.", LogLevel.Warn);
                 return null;
             }
 

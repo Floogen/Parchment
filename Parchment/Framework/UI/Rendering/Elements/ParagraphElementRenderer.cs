@@ -33,7 +33,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
             Vector2 textSize = wrappedText.Size * data.Scale;
 
-            StringHelper.DrawLines(spriteBatch, element, wrappedText, bounds, data.Alignment, element.Color, data.Scale);
+            StringHelper.DrawLines(spriteBatch, element, wrappedText, bounds, data.Alignment, element.TextColor, data.Scale);
         }
     }
 }

@@ -16,7 +16,7 @@ namespace Parchment.Framework.Models.Data
     {
         public override ElementType Type => ElementType.Paragraph;
 
-        public string? Color { get; set; }
+        public string? TextColor { get; set; }
         public FontType FontType { get; set; } = FontType.Small;
 
         public string? Text { get; set; }

@@ -10,7 +10,7 @@ namespace Parchment.Framework.Models.Interfaces
 {
     public interface ITextContent
     {
-        public string? Color { get; }
+        public string? TextColor { get; }
         public FontType FontType { get; }
         public string? Text { get; set; }
     }

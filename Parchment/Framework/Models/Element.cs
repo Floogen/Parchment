@@ -20,10 +20,11 @@ namespace Parchment.Framework.Models
         public IElementRenderer Renderer { get; }
         public Rectangle Bounds { get; set; }
 
-        public Color Color { get; init; } = Game1.textColor;
-        public IFont? Font { get; set; }
-
+        public Color TextColor { get; init; } = Game1.textColor;
+        public Color TintColor { get; init; } = Color.White;
         public IAssetName? TextureAssetName { get; init; }
+
+        public IFont? Font { get; set; }
         public Texture2D? Texture { get; set; }
 
         internal object? LayoutState { get; set; }

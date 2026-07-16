@@ -18,10 +18,11 @@ namespace Parchment.Framework.Models.Data
 
         public string? TexturePath { get; set; }
         public Rectangle? TextureSourceRectangle { get; set; }
+        public string? TintColor { get; set; }
 
         public FontType FontType { get; set; }
         public string? Text { get; set; }
-        public string? Color { get; set; }
+        public string? TextColor { get; set; }
         public float TextScale { get; set; } = 1f;
         public AlignmentType TextAlignment { get; set; } = AlignmentType.Center;
 
