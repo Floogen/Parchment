@@ -157,35 +157,40 @@ namespace Parchment.Framework.Models
         public static float StackElements(IReadOnlyList<Element> elements, ElementRenderContext context)
         {
             float currentY = 0f;
+            float pendingSpacing = 0f;
+            bool hasPrecedingElement = false;
 
-            for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++)
+            foreach (Element element in elements)
             {
-                Element element = elements[elementIndex];
+                float elementY = currentY + pendingSpacing;
 
-                // Only stop rendering if it is past the AvailableHeight AND it already has rendered at least one element
-                if (elementIndex > 0 && currentY >= context.AvailableHeight)
+                // Only stop rendering if it is past the AvailableHeight AND at least one element has been laid out.
+                if (hasPrecedingElement && elementY >= context.AvailableHeight)
                 {
                     element.Bounds = Rectangle.Empty;
                     continue;
                 }
 
-                ElementRenderContext elementContext = context.WithSize(context.AvailableWidth, Math.Max(0f, context.AvailableHeight - currentY));
+                ElementRenderContext elementContext = context.WithSize(context.AvailableWidth, Math.Max(0f, context.AvailableHeight - elementY));
                 Vector2 elementSize = element.Renderer.Measure(element, elementContext);
-                float elementX = AlignmentHelper.GetAlignedX(availableWidth: context.AvailableWidth, contentWidth: elementSize.X, alignment: element.Data.Alignment);
 
-                element.Bounds = new Rectangle((int)elementX, (int)currentY, (int)elementSize.X, (int)elementSize.Y);
-                currentY += elementSize.Y;
-
-                if (elementIndex < elements.Count - 1)
+                // Skip elements with zero height
+                if (elementSize.Y <= 0f)
                 {
-                    currentY += element.Data.SpacingAfter * element.Data.Scale;
+                    element.Bounds = Rectangle.Empty;
+                    continue;
                 }
+
+                float elementX = AlignmentHelper.GetAlignedX(availableWidth: context.AvailableWidth, contentWidth: elementSize.X, alignment: element.Data.Alignment);
+                element.Bounds = new Rectangle((int)elementX, (int)elementY, (int)elementSize.X, (int)elementSize.Y);
+
+                currentY = elementY + elementSize.Y;
+                pendingSpacing = element.Data.SpacingAfter * element.Data.Scale;
+                hasPrecedingElement = true;
             }
 
             return currentY;
         }
-
-
 
         /// <summary>
         /// This should be called anytime the UI changes for scaling / width
