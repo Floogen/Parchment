@@ -190,7 +190,11 @@ namespace Parchment.Framework.Models
                     continue;
                 }
 
-                ElementRenderContext elementContext = context.WithSize(context.AvailableWidth, Math.Max(0f, context.AvailableHeight - elementY));
+                float marginLeft = element.Data.MarginLeft * element.Data.Scale;
+                float marginRight = element.Data.MarginRight * element.Data.Scale;
+                float elementAvailableWidth = Math.Max(0f, context.AvailableWidth - marginLeft - marginRight);
+
+                ElementRenderContext elementContext = context.WithSize(elementAvailableWidth, Math.Max(0f, context.AvailableHeight - elementY));
                 Vector2 elementSize = element.Renderer.Measure(element, elementContext);
 
                 // Skip elements with zero height
@@ -200,7 +204,7 @@ namespace Parchment.Framework.Models
                     continue;
                 }
 
-                float elementX = AlignmentHelper.GetAlignedX(availableWidth: context.AvailableWidth, contentWidth: elementSize.X, alignment: element.Data.Alignment);
+                float elementX = marginLeft + AlignmentHelper.GetAlignedX(availableWidth: elementAvailableWidth, contentWidth: elementSize.X, alignment: element.Data.Alignment);
                 element.Bounds = new Rectangle((int)elementX, (int)elementY, (int)elementSize.X, (int)elementSize.Y);
 
                 currentY = elementY + elementSize.Y;

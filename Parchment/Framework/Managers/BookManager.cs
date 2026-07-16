@@ -125,14 +125,13 @@ namespace Parchment.Framework.Managers
                     new PageData {
                         Id = "info", Elements = new List<ElementData>()
                         {
-                            new BannerElementData() { Text = "Test Text", FontType = FontType.Dialogue, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
-                            new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow" },
-                            new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2", Height = 64,
+                            new BannerElementData() { Text = "Test Text", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
+                            new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow", MarginLeft = 16 },
+                            new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2", Height = 48,
                                 TextureSourceRectangle = new Microsoft.Xna.Framework.Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4,
                                 Children = new List<ElementData>() {
-
-                            new ParagraphElementData() { Text = "This is a fill panel with a set height of 64px", Alignment = AlignmentType.Center, SpacingAfter = 32 },
-                            new ParagraphElementData() { Text = "Much detail", Alignment = AlignmentType.Center },
+                                    new ParagraphElementData() { Text = "This is a fill panel with a set height of 48", Alignment = AlignmentType.Center, SpacingAfter = 32 },
+                                    new ParagraphElementData() { Text = "Much detail", Alignment = AlignmentType.Center },
                                 }
                             }
                         }
