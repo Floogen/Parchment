@@ -26,14 +26,14 @@ namespace Parchment.Framework.Managers
         public List<BookData> Books { get { return _books; } set { FilterBookData(value); } }
         private List<BookData> _books = new List<BookData>();
 
-        private ElementRegistry _elementRegistery;
-        private FontResolver _fontResolver;
+        public ElementRegistry ElementRegistry { get; }
+        public FontResolver FontResolver { get; }
 
         public BookManager(IMonitor monitor, IModHelper helper) : base(monitor, helper)
         {
             // Register default helpers
-            _elementRegistery = new ElementRegistry(registerDefaults: true);
-            _fontResolver = new FontResolver();
+            ElementRegistry = new ElementRegistry(registerDefaults: true);
+            FontResolver = new FontResolver();
 
             helper.Events.GameLoop.GameLaunched += OnGameLaunched;
             helper.Events.Content.AssetRequested += OnAssetRequested;
@@ -97,7 +97,7 @@ namespace Parchment.Framework.Managers
 
         public Book? CreateBook(BookData bookData)
         {
-            return new Book(bookData, _elementRegistery, _fontResolver);
+            return new Book(bookData, ElementRegistry, FontResolver);
         }
 
         public Book CreateTestBook()
@@ -118,7 +118,21 @@ namespace Parchment.Framework.Managers
                                 TextureSourceRectangle = new Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fixed, Alignment = AlignmentType.Center, Scale = 4,
                                 Children = new List<ElementData>() {
                                     new ParagraphElementData() { Text = "This is a fixed panel. Probably. Maybe." },
-                                }
+                                },
+                                SpacingAfter = 4
+                            },
+                            new ButtonElementData() { TexturePath = "Assets/PeacefulEnd.Parchment/button1",
+                                TextureSourceRectangle = new Rectangle(0, 0, 16, 16),
+                                HoverTextureSourceRectangle = new Rectangle(0, 16, 16, 16),
+                                Text = "Click me!",
+                                FontType = FontType.Small,
+                                TextScale = 1,
+                                Padding = 2,
+                                Sizing = SizingMode.ShrinkToFit,
+                                Scale = 2,
+                                Alignment = AlignmentType.Center,
+                                Action = ActionManager.LAST_PAGE,
+                                Sound = "bigSelect"
                             }
                         }
                     },
@@ -158,11 +172,30 @@ namespace Parchment.Framework.Managers
                                 }
                             },
                         }
+                    },
+                    new PageData {
+                        Id = "last", Elements = new List<ElementData>()
+                        {
+                            new BannerElementData() { Text = "End of the book?", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
+                            new ButtonElementData() { TexturePath = "Assets/PeacefulEnd.Parchment/button1",
+                                TextureSourceRectangle = new Rectangle(0, 0, 16, 16),
+                                HoverTextureSourceRectangle = new Rectangle(0, 16, 16, 16),
+                                Text = "To the start!",
+                                FontType = FontType.Small,
+                                TextScale = 1,
+                                Padding = 2,
+                                Sizing = SizingMode.ShrinkToFit,
+                                Scale = 2,
+                                Alignment = AlignmentType.Center,
+                                Action = ActionManager.FIRST_PAGE,
+                                Sound = "bigSelect"
+                            }
+                        }
                     }
                 }
             };
 
-            return new Book(bookData, _elementRegistery, _fontResolver);
+            return new Book(bookData, ElementRegistry, FontResolver);
         }
     }
 }

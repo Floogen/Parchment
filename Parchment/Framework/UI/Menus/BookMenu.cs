@@ -6,9 +6,11 @@ using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Rendering;
+using StardewModdingAPI;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
 using StardewValley.Menus;
+using StardewValley.Triggers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -120,6 +122,71 @@ namespace Parchment.Framework.UI.Menus
             DetermineHotspotPositions();
         }
 
+        // Public methods for action usage
+        public bool TryTurnPage(bool forward, out string error)
+        {
+            if (_menuState is not MenuState.Ready)
+            {
+                error = "The book is not ready";
+                return false;
+            }
+
+            int targetSpread = forward ? _currentSpread + 1 : _currentSpread - 1;
+
+            if (targetSpread < 0 || targetSpread >= GetSpreadCount())
+            {
+                error = $"There is no spread {targetSpread}";
+                return false;
+            }
+
+            BeginPageTurn(targetSpread);
+            error = null;
+
+            return true;
+        }
+
+        public bool TryJumpToPage(int pageIndex, out string error)
+        {
+            if (_menuState is not MenuState.Ready)
+            {
+                error = "The book is not ready";
+                return false;
+            }
+
+            if (pageIndex < 0 || pageIndex >= _pages.Count)
+            {
+                error = $"Page index {pageIndex} is out of range (0-{_pages.Count - 1})";
+                return false;
+            }
+
+            int targetSpread = pageIndex / 2;
+
+            if (targetSpread != _currentSpread)
+            {
+                BeginPageTurn(targetSpread);
+            }
+
+            error = null;
+
+            return true;
+        }
+
+        public bool TryJumpToLastPage(out string error)
+        {
+            return TryJumpToPage(_pages.Count - 1, out error);
+        }
+
+        public void BeginClose()
+        {
+            if (_menuState is MenuState.Closing)
+            {
+                return;
+            }
+
+            SetMenuState(MenuState.Closing);
+        }
+
+        // Start of internal logic
         private void DetermineSlidePositions()
         {
             float scale = 4f;
@@ -207,24 +274,19 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
-        private void BeginPageTurn(bool forward)
+        private void BeginPageTurn(int targetSpread)
         {
-            _isTurningForward = forward;
-            _pendingSpread = forward ? _currentSpread + 1 : _currentSpread - 1;
+            _isTurningForward = targetSpread > _currentSpread;
+            _pendingSpread = targetSpread;
 
             SetMenuState(MenuState.Turning);
 
             Game1.playSound("shwip");
         }
 
-        private void BeginClose()
+        private void BeginPageTurn(bool forward)
         {
-            if (_menuState is MenuState.Closing)
-            {
-                return;
-            }
-
-            SetMenuState(MenuState.Closing);
+            BeginPageTurn(forward ? _currentSpread + 1 : _currentSpread - 1);
         }
 
         private void CommitPageTurn()
@@ -351,6 +413,33 @@ namespace Parchment.Framework.UI.Menus
                 _currentSpread = _pendingSpread;
                 SetMenuState(MenuState.Ready);
                 return;
+            }
+
+            // Check for any button element
+            Element? clickedElement = GetElementAt(new Point(x, y));
+            if (clickedElement is not null && clickedElement.Data is ButtonElementData buttonData)
+            {
+                if (string.IsNullOrWhiteSpace(buttonData.Sound) is false)
+                {
+                    Game1.playSound(buttonData.Sound);
+                }
+
+                if (TriggerActionManager.TryRunAction(buttonData.Action, out string error, out Exception exception) is false)
+                {
+                    Parchment.monitor.Log($"Button action \"{buttonData.Action}\" failed: {error}", LogLevel.Warn);
+
+                    if (exception is not null)
+                    {
+                        Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
+                    }
+                }
+
+                return;
+            }
+
+            if (_previousPageHotspot.Contains(x, y) && _currentSpread > 0)
+            {
+                BeginPageTurn(forward: false); return;
             }
 
             if (_previousPageHotspot.Contains(x, y) && _currentSpread > 0)

@@ -7,6 +7,7 @@ using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Layouts;
 using Parchment.Framework.Utilities;
+using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
@@ -78,7 +79,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
             Rectangle sourceRectangle = data.TextureSourceRectangle ?? element.Texture.Bounds;
 
-            return (int)(sourceRectangle.Width / 3f * data.Scale);
+            return NineSliceHelper.GetBorderThickness(sourceRectangle, data.Scale);
         }
 
         private static float GetNaturalChildWidth(IReadOnlyList<Element> children, ElementRenderContext context)

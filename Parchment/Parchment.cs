@@ -23,6 +23,7 @@ namespace Parchment
         internal static Multiplayer multiplayer;
 
         // Managers
+        public static ActionManager actionManager;
         internal static BookManager bookManager;
 
         public override void Entry(IModHelper helper)
@@ -33,6 +34,7 @@ namespace Parchment
             multiplayer = helper.Reflection.GetField<Multiplayer>(typeof(Game1), "multiplayer").GetValue();
 
             // Create managers
+            actionManager = new ActionManager(monitor, helper);
             bookManager = new BookManager(monitor, helper);
 
             try

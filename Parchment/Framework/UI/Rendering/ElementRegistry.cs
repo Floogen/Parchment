@@ -45,18 +45,19 @@ namespace Parchment.Framework.UI.Rendering
                 throw new ArgumentException("Cannot register a renderer for ElementType.Unknown.", nameof(elementType));
             }
 
-            this.Register(elementType.ToString(), renderer);
+            Register(elementType.ToString(), renderer);
         }
 
         // When a new ElementType is created, its renderer should be registered here
         public void RegisterDefaults()
         {
-            this.Register(ElementType.Title, new TitleElementRenderer());
-            this.Register(ElementType.Heading, new HeadingElementRenderer());
-            this.Register(ElementType.Paragraph, new ParagraphElementRenderer());
-            this.Register(ElementType.Image, new ImageElementRenderer());
-            this.Register(ElementType.Panel, new PanelElementRenderer());
-            this.Register(ElementType.Banner, new BannerElementRenderer());
+            Register(ElementType.Title, new TitleElementRenderer());
+            Register(ElementType.Heading, new HeadingElementRenderer());
+            Register(ElementType.Paragraph, new ParagraphElementRenderer());
+            Register(ElementType.Image, new ImageElementRenderer());
+            Register(ElementType.Panel, new PanelElementRenderer());
+            Register(ElementType.Banner, new BannerElementRenderer());
+            Register(ElementType.Button, new ButtonElementRenderer());
         }
 
         public bool TryResolve(string key, out ElementRegistration registration)
@@ -66,7 +67,7 @@ namespace Parchment.Framework.UI.Rendering
 
         internal bool TryResolve(ElementType elementType, out ElementRegistration registration)
         {
-            return this.TryResolve(elementType.ToString(), out registration);
+            return TryResolve(elementType.ToString(), out registration);
         }
     }
 }

@@ -3,6 +3,8 @@ using Newtonsoft.Json.Linq;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
+using Parchment.Framework.UI.Rendering;
+using StardewModdingAPI;
 using System;
 using System.Collections.Generic;
 using System.Formats.Asn1;
@@ -13,17 +15,6 @@ namespace Parchment.Framework.Utilities
 {
     public class ElementJsonConverter : JsonConverter
     {
-        // When a new ElementType is created, it should be mapped here to a Data model
-        private static readonly Dictionary<ElementType, Type> ELEMENT_TYPE_MAP = new Dictionary<ElementType, Type>()
-        {
-            { ElementType.Title, typeof(TitleElementData) },
-            { ElementType.Heading, typeof(HeadingElementData) },
-            { ElementType.Paragraph, typeof(ParagraphElementData) },
-            { ElementType.Image, typeof(ImageElementData) },
-            { ElementType.Panel, typeof(PanelElementData) },
-            { ElementType.Banner, typeof(BannerElementData) },
-        };
-
         public override bool CanConvert(Type objectType)
         {
             return objectType == typeof(ElementData);
@@ -46,30 +37,34 @@ namespace Parchment.Framework.Utilities
                 {
                     elementType = typeToken.ToObject<ElementType>(serializer);
                 }
-                catch (Exception)
+                catch (Exception exception)
                 {
-                    // TODO: Log unconverted Type here
+                    Parchment.monitor.Log($"Unable to parse element type '{typeToken}': {exception.Message}", LogLevel.Warn);
                 }
             }
 
-            if (ELEMENT_TYPE_MAP.TryGetValue(elementType, out Type targetType) is false)
+            if (Parchment.bookManager.ElementRegistry.TryResolve(elementType, out ElementRegistration registration) is false)
             {
+                if (elementType is not ElementType.Unknown)
+                {
+                    Parchment.monitor.LogOnce($"No renderer is registered for element type {elementType}; the element will be ignored.", LogLevel.Warn);
+                }
+
                 return new UnknownElementData();
             }
 
-            ElementData element = (ElementData)Activator.CreateInstance(targetType);
+            ElementData element = (ElementData)Activator.CreateInstance(registration.Renderer.DataType);
 
             // Need to do this to prevent recursive converting
             serializer.Populate(obj.CreateReader(), element);
             return element;
         }
 
-
         public override bool CanWrite => false;
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             throw new NotSupportedException();
         }
     }
-
 }
