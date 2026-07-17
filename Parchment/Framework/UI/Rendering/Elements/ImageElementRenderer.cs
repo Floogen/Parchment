@@ -38,7 +38,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return Vector2.Zero;
             }
 
-            float drawScale = data.Scale;
+            float drawScale = GetDrawScale(data, sourceRectangle, context.AvailableWidth);
             if (sourceRectangle.Width * drawScale > context.AvailableWidth)
             {
                 drawScale = context.AvailableWidth / sourceRectangle.Width;
@@ -51,6 +51,21 @@ namespace Parchment.Framework.UI.Rendering.Elements
             element.LayoutState = new ImageLayout(sourceRectangle, drawScale, drawSize, textArea, wrappedText, data.TextScale);
 
             return drawSize;
+        }
+
+        private static float GetDrawScale(ImageElementData data, Rectangle sourceRectangle, float availableWidth)
+        {
+            if (sourceRectangle.Width * data.Scale <= availableWidth)
+            {
+                return data.Scale;
+            }
+
+            float fittedScale = availableWidth / sourceRectangle.Width;
+            float snappedScale = (float)Math.Floor(fittedScale);
+
+            Parchment.monitor.LogOnce($"Image '{data.TexturePath}' is {(int)(sourceRectangle.Width * data.Scale)}px wide at {nameof(data.Scale)} {data.Scale}, but only {(int)availableWidth}px is available; it will be scaled down to fit.", LogLevel.Warn);
+
+            return snappedScale >= 1f ? snappedScale : fittedScale;
         }
 
         private static Rectangle GetScaledTextArea(ImageElementData data, Rectangle sourceRectangle, float drawScale)

@@ -23,18 +23,26 @@ namespace Parchment.Framework.Models
         public PageData Data { get; }
 
         public List<Element> Elements { get; }
+        public List<Element> Background { get; }
+
         public ElementRenderContext? LastLayoutContext;
 
         public Page(PageData data, ElementRegistry registry, FontResolver fontResolver)
         {
             Data = data;
-            Elements = CreateElements(registry, fontResolver);
+            Elements = CreateElements(Data.Elements, registry, fontResolver);
+            Background = CreateElements(Data.Background, registry, fontResolver);
         }
 
-        private List<Element> CreateElements(ElementRegistry registry, FontResolver fontResolver)
+        private List<Element> CreateElements(List<ElementData>? elementDataCollection, ElementRegistry registry, FontResolver fontResolver)
         {
             var elements = new List<Element>();
-            foreach (var elementData in Data.Elements ?? Enumerable.Empty<ElementData>())
+            if (elementDataCollection is null)
+            {
+                return elements;
+            }
+
+            foreach (var elementData in elementDataCollection)
             {
                 var element = Create(elementData, registry, fontResolver);
                 if (element is not null)
@@ -189,6 +197,39 @@ namespace Parchment.Framework.Models
             }
         }
 
+        /// <summary>
+        /// This should be called anytime the UI changes for scaling / width
+        /// </summary>
+        public void PerformLayout(ElementRenderContext context)
+        {
+            PositionElements(Background, context);
+
+            float contentHeight = StackElements(Elements, context);
+            if (contentHeight > context.AvailableHeight)
+            {
+                Parchment.monitor.LogOnce($"Page content is {(int)contentHeight}px tall but the page is only {(int)context.AvailableHeight}px, content will overflow!", LogLevel.Warn);
+            }
+
+            LastLayoutContext = context;
+        }
+
+        // Start of public static methods
+        public static void PositionElements(IReadOnlyList<Element> elements, ElementRenderContext context)
+        {
+            foreach (Element element in elements)
+            {
+                Vector2 elementSize = element.Renderer.Measure(element, context);
+
+                if (elementSize.Y <= 0f)
+                {
+                    element.Bounds = Rectangle.Empty;
+                    continue;
+                }
+
+                element.Bounds = new Rectangle(element.Data.Position.X, element.Data.Position.Y, (int)elementSize.X, (int)elementSize.Y);
+            }
+        }
+
         // Keep this static so it can be called outside Page
         public static float StackElements(IReadOnlyList<Element> elements, ElementRenderContext context)
         {
@@ -255,21 +296,6 @@ namespace Parchment.Framework.Models
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// This should be called anytime the UI changes for scaling / width
-        /// </summary>
-        public void PerformLayout(ElementRenderContext context)
-        {
-            float contentHeight = StackElements(Elements, context);
-
-            if (contentHeight > context.AvailableHeight)
-            {
-                Parchment.monitor.LogOnce($"Page content is {(int)contentHeight}px tall but the page is only {(int)context.AvailableHeight}px, content will overflow!", LogLevel.Warn);
-            }
-
-            LastLayoutContext = context;
         }
     }
 }

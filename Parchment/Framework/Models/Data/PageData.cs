@@ -16,6 +16,11 @@ namespace Parchment.Framework.Models.Data
 
         public List<ElementData> Elements { get; set; } = new List<ElementData>();
 
+        /// <summary>
+        /// Elements drawn behind <see cref="Elements"/>, positioned absolutely via <see cref="ElementData.Position"/> rather than stacked. These do not affect the layout.
+        /// </summary>
+        public List<ElementData>? Background { get; set; }
+
         public override (bool Result, string Error) IsValid()
         {
             throw new NotImplementedException();

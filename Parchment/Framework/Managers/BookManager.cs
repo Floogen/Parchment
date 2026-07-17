@@ -167,7 +167,8 @@ namespace Parchment.Framework.Managers
                         }
                     },
                     new PageData {
-                        Id = "huh", Elements = new List<ElementData>()
+                        Id = "huh", 
+                        Elements = new List<ElementData>()
                         {
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2", Height = 48,
                                 TextureSourceRectangle = new Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4, SpacingAfter = 4,
@@ -175,7 +176,12 @@ namespace Parchment.Framework.Managers
                                     new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center },
                                     new HeadingElementData() { Text = "This is a tent (in a panel)", FontType = FontType.Small, Alignment = AlignmentType.Center },
                                 }
-                            },
+                            }
+                        },
+                        Background = new List<ElementData>()
+                        {
+                            new ImageElementData() { TexturePath = "Assets/PeacefulEnd.Parchment/backgroundNoise1", Position = new Point(48, 272), Scale = 6 },
+                            new HeadingElementData() { Text = "This is draw on the background\n(ontop of another background)", FontType = FontType.Small, Position = new Point(64, 336), Scale = 1 }
                         }
                     },
                     new PageData {

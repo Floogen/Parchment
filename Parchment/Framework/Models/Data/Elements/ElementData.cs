@@ -27,6 +27,12 @@ namespace Parchment.Framework.Models.Data.Elements
 
         public float Scale { get; set; } = 1f;
 
+        /// <summary>
+        /// The page-local position in screen pixels, relative to the page's content area. Unlike <see cref="SpacingAfter"/> and other spacing fields, this is not multiplied by <see cref="Scale"/>.
+        /// Changing an element's scale resizes it in place rather than moving it.
+        /// </summary>
+        public Point Position { get; set; } = Point.Zero;
+
         public override (bool Result, string Error) IsValid()
         {
             throw new NotImplementedException();
