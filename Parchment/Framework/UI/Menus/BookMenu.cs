@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Parchment.Framework.Models;
@@ -128,6 +128,11 @@ namespace Parchment.Framework.UI.Menus
         }
 
         // Public methods for game state queries
+        public bool IsPagingForward()
+        {
+            return CurrentState is MenuState.Turning && _isTurningForward;
+        }
+
         public bool IsHoveringLeftPage()
         {
             return _isHoveringLeftPage;

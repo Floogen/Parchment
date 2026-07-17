@@ -1,4 +1,4 @@
-﻿using Parchment.Framework.UI.Menus;
+using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Delegates;
@@ -114,7 +114,7 @@ namespace Parchment.Framework.Managers
                 return false;
             }
 
-            return bookMenu.IsOnPage(bookMenu.Book.Pages.Count);
+            return bookMenu.IsOnPage(bookMenu.Book.Pages.Count - 1);
         }
 
         private bool IsPagingForward(string[] query, GameStateQueryContext context)
@@ -124,7 +124,7 @@ namespace Parchment.Framework.Managers
                 return false;
             }
 
-            return bookMenu.IsOnPage(bookMenu.Book.Pages.Count);
+            return bookMenu.IsPagingForward();
         }
 
         private bool CurrentPageNumber(string[] query, GameStateQueryContext context)
