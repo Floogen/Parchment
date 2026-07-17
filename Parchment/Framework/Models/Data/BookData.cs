@@ -1,4 +1,5 @@
-﻿using Parchment.Framework.Models.Data.Elements;
+﻿using Parchment.Framework.Models.Data.Books;
+using Parchment.Framework.Models.Data.Elements;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,9 @@ namespace Parchment.Framework.Models.Data
 
         public string Id { get; set; } = string.Empty;
 
+        public BookAppearanceData Appearance { get; set; } = new BookAppearanceData();
+        public PageCurlData PageCurl { get; set; } = new PageCurlData();
+        public BookAnimationData Animation { get; set; } = new BookAnimationData();
 
         /// <summary>
         /// Sprite path for book item.

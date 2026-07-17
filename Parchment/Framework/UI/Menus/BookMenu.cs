@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Data.Books;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Rendering;
@@ -16,11 +17,6 @@ using StardewValley.Triggers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Parchment.Framework.UI.Menus.BookMenu;
-using static StardewValley.FarmerSprite;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Parchment.Framework.UI.Menus
 {
@@ -42,18 +38,12 @@ namespace Parchment.Framework.UI.Menus
         private int _previousCornerFrame = 0;
         private int _nextCornerFrame = 0;
 
-        private const float BOOK_SCALE = 5f;
-        private const float CURL_SCALE = 4f;
-        private Vector2 BOOK_ORIGIN = new Vector2(20f, 24f);
+        private const float BOOK_LAYER_DEPTH = 0.86f;
+        private const float CURL_LAYER_DEPTH = 0.99f;
 
-        private const float SLIDE_DURATION = 350f;
-        private const float OPEN_DURATION = 250f;
-        private const float CURL_DURATION = 250f;
-        private const float TURN_DURATION = 500f;
-        private const float CLOSE_DURATION = 400f;
-
-        // Adjust this for page speed
-        private const float CONTENT_SWAP_PROGRESS = 0.5f;
+        private readonly BookAppearanceData _appearance;
+        private readonly PageCurlData _pageCurl;
+        private readonly BookAnimationData _animation;
 
         // Adjust this for GSQ refresh rate check
         private const int CONDITION_REFRESH_INTERVAL = 6;
@@ -92,7 +82,7 @@ namespace Parchment.Framework.UI.Menus
 
         private Texture2D _pageCurlTexture;
         private Texture2D _bookTexture;
-        private Texture2D _bookGrayscaleTexture;
+        private Texture2D? _bookGrayscaleTexture;
 
         private readonly bool _previousHudState;
 
@@ -106,33 +96,34 @@ namespace Parchment.Framework.UI.Menus
             _bookTintColor = ResolveBookTintColor(book.Data);
             _pages = book.Pages;
 
-            _pageCurlTexture = Parchment.modHelper.GameContent.Load<Texture2D>("Assets/PeacefulEnd.Parchment/curlPage");
-            _bookTexture = Parchment.modHelper.GameContent.Load<Texture2D>("Assets/PeacefulEnd.Parchment/smallBook");
-            _bookGrayscaleTexture = Parchment.modHelper.GameContent.Load<Texture2D>("Assets/PeacefulEnd.Parchment/smallBookGrayscale");
+            _appearance = book.Data.Appearance;
+            _pageCurl = book.Data.PageCurl;
+            _animation = book.Data.Animation;
+
+            _bookTexture = Parchment.modHelper.GameContent.Load<Texture2D>(_appearance.TexturePath);
+            _bookGrayscaleTexture = string.IsNullOrWhiteSpace(_appearance.GrayscaleTexturePath) ? null : Parchment.modHelper.GameContent.Load<Texture2D>(_appearance.GrayscaleTexturePath);
+            _pageCurlTexture = Parchment.modHelper.GameContent.Load<Texture2D>(_pageCurl.TexturePath);
+
+            for (int frameIndex = 0; frameIndex < _appearance.OpenFrameCount; frameIndex++)
+            {
+                _openFrames.Add(new Rectangle(_appearance.FrameWidth * frameIndex, 0, _appearance.FrameWidth, _appearance.FrameHeight));
+            }
+            _closeFrames = Enumerable.Reverse(_openFrames).ToList();
+
+            for (int frameIndex = 0; frameIndex < _pageCurl.FrameCount; frameIndex++)
+            {
+                _pageCurlFrames.Add(new Rectangle(_pageCurl.FrameWidth * frameIndex, 0, _pageCurl.FrameWidth, _pageCurl.FrameHeight));
+            }
+
+            for (int frameIndex = _appearance.OpenFrameCount; frameIndex < _appearance.OpenFrameCount + _appearance.TurnFrameCount; frameIndex++)
+            {
+                _pageTurnFrames.Add(new Rectangle(_appearance.FrameWidth * frameIndex, 0, _appearance.FrameWidth, _appearance.FrameHeight));
+            }
+            _pageTurnFramesReversed = Enumerable.Reverse(_pageTurnFrames).ToList();
 
             // Cache HUD state
             _previousHudState = Game1.displayHUD;
             Game1.displayHUD = false;
-
-            // Set open frames
-            for (int i = 0; i < 4; i++)
-            {
-                _openFrames.Add(new Rectangle(219 * i, 0, 219, 158));
-            }
-            _closeFrames = Enumerable.Reverse(_openFrames).ToList();
-
-            // Set page curl frames
-            for (int i = 0; i < 7; i++)
-            {
-                _pageCurlFrames.Add(new Rectangle(32 * i, 0, 32, 32));
-            }            
-
-            // Set page turn frames
-            for (int i = 4; i < 10; i++)
-            {
-                _pageTurnFrames.Add(new Rectangle(219 * i, 0, 219, 158));
-            }
-            _pageTurnFramesReversed = Enumerable.Reverse(_pageTurnFrames).ToList();
 
             DetermineSlidePositions();
             DetermineHotspotPositions();
@@ -262,16 +253,19 @@ namespace Parchment.Framework.UI.Menus
             }
 
             SetMenuState(MenuState.Closing);
+            PlaySound(_animation.CloseSound);
         }
 
         // Start of internal logic
         private void DetermineSlidePositions()
         {
-            float scale = 4f;
             Rectangle closedBookRectangle = _openFrames[0];
-            _targetPosition = new Vector2(this.xPositionOnScreen + this.width / 2f - (closedBookRectangle.Width * scale) / 2f, this.yPositionOnScreen + this.height / 2f - (closedBookRectangle.Height * scale) / 2f);
 
-            _startPosition = new Vector2(_targetPosition.X, Game1.uiViewport.Height + (closedBookRectangle.Height * scale));
+            float centeredX = base.xPositionOnScreen + base.width / 2f - (closedBookRectangle.Width * _appearance.Scale) / 2f;
+            float centeredY = base.yPositionOnScreen + base.height / 2f - (closedBookRectangle.Height * _appearance.Scale) / 2f;
+
+            _targetPosition = new Vector2(centeredX + _appearance.Offset.X * _appearance.Scale, centeredY + _appearance.Offset.Y * _appearance.Scale);
+            _startPosition = new Vector2(_targetPosition.X, Game1.uiViewport.Height + (closedBookRectangle.Height * _appearance.Scale));
 
             _currentPosition = _startPosition;
         }
@@ -280,19 +274,25 @@ namespace Parchment.Framework.UI.Menus
         {
             Rectangle bookFrame = _openFrames[0];
 
-            return new Rectangle((int)(_targetPosition.X - BOOK_ORIGIN.X * BOOK_SCALE), (int)(_targetPosition.Y - BOOK_ORIGIN.Y * BOOK_SCALE), (int)(bookFrame.Width * BOOK_SCALE), (int)(bookFrame.Height * BOOK_SCALE));
+            return new Rectangle((int)_targetPosition.X, (int)_targetPosition.Y, (int)(bookFrame.Width * _appearance.Scale), (int)(bookFrame.Height * _appearance.Scale));
         }
 
         private void DetermineHotspotPositions()
         {
-            const int HOTSPOT_INSET_X = 42;
-            const int HOTSPOT_INSET_Y = 67;
-
             Rectangle bookBounds = GetBookScreenBounds();
-            int hotspotSize = (int)(_pageCurlFrames[0].Width * CURL_SCALE);
 
-            _previousPageHotspot = new Rectangle(bookBounds.Left + 10, bookBounds.Bottom - hotspotSize - HOTSPOT_INSET_Y, hotspotSize, hotspotSize);
-            _nextPageHotspot = new Rectangle(bookBounds.Right - hotspotSize - HOTSPOT_INSET_X, bookBounds.Bottom - hotspotSize - HOTSPOT_INSET_Y, hotspotSize, hotspotSize);
+            _previousPageHotspot = GetCurlBounds(_pageCurl.PreviousPageOffset, bookBounds);
+            _nextPageHotspot = GetCurlBounds(_pageCurl.NextPageOffset, bookBounds);
+        }
+
+        /// <summary>The screen rect of a page curl corner. This is both the drawn sprite's rect and its hotspot, so the two cannot drift apart.</summary>
+        private Rectangle GetCurlBounds(Point spriteSpaceOffset, Rectangle bookBounds)
+        {
+            return new Rectangle(
+                bookBounds.X + (int)(spriteSpaceOffset.X * _appearance.Scale),
+                bookBounds.Y + (int)(spriteSpaceOffset.Y * _appearance.Scale),
+                (int)(_pageCurl.FrameWidth * _pageCurl.Scale),
+                (int)(_pageCurl.FrameHeight * _pageCurl.Scale));
         }
 
         private Chapter GetChapter(int chapterIndex)
@@ -336,21 +336,33 @@ namespace Parchment.Framework.UI.Menus
         private Rectangle GetLeftPageBounds()
         {
             Rectangle bookBounds = GetBookScreenBounds();
-            return new Rectangle(bookBounds.X + Book.Data.Layout.MarginOuter, bookBounds.Y + Book.Data.Layout.MarginTop, bookBounds.Width / 2 - Book.Data.Layout.MarginOuter - Book.Data.Layout.MarginSpine, bookBounds.Height - Book.Data.Layout.MarginTop - Book.Data.Layout.MarginBottom);
+
+            int marginOuter = (int)(Book.Data.Layout.MarginOuter * _appearance.Scale);
+            int marginTop = (int)(Book.Data.Layout.MarginTop * _appearance.Scale);
+            int marginBottom = (int)(Book.Data.Layout.MarginBottom * _appearance.Scale);
+            int marginSpine = (int)(Book.Data.Layout.MarginSpine * _appearance.Scale);
+
+            return new Rectangle(bookBounds.X + marginOuter, bookBounds.Y + marginTop, bookBounds.Width / 2 - marginOuter - marginSpine, bookBounds.Height - marginTop - marginBottom);
         }
 
         private Rectangle GetRightPageBounds()
         {
             Rectangle bookBounds = GetBookScreenBounds();
             int spineX = bookBounds.X + bookBounds.Width / 2;
-            return new Rectangle(spineX + Book.Data.Layout.MarginSpine, bookBounds.Y + Book.Data.Layout.MarginTop, bookBounds.Width / 2 - Book.Data.Layout.MarginOuter - Book.Data.Layout.MarginSpine, bookBounds.Height - Book.Data.Layout.MarginTop - Book.Data.Layout.MarginBottom);
+
+            int marginOuter = (int)(Book.Data.Layout.MarginOuter * _appearance.Scale);
+            int marginTop = (int)(Book.Data.Layout.MarginTop * _appearance.Scale);
+            int marginBottom = (int)(Book.Data.Layout.MarginBottom * _appearance.Scale);
+            int marginSpine = (int)(Book.Data.Layout.MarginSpine * _appearance.Scale);
+
+            return new Rectangle(spineX + marginSpine, bookBounds.Y + marginTop, bookBounds.Width / 2 - marginOuter - marginSpine, bookBounds.Height - marginTop - marginBottom);
         }
 
         private void UpdateCornerAnimation(ref float animationTimer, ref int currentFrame, bool isHovering, float elapsedMilliseconds)
         {
             int lastFrame = _pageCurlFrames.Count - 1;
 
-            float frameDuration = CURL_DURATION / _pageCurlFrames.Count;
+            float frameDuration = _animation.CurlDuration / _pageCurlFrames.Count;
             if (isHovering && currentFrame < lastFrame)
             {
                 animationTimer += elapsedMilliseconds;
@@ -383,7 +395,7 @@ namespace Parchment.Framework.UI.Menus
 
             SetMenuState(MenuState.Turning);
 
-            Game1.playSound("shwip");
+            PlaySound(_animation.TurnSound);
         }
 
         private void BeginPageTurn(int targetSpread)
@@ -508,6 +520,16 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
+        private static void PlaySound(string? sound)
+        {
+            if (string.IsNullOrWhiteSpace(sound))
+            {
+                return;
+            }
+
+            Game1.playSound(sound);
+        }
+
         protected override void cleanupBeforeExit()
         {
             Game1.displayHUD = _previousHudState;
@@ -522,7 +544,7 @@ namespace Parchment.Framework.UI.Menus
 
         public override bool readyToClose()
         {
-            return CurrentState != MenuState.Closing || _animationTimer >= CLOSE_DURATION;
+            return CurrentState != MenuState.Closing || _animationTimer >= _animation.CloseDuration;
         }
 
         public override void receiveKeyPress(Keys key)
@@ -575,10 +597,7 @@ namespace Parchment.Framework.UI.Menus
             Element? clickedElement = GetElementAt(new Point(x, y));
             if (clickedElement is not null && string.IsNullOrWhiteSpace(clickedElement.Data.Action) is false)
             {
-                if (string.IsNullOrWhiteSpace(clickedElement.Data.Sound) is false)
-                {
-                    Game1.playSound(clickedElement.Data.Sound);
-                }
+                PlaySound(clickedElement.Data.Sound);
 
                 if (TriggerActionManager.TryRunAction(clickedElement.Data.Action, out string error, out Exception exception) is false)
                 {
@@ -640,19 +659,19 @@ namespace Parchment.Framework.UI.Menus
             {
                 _animationTimer += elapsedMilliseconds;
 
-                float progress = Math.Clamp(_animationTimer / SLIDE_DURATION, 0f, 1f);
+                float progress = Math.Clamp(_animationTimer / _animation.SlideDuration, 0f, 1f);
 
                 //  Ease out for a fast start but soft landing
                 float easedProgress = 1f - (1f - progress) * (1f - progress);
 
                 _currentPosition = Vector2.Lerp(_startPosition, _targetPosition, easedProgress);
 
-                if (_animationTimer >= SLIDE_DURATION)
+                if (_animationTimer >= _animation.SlideDuration)
                 {
                     _currentPosition = _targetPosition;
 
                     SetMenuState(MenuState.Opening);
-                    Game1.playSound("shwip");
+                    PlaySound(_animation.OpenSound);
                 }
             }
             else if (CurrentState is MenuState.Opening)
@@ -660,12 +679,12 @@ namespace Parchment.Framework.UI.Menus
                 _animationTimer += elapsedMilliseconds;
 
                 // Advance frames evenly across the duration
-                _animationFrame = Math.Min((int)(_animationTimer / OPEN_DURATION * _openFrames.Count), _openFrames.Count - 1);
+                _animationFrame = Math.Min((int)(_animationTimer / _animation.OpenDuration * _openFrames.Count), _openFrames.Count - 1);
 
-                if (_animationTimer >= OPEN_DURATION)
+                if (_animationTimer >= _animation.OpenDuration)
                 {
                     SetMenuState(MenuState.Ready);
-                    Game1.playSound("shwip");
+                    PlaySound(_animation.OpenSound);
                 }
             }
             else if (CurrentState is MenuState.Ready)
@@ -681,9 +700,9 @@ namespace Parchment.Framework.UI.Menus
 
                 _animationTimer += elapsedMilliseconds;
 
-                _animationFrame = Math.Min((int)(_animationTimer / TURN_DURATION * _pageTurnFrames.Count), _pageTurnFrames.Count - 1);
+                _animationFrame = Math.Min((int)(_animationTimer / _animation.TurnDuration * _pageTurnFrames.Count), _pageTurnFrames.Count - 1);
 
-                if (_animationTimer >= TURN_DURATION)
+                if (_animationTimer >= _animation.TurnDuration)
                 {
                     CommitPageTurn();
                     SetMenuState(MenuState.Ready);
@@ -694,9 +713,9 @@ namespace Parchment.Framework.UI.Menus
                 _animationTimer += elapsedMilliseconds;
 
                 // Run the frames backwards
-                _animationFrame = Math.Min((int)(_animationTimer / CLOSE_DURATION * _closeFrames.Count), _closeFrames.Count - 1);
+                _animationFrame = Math.Min((int)(_animationTimer / _animation.CloseDuration * _closeFrames.Count), _closeFrames.Count - 1);
 
-                if (_animationTimer >= CLOSE_DURATION)
+                if (_animationTimer >= _animation.CloseDuration)
                 {
                     exitThisMenu(playSound: false);
                 }
@@ -710,7 +729,7 @@ namespace Parchment.Framework.UI.Menus
                 b.Draw(Game1.fadeToBlackRect, Game1.graphics.GraphicsDevice.Viewport.Bounds, Color.Black * 0.4f);
             }
 
-            var textureBounds = new Rectangle(219 * 3, 0, 219, 158);
+            var textureBounds = _openFrames[_openFrames.Count - 1];
             if (CurrentState == MenuState.Sliding)
             {
                 textureBounds = _openFrames[0];
@@ -733,8 +752,12 @@ namespace Parchment.Framework.UI.Menus
 
             DrawElements(b, Book.Underlay, liveBookBounds, bookContext);
 
-            b.Draw(_bookGrayscaleTexture, _currentPosition, textureBounds, _bookTintColor, 0f, BOOK_ORIGIN, BOOK_SCALE, SpriteEffects.None, 0.86f);
-            b.Draw(_bookTexture, _currentPosition, textureBounds, Color.White, 0f, BOOK_ORIGIN, BOOK_SCALE, SpriteEffects.None, 0.86f);
+            if (_bookGrayscaleTexture is not null)
+            {
+                b.Draw(_bookGrayscaleTexture, _currentPosition, textureBounds, _bookTintColor, 0f, Vector2.Zero, _appearance.Scale, SpriteEffects.None, BOOK_LAYER_DEPTH);
+            }
+
+            b.Draw(_bookTexture, _currentPosition, textureBounds, Color.White, 0f, Vector2.Zero, _appearance.Scale, SpriteEffects.None, BOOK_LAYER_DEPTH);
 
             if (CurrentState is MenuState.Ready or MenuState.Turning)
             {
@@ -760,22 +783,22 @@ namespace Parchment.Framework.UI.Menus
 
         private void DrawCorners(SpriteBatch b)
         {
-            Vector2 previousCornerPosition = new Vector2(_previousPageHotspot.Left, _previousPageHotspot.Bottom - (_pageCurlFrames[0].Height * 4f));
-            Vector2 nextCornerPosition = new Vector2(_nextPageHotspot.Right - (_pageCurlFrames[0].Width * 4f), _nextPageHotspot.Bottom - (_pageCurlFrames[0].Height * 4f));
-
             if (_currentSpread > 0)
             {
-                b.Draw(_pageCurlTexture, previousCornerPosition, _pageCurlFrames[_previousCornerFrame], Color.White, 0f, Vector2.Zero, 5f, SpriteEffects.FlipHorizontally, 0.99f);
-            }
-            if (_currentSpread < GetSpreadCount() - 1)
-            {
-                b.Draw(_pageCurlTexture, nextCornerPosition, _pageCurlFrames[_nextCornerFrame], Color.White, 0f, Vector2.Zero, 5f, SpriteEffects.None, 0.99f);
+                b.Draw(_pageCurlTexture, new Vector2(_previousPageHotspot.X, _previousPageHotspot.Y), _pageCurlFrames[_previousCornerFrame], Color.White, 0f, Vector2.Zero, _pageCurl.Scale, SpriteEffects.FlipHorizontally, CURL_LAYER_DEPTH);
             }
 
-            if (_debug is true)
+            if (_currentSpread < GetSpreadCount() - 1)
+            {
+                b.Draw(_pageCurlTexture, new Vector2(_nextPageHotspot.X, _nextPageHotspot.Y), _pageCurlFrames[_nextCornerFrame], Color.White, 0f, Vector2.Zero, _pageCurl.Scale, SpriteEffects.None, CURL_LAYER_DEPTH);
+            }
+
+            if (_debug)
             {
                 b.Draw(Game1.staminaRect, GetLeftPageBounds(), Color.Red * 0.4f);
                 b.Draw(Game1.staminaRect, GetRightPageBounds(), Color.Red * 0.4f);
+                b.Draw(Game1.staminaRect, _previousPageHotspot, Color.Cyan * 0.4f);
+                b.Draw(Game1.staminaRect, _nextPageHotspot, Color.Cyan * 0.4f);
             }
         }
 
@@ -788,8 +811,8 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            float turnProgress = Math.Clamp(_animationTimer / TURN_DURATION, 0f, 1f);
-            bool hasSwapped = turnProgress >= CONTENT_SWAP_PROGRESS;
+            float turnProgress = Math.Clamp(_animationTimer / _animation.TurnDuration, 0f, 1f);
+            bool hasSwapped = turnProgress >= _animation.ContentSwapProgress;
 
             // The swept side (right when forward, left when backward): blank until swap then NEW content
             // The stationary side: Old content until swap then blank until landing
@@ -865,7 +888,7 @@ namespace Parchment.Framework.UI.Menus
 
         private ElementRenderContext EnsureLayout(Page page, Rectangle pageContentBounds)
         {
-            ElementRenderContext context = this.BuildRenderContext(pageContentBounds);
+            ElementRenderContext context = BuildRenderContext(pageContentBounds);
 
             if (page.LastLayoutContext != context)
             {

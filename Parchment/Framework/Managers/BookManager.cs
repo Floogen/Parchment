@@ -2,6 +2,7 @@
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
+using Parchment.Framework.Models.Data.Books;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Fonts;
@@ -129,6 +130,10 @@ namespace Parchment.Framework.Managers
                 Format = "1.0.0",
                 Id = "Parchment.Test_CampingGuide",
                 TintColor = "165 42 42",
+                Appearance = new BookAppearanceData()
+                {
+                    Offset = new Point(2, -8)
+                },
                 Underlay = new List<ElementData>()
                 {
                     new ImageElementData() { TexturePath = "Characters/Junimo", TextureSourceRectangle = new Rectangle(48, 0, 16, 16), Scale = 4,
