@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using Parchment.Framework.Managers;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
@@ -64,6 +64,7 @@ namespace Parchment
 
             // Register commands
             helper.ConsoleCommands.Add("parchment_debug", "parchment_debug", (cmd, args) => { isDebugMode = !isDebugMode; });
+            helper.ConsoleCommands.Add("parchment_open", "parchment_open <book_id>", OpenBook);
         }
 
         private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
@@ -79,6 +80,16 @@ namespace Parchment
 
                 Game1.activeClickableMenu = new BookMenu(bookManager.CreateTestBook());
             }
+        }
+
+        public static void OpenBook(string command, string[] args)
+        {
+            if (ArgUtility.TryGet(args, 0, out string bookId, out string error) is false || (bookManager.CreateBook(bookId) is var book && book is null))
+            {
+                return;
+            }
+
+            Game1.activeClickableMenu = new BookMenu(book);
         }
     }
 }
