@@ -2,6 +2,7 @@
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Rendering;
+using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using System;
 using System.Collections.Generic;
@@ -17,10 +18,17 @@ namespace Parchment.Framework.Models
         public BookData Data { get; }
         public List<Page> Pages { get; }
 
+        public List<Element> Underlay { get; }
+        public List<Element> Overlay { get; }
+
+        public ElementRenderContext? LastLayoutContext;
+
         public Book(BookData data, ElementRegistry elementRegistry, FontResolver fontResolver)
         {
             Data = data;
             Pages = CreatePages(elementRegistry, fontResolver);
+            Underlay = ElementFactory.CreateList(Data.Underlay, elementRegistry, fontResolver);
+            Overlay = ElementFactory.CreateList(Data.Overlay, elementRegistry, fontResolver);
         }
 
         private List<Page> CreatePages(ElementRegistry elementRegistry, FontResolver fontResolver)
@@ -59,8 +67,19 @@ namespace Parchment.Framework.Models
         {
             foreach (Page page in Pages)
             {
-                page.RefreshTextures(invalidatedAssetNames);
+                if (ElementFactory.RefreshTextures(page.Elements, invalidatedAssetNames) is true)
+                {
+                    page.LastLayoutContext = null;
+                }
             }
+        }
+
+        public void PerformLayout(ElementRenderContext context)
+        {
+            Page.PositionElements(Underlay, context);
+            Page.PositionElements(Overlay, context);
+
+            LastLayoutContext = context;
         }
     }
 }

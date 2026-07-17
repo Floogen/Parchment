@@ -296,9 +296,13 @@ namespace Parchment.Framework.UI.Menus
 
         private Element? GetElementAt(Point screenPosition)
         {
-            Element? hitElement = HitTestPage(GetLeftPageIndex(), GetLeftPageBounds(), screenPosition);
+            Rectangle bookBounds = GetBookScreenBounds();
 
-            return hitElement ?? HitTestPage(GetRightPageIndex(), GetRightPageBounds(), screenPosition);
+            Element? hitElement = Page.HitTest(Book.Overlay, bookBounds, screenPosition);
+            hitElement ??= HitTestPage(GetLeftPageIndex(), GetLeftPageBounds(), screenPosition);
+            hitElement ??= HitTestPage(GetRightPageIndex(), GetRightPageBounds(), screenPosition);
+
+            return hitElement ?? Page.HitTest(Book.Underlay, bookBounds, screenPosition);
         }
 
         private Element? HitTestPage(int pageIndex, Rectangle pageBounds, Point screenPosition)
@@ -569,9 +573,12 @@ namespace Parchment.Framework.UI.Menus
                 textureBounds = _closeFrames[_animationFrame];
             }
 
-            //Vector2 centerPosition = new Vector2(xPositionOnScreen + width / 2, yPositionOnScreen + height / 2);
-            //Vector2 drawPosition = new Vector2(centerPosition.X - (textureBounds.Width * 4f) / 2f, centerPosition.Y - (textureBounds.Height * 4f) / 2f);
+            Rectangle liveBookBounds = GetLiveBookScreenBounds();
+            ElementRenderContext bookContext = EnsureBookLayout();
 
+            DrawElements(b, Book.Underlay, liveBookBounds, bookContext);
+
+            // TODO: Replace this with BookData.Color
             b.Draw(_bookGrayscaleTexture, _currentPosition, textureBounds, Color.Brown, 0f, BOOK_ORIGIN, BOOK_SCALE, SpriteEffects.None, 0.86f);
             b.Draw(_bookTexture, _currentPosition, textureBounds, Color.White, 0f, BOOK_ORIGIN, BOOK_SCALE, SpriteEffects.None, 0.86f);
 
@@ -584,6 +591,8 @@ namespace Parchment.Framework.UI.Menus
                     DrawCorners(b);
                 }
             }
+
+            DrawElements(b, Book.Overlay, liveBookBounds, bookContext);
 
             base.draw(b);
             base.drawMouse(b, ignore_transparency: true);
@@ -704,6 +713,27 @@ namespace Parchment.Framework.UI.Menus
         private ElementRenderContext BuildRenderContext(Rectangle pageBounds)
         {
             return new ElementRenderContext(pageBounds.Width, pageBounds.Height);
+        }
+
+        private ElementRenderContext EnsureBookLayout()
+        {
+            Rectangle bookBounds = GetBookScreenBounds();
+            ElementRenderContext context = new ElementRenderContext(bookBounds.Width, bookBounds.Height);
+
+            if (Book.LastLayoutContext != context)
+            {
+                Book.PerformLayout(context);
+            }
+
+            return context;
+        }
+
+        private Rectangle GetLiveBookScreenBounds()
+        {
+            Rectangle bookBounds = GetBookScreenBounds();
+            Vector2 slideOffset = _currentPosition - _targetPosition;
+
+            return new Rectangle(bookBounds.X + (int)slideOffset.X, bookBounds.Y + (int)slideOffset.Y, bookBounds.Width, bookBounds.Height);
         }
     }
 }
