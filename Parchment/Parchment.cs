@@ -22,6 +22,8 @@ namespace Parchment
         public const string CUSTOM_BOOK_ID = "(O)PeacefulEnd.Parchment_Book";
         public const string CUSTOM_BOOK_FIELD_ID = "PeacefulEnd.Parchment/CustomFields/BookId";
 
+        public static bool isDebugMode = false;
+
         // Shared static helpers
         internal static IMonitor monitor;
         internal static IModHelper modHelper;
@@ -59,11 +61,15 @@ namespace Parchment
 
             // Hook into the required events
             helper.Events.Input.ButtonPressed += OnButtonPressed;
+
+            // Register commands
+            helper.ConsoleCommands.Add("parchment_debug", "parchment_debug", (cmd, args) => { isDebugMode = !isDebugMode; });
         }
 
-        private void OnButtonPressed(object? sender, StardewModdingAPI.Events.ButtonPressedEventArgs e)
+        private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
         {
-            if (e.Button is SButton.O && Context.IsPlayerFree && Game1.activeClickableMenu is null)
+            // Only runs if debug mode is active
+            if (isDebugMode is true && e.Button is SButton.O && Context.IsPlayerFree && Game1.activeClickableMenu is null)
             {
                 var test = Helper.GameContent.Load<List<BookData>>(BookManager.BOOKS_DATA_PATH);
                 _ = test;

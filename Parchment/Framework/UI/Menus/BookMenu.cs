@@ -22,8 +22,6 @@ namespace Parchment.Framework.UI.Menus
 {
     public class BookMenu : IClickableMenu
     {
-        private readonly bool _debug = false; // TODO: Make this an option on the BookData or command?
-
         public Book Book { get; }
 
         public enum MenuState { Sliding, Opening, Ready, Turning, Closing }
@@ -793,7 +791,7 @@ namespace Parchment.Framework.UI.Menus
                 b.Draw(_pageCurlTexture, new Vector2(_nextPageHotspot.X, _nextPageHotspot.Y), _pageCurlFrames[_nextCornerFrame], Color.White, 0f, Vector2.Zero, _pageCurl.Scale, SpriteEffects.None, CURL_LAYER_DEPTH);
             }
 
-            if (_debug)
+            if (Parchment.isDebugMode)
             {
                 b.Draw(Game1.staminaRect, GetLeftPageBounds(), Color.Red * 0.4f);
                 b.Draw(Game1.staminaRect, GetRightPageBounds(), Color.Red * 0.4f);
@@ -879,7 +877,7 @@ namespace Parchment.Framework.UI.Menus
                 Rectangle screenBounds = new Rectangle(element.Bounds.X + pageBounds.X, element.Bounds.Y + pageBounds.Y, element.Bounds.Width, element.Bounds.Height);
                 element.Renderer.Draw(b, element, screenBounds, context);
 
-                if (_debug)
+                if (Parchment.isDebugMode)
                 {
                     b.Draw(Game1.staminaRect, screenBounds, Color.Lime * 0.3f);
                 }
