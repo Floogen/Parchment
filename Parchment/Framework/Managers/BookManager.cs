@@ -165,7 +165,9 @@ namespace Parchment.Framework.Managers
                 Pages = new List<PageData>
                 {
                     new PageData {
-                        Id = "cover", Elements = new List<ElementData>() {
+                        Id = "cover",
+                        ChapterId = "chapter-1",
+                        Elements = new List<ElementData>() {
                             new ImageElementData() { Text = "Example Guide", FontType = FontType.SpriteText, TextArea = new Rectangle(15, 5, 65, 10), Alignment = AlignmentType.Center, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle2", Scale = 5 },
                             new HeadingElementData() { Text = "By ...", Alignment = AlignmentType.Center },
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
@@ -191,7 +193,9 @@ namespace Parchment.Framework.Managers
                         }
                     },
                     new PageData {
-                        Id = "info", Elements = new List<ElementData>()
+                        Id = "info",
+                        ChapterId = "chapter-1",
+                        Elements = new List<ElementData>()
                         {
                             new BannerElementData() { Text = "Test Text", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
                             new ParagraphElementData() { Text = "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow", MarginLeft = 16 },
@@ -207,7 +211,9 @@ namespace Parchment.Framework.Managers
                         }
                     },
                     new PageData {
-                        Id = "test", Elements = new List<ElementData>()
+                        Id = "test",
+                        ChapterId = "chapter-1",
+                        Elements = new List<ElementData>()
                         {
                             new HeadingElementData() { Text = "Manually offset text?", MarginLeft = 32 },
                             new HeadingElementData() { Text = "No offset here!" },
@@ -222,7 +228,8 @@ namespace Parchment.Framework.Managers
                         }
                     },
                     new PageData {
-                        Id = "huh", 
+                        Id = "huh",
+                        ChapterId = "chapter-1",
                         Elements = new List<ElementData>()
                         {
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2", Height = 48,
@@ -240,7 +247,9 @@ namespace Parchment.Framework.Managers
                         }
                     },
                     new PageData {
-                        Id = "animated", Elements = new List<ElementData>()
+                        Id = "animated",
+                        ChapterId = "chapter-1",
+                        Elements = new List<ElementData>()
                         {
                             new ImageElementData() { TexturePath = "LooseSprites/GemBird", TextureSourceRectangle = new Rectangle(0, 0, 32, 32), Scale = 3, Alignment = AlignmentType.Center,
                                 Frames = new List<AnimationFrameData>(){
@@ -275,7 +284,9 @@ namespace Parchment.Framework.Managers
                         }
                     },
                     new PageData {
-                        Id = "items", Elements = new List<ElementData>()
+                        Id = "items",
+                        ChapterId = "chapter-1",
+                        Elements = new List<ElementData>()
                         {
                             new HeadingElementData() { Text = "Automatic Item Handling!", Alignment = AlignmentType.Center },
                             new ImageElementData() { ItemId = "(O)24", SpacingAfter = 16, Scale = 4, Alignment = AlignmentType.Center },
@@ -284,9 +295,43 @@ namespace Parchment.Framework.Managers
                         }
                     },
                     new PageData {
-                        Id = "last", Elements = new List<ElementData>()
+                        Id = "last?",
+                        ChapterId = "chapter-1",
+                        Elements = new List<ElementData>()
                         {
-                            new BannerElementData() { Text = "End of the book?", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
+                            new BannerElementData() { Text = "Is this the end?", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
+                            new ButtonElementData() { TexturePath = "Assets/PeacefulEnd.Parchment/button1",
+                                TextureSourceRectangle = new Rectangle(0, 0, 18, 18),
+                                HoverTextureSourceRectangle = new Rectangle(0, 18, 18, 18),
+                                Text = "Click here!",
+                                FontType = FontType.Small,
+                                TextScale = 1,
+                                Padding = 2,
+                                Sizing = SizingMode.ShrinkToFit,
+                                Scale = 2,
+                                Alignment = AlignmentType.Center,
+                                Action = $"{ActionManager.JUMP_TO_CHAPTER} chapter-2",
+                                Sound = "bigSelect"
+                            }
+                        }
+                    },
+
+                    // Start chapter 2
+                    new PageData {
+                        Id = "hopped",
+                        ChapterId = "chapter-2",
+                        Elements = new List<ElementData>()
+                        {
+                            new BannerElementData() { Text = "Chapter 2", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
+                        }
+                    },
+                    new PageData {
+                        Id = "last!",
+                        ChapterId = "chapter-2",
+                        Elements = new List<ElementData>()
+                        {
+                            new BannerElementData() { Text = "Can't go back!", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
+                            new HeadingElementData() { Text = "Use the button below to go back to chapter 1.", Alignment = AlignmentType.Center },
                             new ButtonElementData() { TexturePath = "Assets/PeacefulEnd.Parchment/button1",
                                 TextureSourceRectangle = new Rectangle(0, 0, 18, 18),
                                 HoverTextureSourceRectangle = new Rectangle(0, 18, 18, 18),
@@ -297,7 +342,7 @@ namespace Parchment.Framework.Managers
                                 Sizing = SizingMode.ShrinkToFit,
                                 Scale = 2,
                                 Alignment = AlignmentType.Center,
-                                Action = ActionManager.FIRST_PAGE,
+                                Action = ActionManager.GO_TO_START,
                                 Sound = "bigSelect"
                             }
                         }

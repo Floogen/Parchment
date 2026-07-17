@@ -14,6 +14,11 @@ namespace Parchment.Framework.Models.Data
     {
         public string Id { get; set; } = string.Empty;
 
+        /// <summary>The chapter this page belongs to (pages sharing the same value belong in same chapter).
+        /// Chapters are navigation-isolated and page turning never crosses a chapter boundary unless via button.
+        /// </summary>
+        public string? ChapterId { get; set; }
+
         public List<ElementData> Elements { get; set; } = new List<ElementData>();
 
         /// <summary>

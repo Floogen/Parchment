@@ -17,6 +17,7 @@ namespace Parchment.Framework.Models
     {
         public BookData Data { get; }
         public List<Page> Pages { get; }
+        public List<Chapter> Chapters { get; }
 
         public List<Element> Underlay { get; }
         public List<Element> Overlay { get; }
@@ -29,6 +30,87 @@ namespace Parchment.Framework.Models
             Pages = CreatePages(elementRegistry, fontResolver);
             Underlay = ElementFactory.CreateList(Data.Underlay, elementRegistry, fontResolver);
             Overlay = ElementFactory.CreateList(Data.Overlay, elementRegistry, fontResolver);
+            Chapters = CreateChapters();
+        }
+
+        private List<Chapter> CreateChapters()
+        {
+            var chapters = new List<Chapter>();
+
+            if (Pages.Count is 0)
+            {
+                return chapters;
+            }
+
+            string? currentChapterId = Pages[0].Data.ChapterId;
+            int firstPageIndex = 0;
+
+            for (int pageIndex = 1; pageIndex < Pages.Count; pageIndex++)
+            {
+                string? chapterId = Pages[pageIndex].Data.ChapterId;
+
+                if (string.Equals(chapterId, currentChapterId, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                chapters.Add(new Chapter(currentChapterId, firstPageIndex, pageIndex - firstPageIndex));
+
+                currentChapterId = chapterId;
+                firstPageIndex = pageIndex;
+            }
+
+            chapters.Add(new Chapter(currentChapterId, firstPageIndex, Pages.Count - firstPageIndex));
+
+            WarnOnNonContiguousChapters(chapters);
+
+            return chapters;
+        }
+
+        private void WarnOnNonContiguousChapters(List<Chapter> chapters)
+        {
+            var seenChapterIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (Chapter chapter in chapters)
+            {
+                if (string.IsNullOrWhiteSpace(chapter.Id))
+                {
+                    continue;
+                }
+
+                if (seenChapterIds.Add(chapter.Id) is false)
+                {
+                    Parchment.monitor.Log($"Book '{Data.Id}' has non-contiguous pages for chapter '{chapter.Id}', they will be treated as separate chapters!", LogLevel.Warn);
+                }
+            }
+        }
+
+        public bool TryGetChapterIndex(string chapterId, out int chapterIndex)
+        {
+            for (chapterIndex = 0; chapterIndex < Chapters.Count; chapterIndex++)
+            {
+                if (string.Equals(Chapters[chapterIndex].Id, chapterId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            chapterIndex = -1;
+
+            return false;
+        }
+
+        public int GetChapterIndexForPage(int pageIndex)
+        {
+            for (int chapterIndex = 0; chapterIndex < Chapters.Count; chapterIndex++)
+            {
+                if (Chapters[chapterIndex].ContainsPage(pageIndex))
+                {
+                    return chapterIndex;
+                }
+            }
+
+            return 0;
         }
 
         private List<Page> CreatePages(ElementRegistry elementRegistry, FontResolver fontResolver)

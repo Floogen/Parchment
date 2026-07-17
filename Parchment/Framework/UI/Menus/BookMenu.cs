@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Parchment.Framework.UI.Menus.BookMenu;
 using static StardewValley.FarmerSprite;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -25,6 +26,8 @@ namespace Parchment.Framework.UI.Menus
 {
     public class BookMenu : IClickableMenu
     {
+        private readonly bool _debug = false; // TODO: Make this an option on the BookData or command?
+
         public Book Book { get; }
 
         public enum MenuState { Sliding, Opening, Ready, Turning, Closing }
@@ -71,7 +74,9 @@ namespace Parchment.Framework.UI.Menus
 
         private readonly Color _bookTintColor;
         private readonly List<Page> _pages;
-        private readonly bool _debug = false; // TODO: Make this an option on the BookData or command?
+
+        private int _currentChapterIndex = 0;
+        private int _pendingChapterIndex;
 
         private int _currentSpread = 0;
         private int _pendingSpread;
@@ -154,6 +159,17 @@ namespace Parchment.Framework.UI.Menus
             return GetPageId(GetLeftPageIndex()).EqualsIgnoreCase(pageId) || GetPageId(GetRightPageIndex()).EqualsIgnoreCase(pageId);
         }
 
+        public bool IsInChapter(string chapterId)
+        {
+            var chapter = GetChapter(_currentChapterIndex);
+            if (chapter is null)
+            {
+                return false;
+            }
+
+            return string.Equals(chapter.Id, chapterId, StringComparison.OrdinalIgnoreCase);
+        }
+
         // Public methods for action usage
         public bool TryTurnPage(bool forward, out string error)
         {
@@ -177,6 +193,30 @@ namespace Parchment.Framework.UI.Menus
             return true;
         }
 
+        public bool TryJumpToChapter(string chapterId, out string error)
+        {
+            if (CurrentState is not MenuState.Ready)
+            {
+                error = "The book is not ready";
+                return false;
+            }
+
+            if (Book.TryGetChapterIndex(chapterId, out int chapterIndex) is false)
+            {
+                error = $"There is no chapter '{chapterId}'";
+                return false;
+            }
+
+            if (chapterIndex != _currentChapterIndex || _currentSpread != 0)
+            {
+                BeginPageTurn(chapterIndex, 0);
+            }
+
+            error = null;
+
+            return true;
+        }
+
         public bool TryJumpToPage(int pageIndex, out string error)
         {
             if (CurrentState is not MenuState.Ready)
@@ -191,11 +231,12 @@ namespace Parchment.Framework.UI.Menus
                 return false;
             }
 
-            int targetSpread = pageIndex / 2;
+            int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
+            int targetSpread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
 
-            if (targetSpread != _currentSpread)
+            if (chapterIndex != _currentChapterIndex || targetSpread != _currentSpread)
             {
-                BeginPageTurn(targetSpread);
+                BeginPageTurn(chapterIndex, targetSpread);
             }
 
             error = null;
@@ -203,9 +244,14 @@ namespace Parchment.Framework.UI.Menus
             return true;
         }
 
+        public bool TryJumpToFirstPage(out string error)
+        {
+            return TryJumpToPage(GetChapter(_currentChapterIndex).FirstPageIndex, out error);
+        }
+
         public bool TryJumpToLastPage(out string error)
         {
-            return TryJumpToPage(_pages.Count - 1, out error);
+            return TryJumpToPage(GetChapter(_currentChapterIndex).LastPageIndex, out error);
         }
 
         public void BeginClose()
@@ -249,19 +295,32 @@ namespace Parchment.Framework.UI.Menus
             _nextPageHotspot = new Rectangle(bookBounds.Right - hotspotSize - HOTSPOT_INSET_X, bookBounds.Bottom - hotspotSize - HOTSPOT_INSET_Y, hotspotSize, hotspotSize);
         }
 
+        private Chapter GetChapter(int chapterIndex)
+        {
+            return Book.Chapters[chapterIndex];
+        }
+
         private int GetSpreadCount()
         {
-            return (_pages.Count + 1) / 2;
+            return GetChapter(_currentChapterIndex).SpreadCount;
         }
 
         private int GetLeftPageIndex()
         {
-            return _currentSpread * 2;
+            return GetPageIndex(_currentChapterIndex, _currentSpread, left: true);
         }
 
         private int GetRightPageIndex()
         {
-            return _currentSpread * 2 + 1;
+            return GetPageIndex(_currentChapterIndex, _currentSpread, left: false);
+        }
+
+        private int GetPageIndex(int chapterIndex, int spread, bool left)
+        {
+            Chapter chapter = GetChapter(chapterIndex);
+            int pageIndex = chapter.FirstPageIndex + spread * 2 + (left ? 0 : 1);
+
+            return pageIndex > chapter.LastPageIndex ? int.MaxValue : pageIndex;
         }
 
         private string? GetPageId(int pageIndex)
@@ -316,14 +375,20 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
-        private void BeginPageTurn(int targetSpread)
+        private void BeginPageTurn(int targetChapterIndex, int targetSpread)
         {
-            _isTurningForward = targetSpread > _currentSpread;
+            _isTurningForward = targetChapterIndex != _currentChapterIndex ? targetChapterIndex > _currentChapterIndex : targetSpread > _currentSpread;
+            _pendingChapterIndex = targetChapterIndex;
             _pendingSpread = targetSpread;
 
             SetMenuState(MenuState.Turning);
 
             Game1.playSound("shwip");
+        }
+
+        private void BeginPageTurn(int targetSpread)
+        {
+            BeginPageTurn(_currentChapterIndex, targetSpread);
         }
 
         private void BeginPageTurn(bool forward)
@@ -333,6 +398,7 @@ namespace Parchment.Framework.UI.Menus
 
         private void CommitPageTurn()
         {
+            _currentChapterIndex = _pendingChapterIndex;
             _currentSpread = _pendingSpread;
         }
 
@@ -717,8 +783,8 @@ namespace Parchment.Framework.UI.Menus
         {
             if (CurrentState != MenuState.Turning)
             {
-                DrawSide(b, _currentSpread, left: true);
-                DrawSide(b, _currentSpread, left: false);
+                DrawSide(b, _currentChapterIndex, _currentSpread, left: true);
+                DrawSide(b, _currentChapterIndex, _currentSpread, left: false);
                 return;
             }
 
@@ -733,30 +799,31 @@ namespace Parchment.Framework.UI.Menus
             {
                 if (hasSwapped)
                 {
-                    DrawSide(b, _pendingSpread, left: true);
+                    DrawSide(b, _pendingChapterIndex, _pendingSpread, left: true);
                 }
             }
             else if (!hasSwapped)
             {
-                DrawSide(b, _currentSpread, left: true);
+                DrawSide(b, _currentChapterIndex, _currentSpread, left: true);
             }
 
             if (!leftIsSwept)
             {
                 if (hasSwapped)
                 {
-                    DrawSide(b, _pendingSpread, left: false);
+                    DrawSide(b, _pendingChapterIndex, _pendingSpread, left: false);
                 }
             }
             else if (!hasSwapped)
             {
-                DrawSide(b, _currentSpread, left: false);
+                DrawSide(b, _currentChapterIndex, _currentSpread, left: false);
             }
         }
 
-        private void DrawSide(SpriteBatch b, int spread, bool left)
+        private void DrawSide(SpriteBatch b, int chapterIndex, int spread, bool left)
         {
-            int pageIndex = spread * 2 + (left ? 0 : 1);
+            int pageIndex = GetPageIndex(chapterIndex, spread, left);
+
             if (pageIndex < _pages.Count)
             {
                 DrawPage(b, pageIndex, left ? GetLeftPageBounds() : GetRightPageBounds());

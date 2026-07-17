@@ -25,6 +25,7 @@ namespace Parchment.Framework.Managers
 
         public const string CURRENT_PAGE_NUMBER = "PeacefulEnd.Parchment_CurrentPageNumber";
         public const string CURRENT_PAGE_ID = "PeacefulEnd.Parchment_CurrentPageId";
+        public const string CURRENT_CHAPTER_ID = "PeacefulEnd.Parchment_CurrentChapterId";
         public const string CURRENT_BOOK_ID = "PeacefulEnd.Parchment_CurrentBookId";
 
         public QueryManager(IMonitor monitor, IModHelper helper) : base(monitor, helper)
@@ -46,6 +47,7 @@ namespace Parchment.Framework.Managers
 
             GameStateQuery.Register(CURRENT_PAGE_NUMBER, CurrentPageNumber);
             GameStateQuery.Register(CURRENT_PAGE_ID, CurrentPageId);
+            GameStateQuery.Register(CURRENT_CHAPTER_ID, CurrentChapterId);
             GameStateQuery.Register(CURRENT_BOOK_ID, CurrentBookId);
         }
 
@@ -153,6 +155,21 @@ namespace Parchment.Framework.Managers
             }
 
             return bookMenu.IsOnPage(pageId);
+        }
+
+        private bool CurrentChapterId(string[] query, GameStateQueryContext context)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu) is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(query, 1, out string chapterId, out string error) is false)
+            {
+                return false;
+            }
+
+            return bookMenu.IsInChapter(chapterId);
         }
 
         private bool CurrentBookId(string[] query, GameStateQueryContext context)
