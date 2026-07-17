@@ -115,7 +115,9 @@ namespace Parchment.Framework.UI.Rendering.Elements
             {
                 return;
             }
-            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), sourceRectangle, element.TintColor, 0f, Vector2.Zero, imageLayout.DrawScale, data.SpriteEffects, LAYER_DEPTH);
+
+            Rectangle frameRectangle = AnimationHelper.GetFrame(sourceRectangle, data.Frames, data.FrameDuration);
+            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), frameRectangle, element.TintColor, 0f, Vector2.Zero, imageLayout.DrawScale, data.SpriteEffects, LAYER_DEPTH);
 
             if (imageLayout.WrappedText is null)
             {
