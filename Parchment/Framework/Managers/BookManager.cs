@@ -128,8 +128,6 @@ namespace Parchment.Framework.Managers
             {
                 Format = "1.0.0",
                 Id = "Parchment.Test_CampingGuide",
-                Title = "Camping Guide",
-                Description = "A test book for exercising the BookMenu.",
                 TintColor = "165 42 42",
                 Underlay = new List<ElementData>()
                 {

@@ -15,15 +15,6 @@ namespace Parchment.Framework.Models.Data
 
         public string Id { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Display name of book item.
-        /// </summary>
-        public string? Title { get; set; }
-
-        /// <summary>
-        /// Description used by book item.
-        /// </summary>
-        public string? Description { get; set; }
 
         /// <summary>
         /// Sprite path for book item.
