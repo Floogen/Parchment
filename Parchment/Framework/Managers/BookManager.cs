@@ -6,6 +6,7 @@ using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Menus;
 using Parchment.Framework.UI.Rendering;
+using Parchment.Framework.Utilities.Extensions;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
@@ -108,6 +109,31 @@ namespace Parchment.Framework.Managers
                 Id = "Parchment.Test_CampingGuide",
                 Title = "Camping Guide",
                 Description = "A test book for exercising the BookMenu.",
+                TintColor = "165 42 42",
+                Overlay = new List<ElementData>()
+                {
+                    new ImageElementData
+                    {
+                        TexturePath = "Assets/PeacefulEnd.Parchment/bookmark1",
+                        TextureSourceRectangle = new Rectangle(0, 0, 24, 17),
+                        HoverTextureSourceRectangle = new Rectangle(0, 17, 24, 17),
+                        TintColor = Color.Red.ToSpaceSeparated(),
+                        SpriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally,
+                        Position = new Point(-64, 192),
+                        Scale = 4,
+                        Action = ActionManager.FIRST_PAGE
+                    },
+                    new ImageElementData
+                    {
+                        TexturePath = "Assets/PeacefulEnd.Parchment/bookmark1",
+                        TextureSourceRectangle = new Rectangle(0, 0, 20, 17),
+                        TintColor = Color.Blue.ToSpaceSeparated(),
+                        HoverTextureSourceRectangle = new Rectangle(0, 17, 24, 17),
+                        Position = new Point(1064, 256),
+                        Scale = 4,
+                        Action = ActionManager.LAST_PAGE
+                    }
+                },
                 Pages = new List<PageData>
                 {
                     new PageData {

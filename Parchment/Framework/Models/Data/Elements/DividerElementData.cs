@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
@@ -20,6 +21,7 @@ namespace Parchment.Framework.Models.Data
         public Rectangle? TextureSourceRectangle { get; set; }
         public Rectangle? HoverTextureSourceRectangle { get; set; }
         public string? TintColor { get; set; }
+        public SpriteEffects SpriteEffects { get; set; }
 
         /// <summary>
         /// Only applies to textureless dividers

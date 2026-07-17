@@ -4,7 +4,7 @@
     // Add core assets
     {
       "Action": "Load",
-      "Target": "Assets/PeacefulEnd.Parchment/divider1, Assets/PeacefulEnd.Parchment/divider2, Assets/PeacefulEnd.Parchment/button1, Assets/PeacefulEnd.Parchment/bannerTitle1, Assets/PeacefulEnd.Parchment/bannerTitle2, Assets/PeacefulEnd.Parchment/panelFrame1, Assets/PeacefulEnd.Parchment/panelFrame2, Assets/PeacefulEnd.Parchment/imageBackground1, Assets/PeacefulEnd.Parchment/imageBackground2, Assets/PeacefulEnd.Parchment/backgroundNoise1, Assets/PeacefulEnd.Parchment/curlPage, Assets/PeacefulEnd.Parchment/smallBook, Assets/PeacefulEnd.Parchment/smallBookGrayscale",
+      "Target": "Assets/PeacefulEnd.Parchment/bookmark1, Assets/PeacefulEnd.Parchment/divider1, Assets/PeacefulEnd.Parchment/divider2, Assets/PeacefulEnd.Parchment/button1, Assets/PeacefulEnd.Parchment/bannerTitle1, Assets/PeacefulEnd.Parchment/bannerTitle2, Assets/PeacefulEnd.Parchment/panelFrame1, Assets/PeacefulEnd.Parchment/panelFrame2, Assets/PeacefulEnd.Parchment/imageBackground1, Assets/PeacefulEnd.Parchment/imageBackground2, Assets/PeacefulEnd.Parchment/backgroundNoise1, Assets/PeacefulEnd.Parchment/curlPage, Assets/PeacefulEnd.Parchment/smallBook, Assets/PeacefulEnd.Parchment/smallBookGrayscale",
       "FromFile": "assets/{{TargetWithoutPath}}.png"
     },
     {

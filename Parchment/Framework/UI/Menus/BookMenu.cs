@@ -6,6 +6,7 @@ using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Rendering;
+using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
@@ -63,6 +64,7 @@ namespace Parchment.Framework.UI.Menus
         private Rectangle _previousPageHotspot;
         private Rectangle _nextPageHotspot;
 
+        private readonly Color _bookTintColor;
         private readonly List<Page> _pages;
         private readonly bool _debug = false; // TODO: Make this an option on the BookData or command?
 
@@ -88,6 +90,7 @@ namespace Parchment.Framework.UI.Menus
             base.yPositionOnScreen = (int)topLeft.Y;
 
             Book = book;
+            _bookTintColor = ResolveBookTintColor(book.Data);
             _pages = book.Pages;
 
             _pageCurlTexture = Parchment.modHelper.GameContent.Load<Texture2D>("Assets/PeacefulEnd.Parchment/curlPage");
@@ -296,6 +299,11 @@ namespace Parchment.Framework.UI.Menus
 
         private Element? GetElementAt(Point screenPosition)
         {
+            if (_menuState is not MenuState.Ready)
+            {
+                return null;
+            }
+
             Rectangle bookBounds = GetBookScreenBounds();
 
             Element? hitElement = Page.HitTest(Book.Overlay, bookBounds, screenPosition);
@@ -578,8 +586,7 @@ namespace Parchment.Framework.UI.Menus
 
             DrawElements(b, Book.Underlay, liveBookBounds, bookContext);
 
-            // TODO: Replace this with BookData.Color
-            b.Draw(_bookGrayscaleTexture, _currentPosition, textureBounds, Color.Brown, 0f, BOOK_ORIGIN, BOOK_SCALE, SpriteEffects.None, 0.86f);
+            b.Draw(_bookGrayscaleTexture, _currentPosition, textureBounds, _bookTintColor, 0f, BOOK_ORIGIN, BOOK_SCALE, SpriteEffects.None, 0.86f);
             b.Draw(_bookTexture, _currentPosition, textureBounds, Color.White, 0f, BOOK_ORIGIN, BOOK_SCALE, SpriteEffects.None, 0.86f);
 
             if (_menuState is MenuState.Ready or MenuState.Turning)
@@ -590,9 +597,9 @@ namespace Parchment.Framework.UI.Menus
                 {
                     DrawCorners(b);
                 }
-            }
 
-            DrawElements(b, Book.Overlay, liveBookBounds, bookContext);
+                DrawElements(b, Book.Overlay, liveBookBounds, bookContext);
+            }
 
             base.draw(b);
             base.drawMouse(b, ignore_transparency: true);
@@ -694,6 +701,11 @@ namespace Parchment.Framework.UI.Menus
 
                 Rectangle screenBounds = new Rectangle(element.Bounds.X + pageBounds.X, element.Bounds.Y + pageBounds.Y, element.Bounds.Width, element.Bounds.Height);
                 element.Renderer.Draw(b, element, screenBounds, context);
+
+                if (_debug)
+                {
+                    b.Draw(Game1.staminaRect, screenBounds, Color.Lime * 0.3f);
+                }
             }
         }
 
@@ -734,6 +746,22 @@ namespace Parchment.Framework.UI.Menus
             Vector2 slideOffset = _currentPosition - _targetPosition;
 
             return new Rectangle(bookBounds.X + (int)slideOffset.X, bookBounds.Y + (int)slideOffset.Y, bookBounds.Width, bookBounds.Height);
+        }
+
+        private Color ResolveBookTintColor(BookData data)
+        {
+            if (string.IsNullOrWhiteSpace(data.TintColor))
+            {
+                return Color.White;
+            }
+
+            if (ColorParser.TryParse(data.TintColor, out Color parsedColor) is false)
+            {
+                Parchment.monitor.Log($"Book '{data.Id}' has an unparsable {nameof(data.TintColor)} '{data.TintColor}'; the book will not be tinted.", LogLevel.Warn);
+                return Color.White;
+            }
+
+            return parsedColor;
         }
     }
 }
