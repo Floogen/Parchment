@@ -13,7 +13,7 @@ namespace Parchment.Framework.Managers
 {
     public class ActionManager : BaseManager
     {
-        public const string GO_TO_START = "PeacefulEnd.Parchment__GoToStart";
+        public const string GO_TO_START = "PeacefulEnd.Parchment_GoToStart";
         public const string NEXT_PAGE = "PeacefulEnd.Parchment_NextPage";
         public const string PREVIOUS_PAGE = "PeacefulEnd.Parchment_PreviousPage";
         public const string JUMP_TO_PAGE = "PeacefulEnd.Parchment_JumpToPage";
