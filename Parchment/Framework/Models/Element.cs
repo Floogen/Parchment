@@ -17,8 +17,13 @@ namespace Parchment.Framework.Models
     public class Element
     {
         public ElementData Data { get; }
+
+        public string? DisplayName { get; set; }
+        public string? Description { get; set; }
+
         public IElementRenderer Renderer { get; }
         public Rectangle Bounds { get; set; }
+        public Rectangle? SourceRectangle { get; init; }
 
         public Color TextColor { get; init; } = Game1.textColor;
         public Color TintColor { get; init; } = Color.White;

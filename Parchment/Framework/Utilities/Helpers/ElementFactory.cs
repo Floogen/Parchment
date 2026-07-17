@@ -1,12 +1,14 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models;
+using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Rendering;
 using StardewModdingAPI;
 using StardewValley;
+using StardewValley.ItemTypeDefinitions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,22 +49,68 @@ namespace Parchment.Framework.Utilities.Helpers
                 return null;
             }
 
+            // Get font
             IFont? font = null;
             if (data is ITextContent textContent)
             {
                 font = fontResolver.Resolve(textContent.FontType);
             }
 
+            // Get textures and item related details
+            string? displayName = data.DisplayName;
+            string? description = data.Description;
+
+            IAssetName? textureAssetName = null;
+            Texture2D? texture = null;
+            Rectangle? sourceRectangle = null;
+
+            if (data is ImageElementData imageData && string.IsNullOrWhiteSpace(imageData.ItemId) is false)
+            {
+                ParsedItemData? itemData = ItemRegistry.GetData(imageData.ItemId);
+
+                if (itemData is null)
+                {
+                    Parchment.monitor.Log($"Unknown item ID '{imageData.ItemId}'; the element will not render.", LogLevel.Warn);
+                }
+                else
+                {
+                    texture = itemData.GetTexture();
+                    sourceRectangle = itemData.GetSourceRect();
+
+                    if (displayName is null)
+                    {
+                        displayName = itemData.DisplayName;
+                    }
+                    if (description is null)
+                    {
+                        description = itemData.Description;
+                    }
+                }
+            }
+            else
+            {
+                textureAssetName = ResolveTextureAssetName(data);
+            }
+
+            // Create element
             var element = new Element(data, registration.Renderer)
             {
+                DisplayName = displayName,
+                Description = description,
                 Font = font,
                 TextColor = ResolveTextColor(data) ?? Game1.textColor,
                 TintColor = ResolveTintColor(data) ?? Color.White,
-                TextureAssetName = ResolveTextureAssetName(data),
+                TextureAssetName = textureAssetName,
+                SourceRectangle = sourceRectangle,
+                Texture = texture,
                 Children = CreateChildren(data, registry, fontResolver)
             };
 
-            RefreshTexture(element);
+            // Pull latest texture
+            if (textureAssetName is not null)
+            {
+                RefreshTexture(element);
+            }
 
             return element;
         }

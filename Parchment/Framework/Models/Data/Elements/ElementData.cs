@@ -14,6 +14,15 @@ namespace Parchment.Framework.Models.Data.Elements
     public abstract class ElementData : BaseModel
     {
         public string? Id { get; set; }
+        /// <summary>
+        /// If omitted and <see cref="ImageElementData.ItemId"/> is given, this will be automatically populated with the item's name.
+        /// To override these behavior, simply set Description to an empty string (not null / not omitted)
+        /// </summary>
+        public string? DisplayName { get; set; }
+        /// <summary>
+        /// If omitted and <see cref="ImageElementData.ItemId"/> is given, this will be automatically populated with the item's description.
+        /// To override these behavior, simply set Description to an empty string (not null / not omitted)
+        /// </summary>
         public string? Description { get; set; }
         public abstract ElementType Type { get; }
 

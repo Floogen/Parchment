@@ -603,9 +603,9 @@ namespace Parchment.Framework.UI.Menus
 
             base.draw(b);
 
-            if (_menuState is MenuState.Ready && _hoveredElement is not null && string.IsNullOrEmpty(_hoveredElement.Data.Description) is false)
+            if (_menuState is MenuState.Ready && _hoveredElement is not null && (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false || string.IsNullOrEmpty(_hoveredElement.Description) is false))
             {
-                IClickableMenu.drawHoverText(b, _hoveredElement.Data.Description, Game1.smallFont);
+                drawHoverText(b, _hoveredElement.Description, Game1.smallFont, boldTitleText: _hoveredElement.DisplayName);
             }
 
             base.drawMouse(b, ignore_transparency: true);

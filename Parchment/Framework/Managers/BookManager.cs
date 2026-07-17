@@ -248,6 +248,15 @@ namespace Parchment.Framework.Managers
                         }
                     },
                     new PageData {
+                        Id = "items", Elements = new List<ElementData>()
+                        {
+                            new HeadingElementData() { Text = "Automatic Item Handling!", Alignment = AlignmentType.Center },
+                            new ImageElementData() { ItemId = "(O)24", SpacingAfter = 16, Scale = 4, Alignment = AlignmentType.Center },
+                            new HeadingElementData() { Text = "With automatic or custom hover text...", Alignment = AlignmentType.Center, SpacingAfter = 64 },
+                            new ImageElementData() { ItemId = "(O)24", DisplayName = "", Description = "This is probably a parsnip?", Scale = 4, Alignment = AlignmentType.Center },
+                        }
+                    },
+                    new PageData {
                         Id = "last", Elements = new List<ElementData>()
                         {
                             new BannerElementData() { Text = "End of the book?", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },

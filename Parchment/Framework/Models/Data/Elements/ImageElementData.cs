@@ -30,6 +30,9 @@ namespace Parchment.Framework.Models.Data
         /// <summary>The default duration for frames that don't specify one, in milliseconds.</summary>
         public float FrameDuration { get; set; } = 100f;
 
+        /// <summary>A qualified item ID (such as "(O)24" for Parsnip) whose sprite is drawn. When set, this ignores <see cref="TexturePath"/> and <see cref="TextureSourceRectangle"/>.</summary>
+        public string? ItemId { get; set; }
+
         public FontType FontType { get; set; }
         public string? Text { get; set; }
         public string? TextColor { get; set; }
@@ -90,6 +93,11 @@ namespace Parchment.Framework.Models.Data
             if (FrameDuration <= 0f)
             {
                 return (false, $"\"FrameDuration\" must be positive.");
+            }
+
+            if (string.IsNullOrWhiteSpace(TexturePath) && string.IsNullOrWhiteSpace(ItemId))
+            {
+                return (false, $"Either \"TexturePath\" or \"ItemId\" must be given!");
             }
 
             return (true, string.Empty);

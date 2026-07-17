@@ -20,7 +20,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 return null;
             }
 
-            return sprite.TextureSourceRectangle ?? element.Texture.Bounds;
+            return element.SourceRectangle ?? sprite.TextureSourceRectangle ?? element.Texture.Bounds;
         }
 
         /// <summary>The source rectangle used for drawing, which swaps to the hover art when the element is hovered.</summary>
@@ -36,7 +36,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 return hoverSourceRectangle;
             }
 
-            return sprite.TextureSourceRectangle ?? element.Texture.Bounds;
+            return element.SourceRectangle ?? sprite.TextureSourceRectangle ?? element.Texture.Bounds;
         }
     }
 }
