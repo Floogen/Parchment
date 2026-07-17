@@ -49,6 +49,9 @@ namespace Parchment.Framework.Models.Data.Elements
         /// <summary>The sound to play when this element is clicked. Only used when <see cref="Action"/> is set.</summary>
         public string? Sound { get; set; } = "bigSelect";
 
+        /// <summary>A game state query determining whether this element appears. When null, the element always appears. Checked periodically while the book is open.</summary>
+        public string? Condition { get; set; }
+
         public override (bool Result, string Error) IsValid()
         {
             throw new NotImplementedException();

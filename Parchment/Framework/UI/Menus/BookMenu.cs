@@ -51,6 +51,10 @@ namespace Parchment.Framework.UI.Menus
         // Adjust this for page speed
         private const float CONTENT_SWAP_PROGRESS = 0.5f;
 
+        // Adjust this for GSQ refresh rate check
+        private const int CONDITION_REFRESH_INTERVAL = 30;
+        private int _conditionRefreshTimer = 0;
+
         private readonly List<Rectangle> _openFrames = new List<Rectangle>();
         private readonly List<Rectangle> _closeFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageCurlFrames = new List<Rectangle>();
@@ -123,6 +127,9 @@ namespace Parchment.Framework.UI.Menus
 
             DetermineSlidePositions();
             DetermineHotspotPositions();
+
+            // Refresh any conditionals
+            RefreshVisiblePages();
         }
 
         // Public methods for action usage
@@ -295,6 +302,24 @@ namespace Parchment.Framework.UI.Menus
         private void CommitPageTurn()
         {
             _currentSpread = _pendingSpread;
+
+            RefreshVisiblePages();
+        }
+
+        private void RefreshVisiblePages()
+        {
+            RefreshPageConditions(GetLeftPageIndex());
+            RefreshPageConditions(GetRightPageIndex());
+        }
+
+        private void RefreshPageConditions(int pageIndex)
+        {
+            if (pageIndex >= _pages.Count)
+            {
+                return;
+            }
+
+            _pages[pageIndex].RefreshConditions();
         }
 
         private Element? GetElementAt(Point screenPosition)
@@ -527,6 +552,15 @@ namespace Parchment.Framework.UI.Menus
             }
             else if (_menuState is MenuState.Ready)
             {
+                _conditionRefreshTimer++;
+
+                if (_conditionRefreshTimer >= CONDITION_REFRESH_INTERVAL)
+                {
+                    _conditionRefreshTimer = 0;
+
+                    RefreshVisiblePages();
+                }
+
                 UpdateCornerAnimation(ref _nextCornerAnimationTimer, ref _nextCornerFrame, _isHoveringNextPage, elapsedMilliseconds);
                 UpdateCornerAnimation(ref _previousCornerAnimationTimer, ref _previousCornerFrame, _isHoveringPreviousPage, elapsedMilliseconds);
             }

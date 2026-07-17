@@ -50,6 +50,51 @@ namespace Parchment.Framework.Models
             LastLayoutContext = context;
         }
 
+        public bool RefreshConditions()
+        {
+            bool hasAnyChanged = false;
+
+            foreach (Element element in Elements)
+            {
+                hasAnyChanged |= RefreshCondition(element);
+            }
+
+            foreach (Element element in Background)
+            {
+                hasAnyChanged |= RefreshCondition(element);
+            }
+
+            if (hasAnyChanged)
+            {
+                LastLayoutContext = null;
+            }
+
+            return hasAnyChanged;
+        }
+
+        private bool RefreshCondition(Element element)
+        {
+            bool hasChanged = false;
+
+            if (string.IsNullOrWhiteSpace(element.Data.Condition) is false)
+            {
+                bool isVisible = GameStateQuery.CheckConditions(element.Data.Condition);
+
+                if (isVisible != element.IsVisible)
+                {
+                    element.IsVisible = isVisible;
+                    hasChanged = true;
+                }
+            }
+
+            foreach (Element child in element.Children)
+            {
+                hasChanged |= RefreshCondition(child);
+            }
+
+            return hasChanged;
+        }
+
         // Start of public static methods
         public static void PositionElements(IReadOnlyList<Element> elements, ElementRenderContext context)
         {
@@ -76,9 +121,15 @@ namespace Parchment.Framework.Models
 
             foreach (Element element in elements)
             {
-                float elementY = currentY + pendingSpacing;
+                // Check is element should be visible at all
+                if (element.IsVisible is false)
+                {
+                    element.Bounds = Rectangle.Empty;
+                    continue;
+                }
 
                 // Only stop rendering if it is past the AvailableHeight AND at least one element has been laid out
+                float elementY = currentY + pendingSpacing;
                 if (hasPrecedingElement && elementY >= context.AvailableHeight)
                 {
                     element.Bounds = Rectangle.Empty;

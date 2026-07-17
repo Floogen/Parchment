@@ -18,6 +18,8 @@ namespace Parchment.Framework.Models
     {
         public ElementData Data { get; }
 
+        public bool IsVisible { get; set; } = true;
+
         public string? DisplayName { get; set; }
         public string? Description { get; set; }
 
