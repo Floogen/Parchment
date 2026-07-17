@@ -158,7 +158,12 @@ namespace Parchment.Framework.Managers
                             new HeadingElementData() { Text = "No offset here!" },
                             new HeadingElementData() { Text = "Right aligned", Alignment = AlignmentType.Right },
                             new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center },
-                            new HeadingElementData() { Text = "This is a tent (probably)", FontType = FontType.Small, Alignment = AlignmentType.Center },
+                            new HeadingElementData() { Text = "This is a tent (probably)", FontType = FontType.Small, Alignment = AlignmentType.Center, SpacingAfter = 12 },
+                            new DividerElementData() { TexturePath = "Assets/PeacefulEnd.Parchment/divider2", Sizing = SizingMode.ShrinkToFit, Alignment = AlignmentType.Center, Scale = 2 },
+                            new ParagraphElementData() { Text = "A divider above and below!", Alignment = AlignmentType.Center },
+                            new DividerElementData() { TexturePath = "Assets/PeacefulEnd.Parchment/divider1", Sizing = SizingMode.ShrinkToFit, Alignment = AlignmentType.Center, Scale = 2, SpacingAfter = 20 },
+                            new ParagraphElementData() { Text = "Textureless divider", Alignment = AlignmentType.Center, SpacingAfter = 4 },
+                            new DividerElementData() { TintColor = "255 0 0", Sizing = SizingMode.Fixed, Width = 64, Alignment = AlignmentType.Center, Scale = 4 },
                         }
                     },
                     new PageData {
