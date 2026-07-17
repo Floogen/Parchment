@@ -14,6 +14,7 @@ namespace Parchment.Framework.Models.Data.Elements
     public abstract class ElementData : BaseModel
     {
         public string? Id { get; set; }
+        public string? Description { get; set; }
         public abstract ElementType Type { get; }
 
         public AlignmentType Alignment { get; set; } = AlignmentType.Left;

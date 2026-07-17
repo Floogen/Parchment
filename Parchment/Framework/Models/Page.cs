@@ -120,7 +120,6 @@ namespace Parchment.Framework.Models
                 }
 
                 Rectangle screenBounds = new Rectangle(element.Bounds.X + containerBounds.X, element.Bounds.Y + containerBounds.Y, element.Bounds.Width, element.Bounds.Height);
-
                 if (screenBounds.Contains(screenPosition) is false)
                 {
                     continue;

@@ -172,7 +172,8 @@ namespace Parchment.Framework.Managers
                                 TextureSourceRectangle = new Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4, SpacingAfter = 4,
                                 Children = new List<ElementData>() {
                                     new ParagraphElementData() { Text = "This is a fill panel with a set height of 48px", Alignment = AlignmentType.Center, SpacingAfter = 32 },
-                                    new ParagraphElementData() { Text = "Much detail", Alignment = AlignmentType.Center },
+                                    new ParagraphElementData() { Text = "Much detail", Alignment = AlignmentType.Center, SpacingAfter = 32 },
+                                    new ParagraphElementData() { Text = "Hover me!", Alignment = AlignmentType.Center, Description = "This is a hover description." },
                                 }
                             },
                             new BannerElementData() { Text = "---Size & Color---", TintColor = "255 0 0 100", FontType = FontType.Small, CapWidth = 19, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle1", Alignment = AlignmentType.Center, Sizing = SizingMode.ShrinkToFit, Scale = 5 },
@@ -241,6 +242,7 @@ namespace Parchment.Framework.Managers
                                     new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(96, 0, 16, 16) },
                                     new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(112, 0, 16, 16) }
                                 },
+                                Description = "Junimo!",
                                 SpacingAfter = 32
                             }
                         }
