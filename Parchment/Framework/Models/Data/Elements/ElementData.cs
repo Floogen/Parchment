@@ -33,6 +33,12 @@ namespace Parchment.Framework.Models.Data.Elements
         /// </summary>
         public Point Position { get; set; } = Point.Zero;
 
+        /// <summary>A trigger action to run when this element is clicked. When null, the element is not interactive.</summary>
+        public string? Action { get; set; }
+
+        /// <summary>The sound to play when this element is clicked. Only used when <see cref="Action"/> is set.</summary>
+        public string? Sound { get; set; } = "bigSelect";
+
         public override (bool Result, string Error) IsValid()
         {
             throw new NotImplementedException();

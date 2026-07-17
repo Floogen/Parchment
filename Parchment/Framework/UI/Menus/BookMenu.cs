@@ -421,16 +421,16 @@ namespace Parchment.Framework.UI.Menus
 
             // Check for any button element
             Element? clickedElement = GetElementAt(new Point(x, y));
-            if (clickedElement is not null && clickedElement.Data is ButtonElementData buttonData)
+            if (clickedElement is not null && string.IsNullOrWhiteSpace(clickedElement.Data.Action) is false)
             {
-                if (string.IsNullOrWhiteSpace(buttonData.Sound) is false)
+                if (string.IsNullOrWhiteSpace(clickedElement.Data.Sound) is false)
                 {
-                    Game1.playSound(buttonData.Sound);
+                    Game1.playSound(clickedElement.Data.Sound);
                 }
 
-                if (TriggerActionManager.TryRunAction(buttonData.Action, out string error, out Exception exception) is false)
+                if (TriggerActionManager.TryRunAction(clickedElement.Data.Action, out string error, out Exception exception) is false)
                 {
-                    Parchment.monitor.Log($"Button action \"{buttonData.Action}\" failed: {error}", LogLevel.Warn);
+                    Parchment.monitor.Log($"Element action '{clickedElement.Data.Action}' failed: {error}", LogLevel.Warn);
 
                     if (exception is not null)
                     {

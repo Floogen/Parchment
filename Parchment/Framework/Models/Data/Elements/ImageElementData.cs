@@ -18,6 +18,7 @@ namespace Parchment.Framework.Models.Data
 
         public string? TexturePath { get; set; }
         public Rectangle? TextureSourceRectangle { get; set; }
+        public Rectangle? HoverTextureSourceRectangle { get; set; }
         public string? TintColor { get; set; }
 
         public FontType FontType { get; set; }

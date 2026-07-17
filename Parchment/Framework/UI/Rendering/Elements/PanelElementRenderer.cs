@@ -72,12 +72,10 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
         private static int GetBorderThickness(PanelElementData data, Element element)
         {
-            if (element.Texture is null || element.Texture.IsDisposed)
+            if (element.Texture is null || element.Texture.IsDisposed || SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle)
             {
                 return 0;
             }
-
-            Rectangle sourceRectangle = data.TextureSourceRectangle ?? element.Texture.Bounds;
 
             return NineSliceHelper.GetBorderThickness(sourceRectangle, data.Scale);
         }

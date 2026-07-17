@@ -26,7 +26,10 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
         protected override Vector2 Measure(DividerElementData data, Element element, ElementRenderContext context)
         {
-            Rectangle? sourceRectangle = GetSourceRectangle(data, element);
+            if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle)
+            {
+                return Vector2.Zero;
+            }
 
             float dividerHeight = sourceRectangle is Rectangle source ? source.Height * data.Scale : data.Thickness * data.Scale;
             float dividerWidth;
@@ -47,19 +50,9 @@ namespace Parchment.Framework.UI.Rendering.Elements
             return new Vector2(dividerWidth, dividerHeight);
         }
 
-        private static Rectangle? GetSourceRectangle(DividerElementData data, Element element)
-        {
-            if (element.Texture is null || element.Texture.IsDisposed)
-            {
-                return null;
-            }
-
-            return data.TextureSourceRectangle ?? element.Texture.Bounds;
-        }
-
         protected override void Draw(SpriteBatch spriteBatch, DividerElementData data, Element element, Rectangle bounds, ElementRenderContext context)
         {
-            if (GetSourceRectangle(data, element) is not Rectangle sourceRectangle)
+            if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle)
             {
                 Color lineColor = string.IsNullOrWhiteSpace(data.TintColor) ? Game1.textColor * 0.4f : element.TintColor;
 

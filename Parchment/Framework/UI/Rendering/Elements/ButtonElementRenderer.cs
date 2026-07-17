@@ -33,9 +33,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return Vector2.Zero;
             }
 
-            Rectangle sourceRectangle = data.TextureSourceRectangle ?? element.Texture.Bounds;
-
-            if (sourceRectangle.Width <= 0 || sourceRectangle.Height <= 0)
+            if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle || sourceRectangle.Width <= 0 || sourceRectangle.Height <= 0)
             {
                 Parchment.monitor.LogOnce($"Button has an empty source rectangle for \"TexturePath\" at '{data.TexturePath}' and will not render!", LogLevel.Warn);
                 return Vector2.Zero;
@@ -92,20 +90,13 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return;
             }
 
-            Rectangle sourceRectangle = GetSourceRectangle(data, element);
+            if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle)
+            {
+                return;
+            }
             IClickableMenu.drawTextureBox(spriteBatch, element.Texture, sourceRectangle, bounds.X, bounds.Y, bounds.Width, bounds.Height, element.TintColor, data.Scale, drawShadow: false);
 
             StringHelper.DrawLines(spriteBatch, element, buttonLayout.WrappedText, GetTextBounds(buttonLayout, bounds), AlignmentType.Center, element.TextColor, buttonLayout.TextScale);
-        }
-
-        private static Rectangle GetSourceRectangle(ButtonElementData data, Element element)
-        {
-            if (element.IsHovered && data.HoverTextureSourceRectangle is Rectangle hoverSourceRectangle)
-            {
-                return hoverSourceRectangle;
-            }
-
-            return data.TextureSourceRectangle ?? element.Texture!.Bounds;
         }
 
         private static Rectangle GetTextBounds(ButtonLayout buttonLayout, Rectangle bounds)

@@ -31,8 +31,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return Vector2.Zero;
             }
 
-            Rectangle sourceRectangle = data.TextureSourceRectangle ?? element.Texture.Bounds;
-            if (sourceRectangle.Width <= 0 || sourceRectangle.Height <= 0)
+            if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle || sourceRectangle.Width <= 0 || sourceRectangle.Height <= 0)
             {
                 Parchment.monitor.Log($"Image element has an empty source rectangle for '{data.TexturePath}' and will not render!", LogLevel.Warn);
                 return Vector2.Zero;
@@ -112,7 +111,11 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return;
             }
 
-            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), imageLayout.SourceRectangle, element.TintColor, 0f, Vector2.Zero, imageLayout.DrawScale, SpriteEffects.None, LAYER_DEPTH);
+            if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle)
+            {
+                return;
+            }
+            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), sourceRectangle, element.TintColor, 0f, Vector2.Zero, imageLayout.DrawScale, SpriteEffects.None, LAYER_DEPTH);
 
             if (imageLayout.WrappedText is null)
             {

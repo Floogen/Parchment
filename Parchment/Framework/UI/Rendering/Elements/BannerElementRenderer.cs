@@ -37,12 +37,16 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return Vector2.Zero;
             }
 
-            Rectangle sourceRectangle = data.TextureSourceRectangle ?? element.Texture.Bounds;
-            int unscaledCapWidth = data.CapWidth ?? (int)(sourceRectangle.Width / 3f);
+            if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle)
+            {
+                Parchment.monitor.LogOnce($"Banner has an unusable source rectangle, so the element will not render!", LogLevel.Warn);
+                return Vector2.Zero;
+            }
 
+            int unscaledCapWidth = data.CapWidth ?? (int)(sourceRectangle.Width / 3f);
             if (sourceRectangle.Width <= 0 || sourceRectangle.Height <= 0 || unscaledCapWidth <= 0 || unscaledCapWidth * 2 >= sourceRectangle.Width)
             {
-                Parchment.monitor.LogOnce($"Banner has an unusable source rectangle ({sourceRectangle.Width}x{sourceRectangle.Height}) or cap width ({unscaledCapWidth}); element will not render.", LogLevel.Warn);
+                Parchment.monitor.LogOnce($"Banner has an unusable source rectangle ({sourceRectangle.Width}x{sourceRectangle.Height}) or cap width ({unscaledCapWidth}), so the element will not render!", LogLevel.Warn);
                 return Vector2.Zero;
             }
 
@@ -53,7 +57,6 @@ namespace Parchment.Framework.UI.Rendering.Elements
             float maximumTextHeight = Math.Max(0f, bannerHeight - padding * 2f);
 
             float textScale = data.TextScale;
-
             if (textScale <= 0f)
             {
                 float naturalLineHeight = element.Font.MeasureString("Ag", 1f).Y;

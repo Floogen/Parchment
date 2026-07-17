@@ -26,11 +26,9 @@ namespace Parchment.Framework.Models.Data
         public string? TextColor { get; set; }
         public float TextScale { get; set; } = 1f;
 
-        public string? Action { get; set; }
         public int Padding { get; set; } = 0;
         public SizingMode Sizing { get; set; } = SizingMode.ShrinkToFit;
         public int? Width { get; set; }
-        public string? Sound { get; set; } = "bigSelect";
 
         public override (bool Result, string Error) IsValid()
         {
