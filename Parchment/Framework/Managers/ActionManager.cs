@@ -103,7 +103,7 @@ namespace Parchment.Framework.Managers
             return true;
         }
 
-        private static bool TryGetBookMenu(out BookMenu bookMenu, out string error)
+        private bool TryGetBookMenu(out BookMenu bookMenu, out string error)
         {
             if (Game1.activeClickableMenu is BookMenu activeBookMenu)
             {

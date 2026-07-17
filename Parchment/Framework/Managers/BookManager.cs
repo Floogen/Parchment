@@ -111,6 +111,31 @@ namespace Parchment.Framework.Managers
                 Title = "Camping Guide",
                 Description = "A test book for exercising the BookMenu.",
                 TintColor = "165 42 42",
+                Underlay = new List<ElementData>()
+                {
+                    new ImageElementData() { TexturePath = "Characters/Junimo", TextureSourceRectangle = new Rectangle(48, 0, 16, 16), Scale = 4,
+                        Position = new Point(128, 82),
+                        TintColor = Color.YellowGreen.ToSpaceSeparated(),
+                        Frames = new List<AnimationFrameData>(){
+                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(48, 0, 16, 16) },
+                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(64, 0, 16, 16) },
+                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(96, 0, 16, 16) },
+                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(112, 0, 16, 16) }
+                        },
+                        Condition = "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageNumber 0"
+                    },
+                    new ImageElementData() { TexturePath = "Characters/Junimo", TextureSourceRectangle = new Rectangle(48, 0, 16, 16), Scale = 4,
+                        Position = new Point(780, 82),
+                        TintColor = Color.PaleVioletRed.ToSpaceSeparated(),
+                        Frames = new List<AnimationFrameData>(){
+                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(48, 0, 16, 16) },
+                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(64, 0, 16, 16) },
+                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(96, 0, 16, 16) },
+                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(112, 0, 16, 16) }
+                        },
+                        Condition = "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageNumber 2"
+                    }
+                },
                 Overlay = new List<ElementData>()
                 {
                     new ImageElementData
@@ -122,7 +147,8 @@ namespace Parchment.Framework.Managers
                         SpriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally,
                         Position = new Point(-64, 192),
                         Scale = 4,
-                        Action = ActionManager.FIRST_PAGE
+                        Action = ActionManager.FIRST_PAGE,
+                        Condition = "!PeacefulEnd.Parchment_CurrentPageNumber 0"
                     },
                     new ImageElementData
                     {
@@ -132,7 +158,8 @@ namespace Parchment.Framework.Managers
                         HoverTextureSourceRectangle = new Rectangle(0, 17, 24, 17),
                         Position = new Point(1064, 256),
                         Scale = 4,
-                        Action = ActionManager.LAST_PAGE
+                        Action = ActionManager.LAST_PAGE,
+                        Condition = "!PeacefulEnd.Parchment_IsLastPage"
                     }
                 },
                 Pages = new List<PageData>

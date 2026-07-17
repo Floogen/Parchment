@@ -54,15 +54,8 @@ namespace Parchment.Framework.Models
         {
             bool hasAnyChanged = false;
 
-            foreach (Element element in Elements)
-            {
-                hasAnyChanged |= RefreshCondition(element);
-            }
-
-            foreach (Element element in Background)
-            {
-                hasAnyChanged |= RefreshCondition(element);
-            }
+            hasAnyChanged |= RefreshConditionsFor(Elements);
+            hasAnyChanged |= RefreshConditionsFor(Background);
 
             if (hasAnyChanged)
             {
@@ -72,11 +65,23 @@ namespace Parchment.Framework.Models
             return hasAnyChanged;
         }
 
-        private bool RefreshCondition(Element element)
+        public static bool RefreshConditionsFor(IReadOnlyList<Element> elements)
+        {
+            bool hasAnyChanged = false;
+
+            foreach (Element element in elements)
+            {
+                hasAnyChanged |= RefreshCondition(element);
+            }
+
+            return hasAnyChanged;
+        }
+
+        private static bool RefreshCondition(Element element)
         {
             bool hasChanged = false;
 
-            if (string.IsNullOrWhiteSpace(element.Data.Condition) is false)
+            if (string.IsNullOrEmpty(element.Data.Condition) is false)
             {
                 bool isVisible = GameStateQuery.CheckConditions(element.Data.Condition);
 
@@ -100,6 +105,12 @@ namespace Parchment.Framework.Models
         {
             foreach (Element element in elements)
             {
+                if (element.IsVisible is false)
+                {
+                    element.Bounds = Rectangle.Empty;
+                    continue;
+                }
+
                 Vector2 elementSize = element.Renderer.Measure(element, context);
 
                 if (elementSize.Y <= 0f)

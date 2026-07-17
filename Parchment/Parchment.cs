@@ -23,8 +23,9 @@ namespace Parchment
         internal static Multiplayer multiplayer;
 
         // Managers
-        public static ActionManager actionManager;
+        internal static ActionManager actionManager;
         internal static BookManager bookManager;
+        internal static QueryManager queryManager;
 
         public override void Entry(IModHelper helper)
         {
@@ -36,6 +37,7 @@ namespace Parchment
             // Create managers
             actionManager = new ActionManager(monitor, helper);
             bookManager = new BookManager(monitor, helper);
+            queryManager = new QueryManager(monitor, helper);
 
             try
             {

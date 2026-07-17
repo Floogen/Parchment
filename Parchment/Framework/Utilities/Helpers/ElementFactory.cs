@@ -92,11 +92,19 @@ namespace Parchment.Framework.Utilities.Helpers
                 textureAssetName = ResolveTextureAssetName(data);
             }
 
+            // Determine visiblity
+            bool isVisible = true;
+            if (string.IsNullOrEmpty(data.Condition) is false)
+            {
+                isVisible = false;
+            }
+
             // Create element
             var element = new Element(data, registration.Renderer)
             {
                 DisplayName = displayName,
                 Description = description,
+                IsVisible = isVisible,
                 Font = font,
                 TextColor = ResolveTextColor(data) ?? Game1.textColor,
                 TintColor = ResolveTintColor(data) ?? Color.White,

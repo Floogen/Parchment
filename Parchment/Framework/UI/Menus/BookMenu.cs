@@ -10,6 +10,7 @@ using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
+using StardewValley.Extensions;
 using StardewValley.Menus;
 using StardewValley.Triggers;
 using System;
@@ -26,8 +27,8 @@ namespace Parchment.Framework.UI.Menus
     {
         public Book Book { get; }
 
-        private enum MenuState { Sliding, Opening, Ready, Turning, Closing }
-        private MenuState _menuState = MenuState.Sliding;
+        public enum MenuState { Sliding, Opening, Ready, Turning, Closing }
+        public MenuState CurrentState { get; private set; } = MenuState.Sliding;
 
         private float _animationTimer = 0f;
         private int _animationFrame = 0;
@@ -52,7 +53,7 @@ namespace Parchment.Framework.UI.Menus
         private const float CONTENT_SWAP_PROGRESS = 0.5f;
 
         // Adjust this for GSQ refresh rate check
-        private const int CONDITION_REFRESH_INTERVAL = 30;
+        private const int CONDITION_REFRESH_INTERVAL = 6;
         private int _conditionRefreshTimer = 0;
 
         private readonly List<Rectangle> _openFrames = new List<Rectangle>();
@@ -75,9 +76,12 @@ namespace Parchment.Framework.UI.Menus
         private int _currentSpread = 0;
         private int _pendingSpread;
         private bool _isTurningForward;
-        private int _pendingPage;
 
         private Element? _hoveredElement;
+
+        private bool _isHoveringLeftPage;
+        private bool _isHoveringRightPage;
+
         private bool _isHoveringPreviousPage;
         private bool _isHoveringNextPage;
 
@@ -127,15 +131,33 @@ namespace Parchment.Framework.UI.Menus
 
             DetermineSlidePositions();
             DetermineHotspotPositions();
+        }
 
-            // Refresh any conditionals
-            RefreshVisiblePages();
+        // Public methods for game state queries
+        public bool IsHoveringLeftPage()
+        {
+            return _isHoveringLeftPage;
+        }
+
+        public bool IsHoveringRightPage()
+        {
+            return _isHoveringRightPage;
+        }
+
+        public bool IsOnPage(int pageIndex)
+        {
+            return pageIndex == GetLeftPageIndex() || pageIndex == GetRightPageIndex();
+        }
+
+        public bool IsOnPage(string pageId)
+        {
+            return GetPageId(GetLeftPageIndex()).EqualsIgnoreCase(pageId) || GetPageId(GetRightPageIndex()).EqualsIgnoreCase(pageId);
         }
 
         // Public methods for action usage
         public bool TryTurnPage(bool forward, out string error)
         {
-            if (_menuState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready)
             {
                 error = "The book is not ready";
                 return false;
@@ -157,7 +179,7 @@ namespace Parchment.Framework.UI.Menus
 
         public bool TryJumpToPage(int pageIndex, out string error)
         {
-            if (_menuState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready)
             {
                 error = "The book is not ready";
                 return false;
@@ -188,7 +210,7 @@ namespace Parchment.Framework.UI.Menus
 
         public void BeginClose()
         {
-            if (_menuState is MenuState.Closing)
+            if (CurrentState is MenuState.Closing)
             {
                 return;
             }
@@ -240,6 +262,16 @@ namespace Parchment.Framework.UI.Menus
         private int GetRightPageIndex()
         {
             return _currentSpread * 2 + 1;
+        }
+
+        private string? GetPageId(int pageIndex)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return null;
+            }
+
+            return _pages[pageIndex].Data.Id;
         }
 
         private Rectangle GetLeftPageBounds()
@@ -302,12 +334,14 @@ namespace Parchment.Framework.UI.Menus
         private void CommitPageTurn()
         {
             _currentSpread = _pendingSpread;
-
-            RefreshVisiblePages();
         }
 
         private void RefreshVisiblePages()
         {
+            _conditionRefreshTimer = 0;
+
+            Book.RefreshConditions();
+
             RefreshPageConditions(GetLeftPageIndex());
             RefreshPageConditions(GetRightPageIndex());
         }
@@ -324,7 +358,7 @@ namespace Parchment.Framework.UI.Menus
 
         private Element? GetElementAt(Point screenPosition)
         {
-            if (_menuState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready)
             {
                 return null;
             }
@@ -370,11 +404,16 @@ namespace Parchment.Framework.UI.Menus
 
         private void SetMenuState(MenuState menuState)
         {
-            _menuState = menuState;
+            CurrentState = menuState;
             _animationTimer = 0f;
             _animationFrame = 0;
 
             ClearHoverState();
+
+            if (menuState is MenuState.Ready)
+            {
+                RefreshVisiblePages();
+            }
         }
 
         private void ClearHoverState()
@@ -383,10 +422,24 @@ namespace Parchment.Framework.UI.Menus
 
             _isHoveringPreviousPage = false;
             _isHoveringNextPage = false;
+
+            _isHoveringLeftPage = false;
+            _isHoveringRightPage = false;
+
             _previousCornerFrame = 0;
             _nextCornerFrame = 0;
             _previousCornerAnimationTimer = 0f;
             _nextCornerAnimationTimer = 0f;
+        }
+
+        private void UpdateConditionTimer()
+        {
+            _conditionRefreshTimer++;
+
+            if (_conditionRefreshTimer >= CONDITION_REFRESH_INTERVAL)
+            {
+                RefreshVisiblePages();
+            }
         }
 
         protected override void cleanupBeforeExit()
@@ -403,12 +456,12 @@ namespace Parchment.Framework.UI.Menus
 
         public override bool readyToClose()
         {
-            return _menuState != MenuState.Closing || _animationTimer >= CLOSE_DURATION;
+            return CurrentState != MenuState.Closing || _animationTimer >= CLOSE_DURATION;
         }
 
         public override void receiveKeyPress(Keys key)
         {
-            if (_menuState == MenuState.Closing)
+            if (CurrentState == MenuState.Closing)
             {
                 exitThisMenu(playSound: false);
                 return;
@@ -420,7 +473,7 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            if (_menuState != MenuState.Ready)
+            if (CurrentState != MenuState.Ready)
             {
                 return;
             }
@@ -430,13 +483,13 @@ namespace Parchment.Framework.UI.Menus
 
         public override void receiveLeftClick(int x, int y, bool playSound = true)
         {
-            if (_menuState == MenuState.Closing)
+            if (CurrentState == MenuState.Closing)
             {
                 exitThisMenu(playSound: false);
                 return;
             }
 
-            if (_menuState == MenuState.Sliding || _menuState == MenuState.Opening)
+            if (CurrentState == MenuState.Sliding || CurrentState == MenuState.Opening)
             {
                 // Skip intro
                 _currentPosition = _targetPosition;
@@ -444,10 +497,10 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            if (_menuState == MenuState.Turning)
+            if (CurrentState == MenuState.Turning)
             {
                 // Skip turn
-                _currentSpread = _pendingSpread;
+                CommitPageTurn();
                 SetMenuState(MenuState.Ready);
                 return;
             }
@@ -471,12 +524,8 @@ namespace Parchment.Framework.UI.Menus
                     }
                 }
 
+                RefreshVisiblePages();
                 return;
-            }
-
-            if (_previousPageHotspot.Contains(x, y) && _currentSpread > 0)
-            {
-                BeginPageTurn(forward: false); return;
             }
 
             if (_previousPageHotspot.Contains(x, y) && _currentSpread > 0)
@@ -491,7 +540,7 @@ namespace Parchment.Framework.UI.Menus
 
         public override void receiveRightClick(int x, int y, bool playSound = true)
         {
-            if (_menuState != MenuState.Ready)
+            if (CurrentState != MenuState.Ready)
             {
                 return;
             }
@@ -499,7 +548,7 @@ namespace Parchment.Framework.UI.Menus
 
         public override void performHoverAction(int x, int y)
         {
-            if (_menuState != MenuState.Ready)
+            if (CurrentState != MenuState.Ready)
             {
                 return;
             }
@@ -508,6 +557,9 @@ namespace Parchment.Framework.UI.Menus
 
             _isHoveringPreviousPage = _previousPageHotspot.Contains(x, y) && _currentSpread > 0;
             _isHoveringNextPage = _nextPageHotspot.Contains(x, y) && _currentSpread < GetSpreadCount() - 1;
+
+            _isHoveringLeftPage = GetLeftPageBounds().Contains(x, y);
+            _isHoveringRightPage = GetRightPageBounds().Contains(x, y);
 
             SetHoveredElement(GetElementAt(new Point(x, y)));
         }
@@ -518,7 +570,7 @@ namespace Parchment.Framework.UI.Menus
 
             float elapsedMilliseconds = (float)time.ElapsedGameTime.TotalMilliseconds;
 
-            if (_menuState is MenuState.Sliding)
+            if (CurrentState is MenuState.Sliding)
             {
                 _animationTimer += elapsedMilliseconds;
 
@@ -537,7 +589,7 @@ namespace Parchment.Framework.UI.Menus
                     Game1.playSound("shwip");
                 }
             }
-            else if (_menuState is MenuState.Opening)
+            else if (CurrentState is MenuState.Opening)
             {
                 _animationTimer += elapsedMilliseconds;
 
@@ -550,22 +602,17 @@ namespace Parchment.Framework.UI.Menus
                     Game1.playSound("shwip");
                 }
             }
-            else if (_menuState is MenuState.Ready)
+            else if (CurrentState is MenuState.Ready)
             {
-                _conditionRefreshTimer++;
-
-                if (_conditionRefreshTimer >= CONDITION_REFRESH_INTERVAL)
-                {
-                    _conditionRefreshTimer = 0;
-
-                    RefreshVisiblePages();
-                }
+                UpdateConditionTimer();
 
                 UpdateCornerAnimation(ref _nextCornerAnimationTimer, ref _nextCornerFrame, _isHoveringNextPage, elapsedMilliseconds);
                 UpdateCornerAnimation(ref _previousCornerAnimationTimer, ref _previousCornerFrame, _isHoveringPreviousPage, elapsedMilliseconds);
             }
-            else if (_menuState is MenuState.Turning)
+            else if (CurrentState is MenuState.Turning)
             {
+                UpdateConditionTimer();
+
                 _animationTimer += elapsedMilliseconds;
 
                 _animationFrame = Math.Min((int)(_animationTimer / TURN_DURATION * _pageTurnFrames.Count), _pageTurnFrames.Count - 1);
@@ -576,7 +623,7 @@ namespace Parchment.Framework.UI.Menus
                     SetMenuState(MenuState.Ready);
                 }
             }
-            else if (_menuState is MenuState.Closing)
+            else if (CurrentState is MenuState.Closing)
             {
                 _animationTimer += elapsedMilliseconds;
 
@@ -598,19 +645,19 @@ namespace Parchment.Framework.UI.Menus
             }
 
             var textureBounds = new Rectangle(219 * 3, 0, 219, 158);
-            if (_menuState == MenuState.Sliding)
+            if (CurrentState == MenuState.Sliding)
             {
                 textureBounds = _openFrames[0];
             }
-            else if (_menuState == MenuState.Opening)
+            else if (CurrentState == MenuState.Opening)
             {
                 textureBounds = _openFrames[_animationFrame];
             }
-            else if (_menuState == MenuState.Turning)
+            else if (CurrentState == MenuState.Turning)
             {
                 textureBounds = _isTurningForward ? _pageTurnFrames[_animationFrame] : _pageTurnFramesReversed[_animationFrame];
             }
-            else if (_menuState == MenuState.Closing)
+            else if (CurrentState == MenuState.Closing)
             {
                 textureBounds = _closeFrames[_animationFrame];
             }
@@ -623,11 +670,11 @@ namespace Parchment.Framework.UI.Menus
             b.Draw(_bookGrayscaleTexture, _currentPosition, textureBounds, _bookTintColor, 0f, BOOK_ORIGIN, BOOK_SCALE, SpriteEffects.None, 0.86f);
             b.Draw(_bookTexture, _currentPosition, textureBounds, Color.White, 0f, BOOK_ORIGIN, BOOK_SCALE, SpriteEffects.None, 0.86f);
 
-            if (_menuState is MenuState.Ready or MenuState.Turning)
+            if (CurrentState is MenuState.Ready or MenuState.Turning)
             {
                 DrawPages(b);
 
-                if (_menuState is MenuState.Ready)
+                if (CurrentState is MenuState.Ready)
                 {
                     DrawCorners(b);
                 }
@@ -637,7 +684,7 @@ namespace Parchment.Framework.UI.Menus
 
             base.draw(b);
 
-            if (_menuState is MenuState.Ready && _hoveredElement is not null && (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false || string.IsNullOrEmpty(_hoveredElement.Description) is false))
+            if (CurrentState is MenuState.Ready && _hoveredElement is not null && (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false || string.IsNullOrEmpty(_hoveredElement.Description) is false))
             {
                 drawHoverText(b, _hoveredElement.Description, Game1.smallFont, boldTitleText: _hoveredElement.DisplayName);
             }
@@ -668,7 +715,7 @@ namespace Parchment.Framework.UI.Menus
 
         private void DrawPages(SpriteBatch b)
         {
-            if (_menuState != MenuState.Turning)
+            if (CurrentState != MenuState.Turning)
             {
                 DrawSide(b, _currentSpread, left: true);
                 DrawSide(b, _currentSpread, left: false);

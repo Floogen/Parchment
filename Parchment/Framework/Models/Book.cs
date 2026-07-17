@@ -63,6 +63,21 @@ namespace Parchment.Framework.Models
             return new Page(pageData, elementRegistry, fontResolver);
         }
 
+        public bool RefreshConditions()
+        {
+            bool hasAnyChanged = false;
+
+            hasAnyChanged |= Page.RefreshConditionsFor(Underlay);
+            hasAnyChanged |= Page.RefreshConditionsFor(Overlay);
+
+            if (hasAnyChanged)
+            {
+                LastLayoutContext = null;
+            }
+
+            return hasAnyChanged;
+        }
+
         public void RefreshTextures(IReadOnlyCollection<IAssetName> invalidatedAssetNames)
         {
             foreach (Page page in Pages)
