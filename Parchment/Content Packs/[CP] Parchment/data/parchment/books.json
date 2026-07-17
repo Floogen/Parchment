@@ -1,0 +1,824 @@
+﻿{
+  "Changes": [
+    {
+      "Action": "EditData",
+      "Target": "Data/Objects",
+      "Entries": {
+        "PeacefulEnd.Parchment_Book": {
+          "Name": "PeacefulEnd.Parchment_Book",
+          "DisplayName": "Example Parchment Book",
+          "Description": "...",
+          "Type": "Basic",
+          "Category": 0,
+          "Price": 0,
+
+          "Texture": "Assets/PeacefulEnd.Parchment/exampleBookIcon",
+          "SpriteIndex": 0,
+
+          "Edibility": -300,
+
+          "CanBeGivenAsGift": false,
+          "CanBeTrashed": true,
+          "ExcludeFromRandomSale": true,
+          "ExcludeFromShippingCollection": true,
+
+          "CustomFields": {
+            "PeacefulEnd.Parchment/CustomFields/BookId": "PeacefulEnd.Parchment.ExamplePack_GuideBook"
+          }
+        }
+      }
+    },
+    {
+      "Action": "EditData",
+      "Target": "Data/PeacefulEnd.Parchment/Books",
+      "Entries": {
+        "PeacefulEnd.Parchment.ExamplePack_GuideBook": {
+          "Format": "1.0.0",
+          "Id": "PeacefulEnd.Parchment.ExamplePack_GuideBook",
+          "Title": "Example Guide",
+          "Description": "...",
+          "TintColor": "165 42 42",
+
+          "Underlay": [
+            {
+              "Type": "Image",
+              "TexturePath": "Characters/Junimo",
+              "TextureSourceRectangle": {
+                "X": 48,
+                "Y": 0,
+                "Width": 16,
+                "Height": 16
+              },
+              "Scale": 4,
+              "Position": {
+                "X": 128,
+                "Y": 82
+              },
+              "TintColor": "154 205 50",
+              "Frames": [
+                {
+                  "Duration": 100,
+                  "SourceRectangle": {
+                    "X": 48,
+                    "Y": 0,
+                    "Width": 16,
+                    "Height": 16
+                  }
+                },
+                {
+                  "Duration": 100,
+                  "SourceRectangle": {
+                    "X": 64,
+                    "Y": 0,
+                    "Width": 16,
+                    "Height": 16
+                  }
+                },
+                {
+                  "Duration": 100,
+                  "SourceRectangle": {
+                    "X": 96,
+                    "Y": 0,
+                    "Width": 16,
+                    "Height": 16
+                  }
+                },
+                {
+                  "Duration": 100,
+                  "SourceRectangle": {
+                    "X": 112,
+                    "Y": 0,
+                    "Width": 16,
+                    "Height": 16
+                  }
+                }
+              ],
+              "Condition": "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageNumber 0"
+            },
+            {
+              "Type": "Image",
+              "TexturePath": "Characters/Junimo",
+              "TextureSourceRectangle": {
+                "X": 48,
+                "Y": 0,
+                "Width": 16,
+                "Height": 16
+              },
+              "Scale": 4,
+              "Position": {
+                "X": 780,
+                "Y": 82
+              },
+              "TintColor": "219 112 147",
+              "Frames": [
+                {
+                  "Duration": 100,
+                  "SourceRectangle": {
+                    "X": 48,
+                    "Y": 0,
+                    "Width": 16,
+                    "Height": 16
+                  }
+                },
+                {
+                  "Duration": 100,
+                  "SourceRectangle": {
+                    "X": 64,
+                    "Y": 0,
+                    "Width": 16,
+                    "Height": 16
+                  }
+                },
+                {
+                  "Duration": 100,
+                  "SourceRectangle": {
+                    "X": 96,
+                    "Y": 0,
+                    "Width": 16,
+                    "Height": 16
+                  }
+                },
+                {
+                  "Duration": 100,
+                  "SourceRectangle": {
+                    "X": 112,
+                    "Y": 0,
+                    "Width": 16,
+                    "Height": 16
+                  }
+                }
+              ],
+              "Condition": "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageNumber 2"
+            }
+          ],
+
+          "Overlay": [
+            {
+              "Type": "Image",
+              "TexturePath": "Assets/PeacefulEnd.Parchment/bookmark1",
+              "TextureSourceRectangle": {
+                "X": 0,
+                "Y": 0,
+                "Width": 24,
+                "Height": 17
+              },
+              "HoverTextureSourceRectangle": {
+                "X": 0,
+                "Y": 17,
+                "Width": 24,
+                "Height": 17
+              },
+              "TintColor": "255 0 0",
+              "SpriteEffects": "FlipHorizontally",
+              "Position": {
+                "X": -64,
+                "Y": 192
+              },
+              "Scale": 4,
+              "Action": "PeacefulEnd.Parchment_FirstPage",
+              "Condition": "!PeacefulEnd.Parchment_CurrentPageNumber 0"
+            },
+            {
+              "Type": "Image",
+              "TexturePath": "Assets/PeacefulEnd.Parchment/bookmark1",
+              "TextureSourceRectangle": {
+                "X": 0,
+                "Y": 0,
+                "Width": 20,
+                "Height": 17
+              },
+              "HoverTextureSourceRectangle": {
+                "X": 0,
+                "Y": 17,
+                "Width": 24,
+                "Height": 17
+              },
+              "TintColor": "0 0 255",
+              "Position": {
+                "X": 1064,
+                "Y": 256
+              },
+              "Scale": 4,
+              "Action": "PeacefulEnd.Parchment_LastPage",
+              "Condition": "!PeacefulEnd.Parchment_IsLastPage"
+            }
+          ],
+
+          "Pages": [
+            {
+              "Id": "cover",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Image",
+                  "Text": "Example Guide",
+                  "FontType": "SpriteText",
+                  "TextArea": {
+                    "X": 15,
+                    "Y": 5,
+                    "Width": 65,
+                    "Height": 10
+                  },
+                  "Alignment": "Center",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/bannerTitle2",
+                  "Scale": 5
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "By ...",
+                  "Alignment": "Center"
+                },
+                {
+                  "Type": "Panel",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/panelFrame2",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 24,
+                    "Height": 24
+                  },
+                  "Padding": 0,
+                  "Width": 32,
+                  "Sizing": "Fixed",
+                  "Alignment": "Center",
+                  "Scale": 4,
+                  "SpacingAfter": 4,
+                  "Children": [
+                    {
+                      "Type": "Paragraph",
+                      "Text": "This is a fixed panel. Probably. Maybe."
+                    }
+                  ]
+                },
+                {
+                  "Type": "Button",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/button1",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "HoverTextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 18,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "Text": "Click me!",
+                  "FontType": "Small",
+                  "TextScale": 1,
+                  "Padding": 0,
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 2,
+                  "Alignment": "Center",
+                  "Action": "PeacefulEnd.Parchment_LastPage",
+                  "Sound": "bigSelect"
+                }
+              ]
+            },
+
+            {
+              "Id": "info",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Banner",
+                  "Text": "Test Text",
+                  "FontType": "Small",
+                  "CapWidth": 19,
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/bannerTitle1",
+                  "Alignment": "Center",
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 5
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "Wow wow wooooooooooooooooooooooooooooooooooooooooooooooooow",
+                  "MarginLeft": 16
+                },
+                {
+                  "Type": "Panel",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/panelFrame2",
+                  "Height": 48,
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 24,
+                    "Height": 24
+                  },
+                  "Padding": 0,
+                  "Width": 32,
+                  "Sizing": "Fill",
+                  "Alignment": "Center",
+                  "Scale": 4,
+                  "SpacingAfter": 4,
+                  "Children": [
+                    {
+                      "Type": "Paragraph",
+                      "Text": "This is a fill panel with a set height of 48px",
+                      "Alignment": "Center",
+                      "SpacingAfter": 32
+                    },
+                    {
+                      "Type": "Paragraph",
+                      "Text": "Much detail",
+                      "Alignment": "Center",
+                      "SpacingAfter": 32
+                    },
+                    {
+                      "Type": "Paragraph",
+                      "Text": "Hover me!",
+                      "Alignment": "Center",
+                      "Description": "This is a hover description."
+                    }
+                  ]
+                },
+                {
+                  "Type": "Banner",
+                  "Text": "---Size & Color---",
+                  "TintColor": "255 0 0 100",
+                  "FontType": "Small",
+                  "CapWidth": 19,
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/bannerTitle1",
+                  "Alignment": "Center",
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 5
+                }
+              ]
+            },
+
+            {
+              "Id": "test",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Heading",
+                  "Text": "Manually offset text?",
+                  "MarginLeft": 32
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "No offset here!"
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "Right aligned",
+                  "Alignment": "Right"
+                },
+                {
+                  "Type": "Image",
+                  "TexturePath": "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent",
+                  "TintColor": "0 0 0 89",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 5,
+                    "Width": 48,
+                    "Height": 59
+                  },
+                  "Scale": 2,
+                  "Alignment": "Center"
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "This is a tent (probably)",
+                  "FontType": "Small",
+                  "Alignment": "Center",
+                  "SpacingAfter": 12
+                },
+                {
+                  "Type": "Divider",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/divider2",
+                  "Sizing": "ShrinkToFit",
+                  "Alignment": "Center",
+                  "Scale": 2
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "A divider above and below!",
+                  "Alignment": "Center"
+                },
+                {
+                  "Type": "Divider",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/divider1",
+                  "Sizing": "ShrinkToFit",
+                  "Alignment": "Center",
+                  "Scale": 2,
+                  "SpacingAfter": 20
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "Textureless divider",
+                  "Alignment": "Center",
+                  "SpacingAfter": 4
+                },
+                {
+                  "Type": "Divider",
+                  "TintColor": "255 0 0",
+                  "Sizing": "Fixed",
+                  "Width": 64,
+                  "Alignment": "Center",
+                  "Scale": 4
+                }
+              ]
+            },
+
+            {
+              "Id": "huh",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Panel",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/panelFrame2",
+                  "Height": 48,
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 24,
+                    "Height": 24
+                  },
+                  "Padding": 0,
+                  "Width": 32,
+                  "Sizing": "Fill",
+                  "Alignment": "Center",
+                  "Scale": 4,
+                  "SpacingAfter": 4,
+                  "Children": [
+                    {
+                      "Type": "Image",
+                      "TexturePath": "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent",
+                      "TextureSourceRectangle": {
+                        "X": 0,
+                        "Y": 5,
+                        "Width": 48,
+                        "Height": 59
+                      },
+                      "Scale": 2,
+                      "Alignment": "Center"
+                    },
+                    {
+                      "Type": "Heading",
+                      "Text": "This is a tent (in a panel)",
+                      "FontType": "Small",
+                      "Alignment": "Center"
+                    }
+                  ]
+                }
+              ],
+              "Background": [
+                {
+                  "Type": "Image",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/backgroundNoise1",
+                  "Position": {
+                    "X": 48,
+                    "Y": 272
+                  },
+                  "Scale": 6
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "This is drawn in the background\n(ontop of another background)",
+                  "FontType": "Small",
+                  "Position": {
+                    "X": 64,
+                    "Y": 336
+                  },
+                  "Scale": 1
+                }
+              ]
+            },
+
+            {
+              "Id": "animated",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Image",
+                  "TexturePath": "LooseSprites/GemBird",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 32,
+                    "Height": 32
+                  },
+                  "Scale": 3,
+                  "Alignment": "Center",
+                  "Frames": [
+                    {
+                      "Duration": 1000,
+                      "SourceRectangle": {
+                        "X": 0,
+                        "Y": 0,
+                        "Width": 32,
+                        "Height": 32
+                      }
+                    },
+                    {
+                      "Duration": 100,
+                      "SourceRectangle": {
+                        "X": 32,
+                        "Y": 0,
+                        "Width": 32,
+                        "Height": 32
+                      }
+                    },
+                    {
+                      "Duration": 100,
+                      "SourceRectangle": {
+                        "X": 64,
+                        "Y": 0,
+                        "Width": 32,
+                        "Height": 32
+                      }
+                    },
+                    {
+                      "Duration": 250,
+                      "SourceRectangle": {
+                        "X": 96,
+                        "Y": 0,
+                        "Width": 32,
+                        "Height": 32
+                      }
+                    },
+                    {
+                      "Duration": 100,
+                      "SourceRectangle": {
+                        "X": 64,
+                        "Y": 0,
+                        "Width": 32,
+                        "Height": 32
+                      }
+                    },
+                    {
+                      "Duration": 100,
+                      "SourceRectangle": {
+                        "X": 32,
+                        "Y": 0,
+                        "Width": 32,
+                        "Height": 32
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "! Animated sprites !",
+                  "FontType": "Small",
+                  "Scale": 1,
+                  "Alignment": "Center",
+                  "SpacingAfter": 32
+                },
+                {
+                  "Type": "Image",
+                  "TexturePath": "LooseSprites/Cursors2",
+                  "TextureSourceRectangle": {
+                    "X": 192,
+                    "Y": 62,
+                    "Width": 32,
+                    "Height": 32
+                  },
+                  "Scale": 3,
+                  "Alignment": "Center",
+                  "SpacingAfter": 16,
+                  "Frames": [
+                    {
+                      "Duration": 1000,
+                      "SourceRectangle": {
+                        "X": 192,
+                        "Y": 62,
+                        "Width": 32,
+                        "Height": 32
+                      }
+                    },
+                    {
+                      "Duration": 250,
+                      "SourceRectangle": {
+                        "X": 224,
+                        "Y": 62,
+                        "Width": 32,
+                        "Height": 32
+                      }
+                    },
+                    {
+                      "Duration": 500,
+                      "SourceRectangle": {
+                        "X": 192,
+                        "Y": 62,
+                        "Width": 32,
+                        "Height": 32
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Type": "Image",
+                  "TexturePath": "Characters/Junimo",
+                  "TextureSourceRectangle": {
+                    "X": 48,
+                    "Y": 0,
+                    "Width": 16,
+                    "Height": 16
+                  },
+                  "Scale": 8,
+                  "Alignment": "Center",
+                  "TintColor": "124 252 0",
+                  "Description": "Junimo!",
+                  "SpacingAfter": 32,
+                  "Frames": [
+                    {
+                      "Duration": 100,
+                      "SourceRectangle": {
+                        "X": 48,
+                        "Y": 0,
+                        "Width": 16,
+                        "Height": 16
+                      }
+                    },
+                    {
+                      "Duration": 100,
+                      "SourceRectangle": {
+                        "X": 64,
+                        "Y": 0,
+                        "Width": 16,
+                        "Height": 16
+                      }
+                    },
+                    {
+                      "Duration": 100,
+                      "SourceRectangle": {
+                        "X": 96,
+                        "Y": 0,
+                        "Width": 16,
+                        "Height": 16
+                      }
+                    },
+                    {
+                      "Duration": 100,
+                      "SourceRectangle": {
+                        "X": 112,
+                        "Y": 0,
+                        "Width": 16,
+                        "Height": 16
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+
+            {
+              "Id": "items",
+              "ChapterId": "chapter-1",
+              "Background": [
+                {
+                  "Type": "Image",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/itemBorder1",
+                  "Scale": 4,
+                  "Position": {
+                    "X": 160,
+                    "Y": 40
+                  }
+                },
+              ],
+              "Elements": [
+                {
+                  "Type": "Heading",
+                  "Text": "Automatic Item Handling!",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Image",
+                  "ItemId": "(O)24",
+                  "SpacingAfter": 16,
+                  "Scale": 4,
+                  "Alignment": "Center"
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "With automatic or custom hover text...",
+                  "Alignment": "Center",
+                  "SpacingAfter": 64
+                },
+                {
+                  "Type": "Image",
+                  "ItemId": "(O)24",
+                  "DisplayName": "",
+                  "Description": "This is probably a parsnip?",
+                  "Scale": 4,
+                  "Alignment": "Center"
+                }
+              ]
+            },
+
+            {
+              "Id": "last?",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Banner",
+                  "Text": "Is this the end?",
+                  "FontType": "Small",
+                  "CapWidth": 19,
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/bannerTitle1",
+                  "Alignment": "Center",
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 5
+                },
+                {
+                  "Type": "Button",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/button1",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "HoverTextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 18,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "Text": "Click here!",
+                  "FontType": "Small",
+                  "TextScale": 1,
+                  "Padding": 2,
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 2,
+                  "Alignment": "Center",
+                  "Action": "PeacefulEnd.Parchment_JumpToChapter chapter-2",
+                  "Sound": "bigSelect"
+                }
+              ]
+            },
+
+            {
+              "Id": "hopped",
+              "ChapterId": "chapter-2",
+              "Elements": [
+                {
+                  "Type": "Banner",
+                  "Text": "Chapter 2",
+                  "FontType": "Small",
+                  "CapWidth": 19,
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/bannerTitle1",
+                  "Alignment": "Center",
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 5
+                }
+              ]
+            },
+
+            {
+              "Id": "last!",
+              "ChapterId": "chapter-2",
+              "Elements": [
+                {
+                  "Type": "Banner",
+                  "Text": "Can't go back!",
+                  "FontType": "Small",
+                  "CapWidth": 19,
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/bannerTitle1",
+                  "Alignment": "Center",
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 5
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "Use the button below to go back to chapter 1.",
+                  "Alignment": "Center"
+                },
+                {
+                  "Type": "Button",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/button1",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "HoverTextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 18,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "Text": "To the start!",
+                  "FontType": "Small",
+                  "TextScale": 1,
+                  "Padding": 2,
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 2,
+                  "Alignment": "Center",
+                  "Action": "PeacefulEnd.Parchment_GoToStart",
+                  "Sound": "bigSelect"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

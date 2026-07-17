@@ -4,11 +4,13 @@ using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
+using Parchment.Framework.Patches.Objects;
 using Parchment.Framework.UI.Menus;
 using Parchment.Framework.UI.Rendering;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +19,9 @@ namespace Parchment
 {
     public class Parchment : Mod
     {
+        public const string CUSTOM_BOOK_ID = "(O)PeacefulEnd.Parchment_Book";
+        public const string CUSTOM_BOOK_FIELD_ID = "PeacefulEnd.Parchment/CustomFields/BookId";
+
         // Shared static helpers
         internal static IMonitor monitor;
         internal static IModHelper modHelper;
@@ -44,6 +49,7 @@ namespace Parchment
                 var harmony = new Harmony(this.ModManifest.UniqueID);
 
                 // Apply patches
+                new ObjectPatch(monitor, modHelper).Apply(harmony);
             }
             catch (Exception e)
             {

@@ -12,7 +12,9 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Extensions;
+using StardewValley.GameData.Objects;
 using StardewValley.GameData.Tools;
+using StardewValley.ItemTypeDefinitions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,6 +86,24 @@ namespace Parchment.Framework.Managers
             }
 
             _books = bookData.Where(c => c.IsValid().Result is true).ToList();
+        }
+
+        public bool TryGetBookId(string qualifiedItemId, out string? bookId)
+        {
+            bookId = null;
+
+            ParsedItemData itemData = ItemRegistry.GetData(qualifiedItemId);
+            if (itemData?.RawData is not ObjectData objectData)
+            {
+                return false;
+            }
+
+            if (objectData.CustomFields is null)
+            {
+                return false;
+            }
+
+            return objectData.CustomFields.TryGetValue(Parchment.CUSTOM_BOOK_FIELD_ID, out bookId);
         }
 
         public Book? CreateBook(string bookDataId)
@@ -286,9 +306,13 @@ namespace Parchment.Framework.Managers
                     new PageData {
                         Id = "items",
                         ChapterId = "chapter-1",
+                        Background = new List<ElementData>()
+                        {
+                            new ImageElementData() { TexturePath = "Assets/PeacefulEnd.Parchment/itemBorder1", Scale = 4, Position = new Point(160, 40) },
+                        },
                         Elements = new List<ElementData>()
                         {
-                            new HeadingElementData() { Text = "Automatic Item Handling!", Alignment = AlignmentType.Center },
+                            new HeadingElementData() { Text = "Automatic Item Handling!", Alignment = AlignmentType.Center, SpacingAfter = 18 },
                             new ImageElementData() { ItemId = "(O)24", SpacingAfter = 16, Scale = 4, Alignment = AlignmentType.Center },
                             new HeadingElementData() { Text = "With automatic or custom hover text...", Alignment = AlignmentType.Center, SpacingAfter = 64 },
                             new ImageElementData() { ItemId = "(O)24", DisplayName = "", Description = "This is probably a parsnip?", Scale = 4, Alignment = AlignmentType.Center },

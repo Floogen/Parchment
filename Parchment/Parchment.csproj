@@ -10,8 +10,11 @@
 		<EnableModDeploy>true</EnableModDeploy>
 	</PropertyGroup>
 	<ItemGroup>
+	  <Compile Remove="Framework\Assets\**" />
 	  <Compile Remove="releases\**" />
+	  <EmbeddedResource Remove="Framework\Assets\**" />
 	  <EmbeddedResource Remove="releases\**" />
+	  <None Remove="Framework\Assets\**" />
 	  <None Remove="releases\**" />
 	</ItemGroup>
 
@@ -24,11 +27,6 @@
 		<None Update="manifest.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Content Packs\[CP] Parchment\data\parchment\" />
-	  <Folder Include="Framework\Assets\" />
 	</ItemGroup>
 	
 	<ItemGroup>
