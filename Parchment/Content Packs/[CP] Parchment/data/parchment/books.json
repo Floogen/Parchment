@@ -212,9 +212,9 @@
                 {
                   "Type": "Image",
                   "Text": "Example Guide",
-                  "FontType": "SpriteText",
+                  "FontType": "Small",
                   "TextArea": {
-                    "X": 15,
+                    "X": 14,
                     "Y": 5,
                     "Width": 65,
                     "Height": 10

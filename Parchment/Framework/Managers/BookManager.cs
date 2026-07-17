@@ -188,7 +188,7 @@ namespace Parchment.Framework.Managers
                         Id = "cover",
                         ChapterId = "chapter-1",
                         Elements = new List<ElementData>() {
-                            new ImageElementData() { Text = "Example Guide", FontType = FontType.SpriteText, TextArea = new Rectangle(15, 5, 65, 10), Alignment = AlignmentType.Center, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle2", Scale = 5 },
+                            new ImageElementData() { Text = "Example Guide", FontType = FontType.Small, TextArea = new Rectangle(14, 5, 65, 10), Alignment = AlignmentType.Center, TexturePath = "Assets/PeacefulEnd.Parchment/bannerTitle2", Scale = 5 },
                             new HeadingElementData() { Text = "By ...", Alignment = AlignmentType.Center },
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2",
                                 TextureSourceRectangle = new Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fixed, Alignment = AlignmentType.Center, Scale = 4,
