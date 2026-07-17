@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
@@ -145,7 +145,7 @@ namespace Parchment.Framework.Managers
                             new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(96, 0, 16, 16) },
                             new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(112, 0, 16, 16) }
                         },
-                        Condition = "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageNumber 0"
+                        Condition = "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageIndex 0"
                     },
                     new ImageElementData() { TexturePath = "Characters/Junimo", TextureSourceRectangle = new Rectangle(48, 0, 16, 16), Scale = 4,
                         Position = new Point(780, 82),
@@ -156,7 +156,7 @@ namespace Parchment.Framework.Managers
                             new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(96, 0, 16, 16) },
                             new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(112, 0, 16, 16) }
                         },
-                        Condition = "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageNumber 2"
+                        Condition = "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageIndex 2"
                     }
                 },
                 Overlay = new List<ElementData>()
@@ -171,7 +171,7 @@ namespace Parchment.Framework.Managers
                         Position = new Point(-64, 192),
                         Scale = 4,
                         Action = ActionManager.FIRST_PAGE,
-                        Condition = "!PeacefulEnd.Parchment_CurrentPageNumber 0"
+                        Condition = "!PeacefulEnd.Parchment_CurrentPageIndex 0"
                     },
                     new ImageElementData
                     {

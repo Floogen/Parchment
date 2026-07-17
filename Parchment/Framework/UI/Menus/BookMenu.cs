@@ -150,7 +150,7 @@ namespace Parchment.Framework.UI.Menus
 
         public bool IsOnPage(string pageId)
         {
-            return GetPageId(GetLeftPageIndex()).EqualsIgnoreCase(pageId) || GetPageId(GetRightPageIndex()).EqualsIgnoreCase(pageId);
+            return string.Equals(GetPageId(GetLeftPageIndex()), pageId, StringComparison.OrdinalIgnoreCase) || string.Equals(GetPageId(GetRightPageIndex()), pageId, StringComparison.OrdinalIgnoreCase);
         }
 
         public bool IsInChapter(string chapterId)

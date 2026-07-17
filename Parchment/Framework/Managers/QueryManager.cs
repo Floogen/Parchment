@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Parchment.Framework.Managers
@@ -23,7 +24,7 @@ namespace Parchment.Framework.Managers
         public const string IS_LAST_PAGE = "PeacefulEnd.Parchment_IsLastPage";
         public const string IS_GOING_FORWARD = "PeacefulEnd.Parchment_IsPagingForward";
 
-        public const string CURRENT_PAGE_NUMBER = "PeacefulEnd.Parchment_CurrentPageNumber";
+        public const string CURRENT_PAGE_INDEX = "PeacefulEnd.Parchment_CurrentPageIndex";
         public const string CURRENT_PAGE_ID = "PeacefulEnd.Parchment_CurrentPageId";
         public const string CURRENT_CHAPTER_ID = "PeacefulEnd.Parchment_CurrentChapterId";
         public const string CURRENT_BOOK_ID = "PeacefulEnd.Parchment_CurrentBookId";
@@ -45,7 +46,7 @@ namespace Parchment.Framework.Managers
             GameStateQuery.Register(IS_LAST_PAGE, IsLastPage);
             GameStateQuery.Register(IS_GOING_FORWARD, IsPagingForward);
 
-            GameStateQuery.Register(CURRENT_PAGE_NUMBER, CurrentPageNumber);
+            GameStateQuery.Register(CURRENT_PAGE_INDEX, CurrentPageIndex);
             GameStateQuery.Register(CURRENT_PAGE_ID, CurrentPageId);
             GameStateQuery.Register(CURRENT_CHAPTER_ID, CurrentChapterId);
             GameStateQuery.Register(CURRENT_BOOK_ID, CurrentBookId);
@@ -127,7 +128,7 @@ namespace Parchment.Framework.Managers
             return bookMenu.IsPagingForward();
         }
 
-        private bool CurrentPageNumber(string[] query, GameStateQueryContext context)
+        private bool CurrentPageIndex(string[] query, GameStateQueryContext context)
         {
             if (TryGetBookMenu(out BookMenu bookMenu) is false)
             {
