@@ -1,4 +1,4 @@
-﻿{
+{
   "Changes": [
     {
       "Action": "EditData",
@@ -35,8 +35,6 @@
         "PeacefulEnd.Parchment.ExamplePack_GuideBook": {
           "Format": "1.0.0",
           "Id": "PeacefulEnd.Parchment.ExamplePack_GuideBook",
-          "Title": "Example Guide",
-          "Description": "...",
           "TintColor": "165 42 42",
 
           "Underlay": [
@@ -93,7 +91,7 @@
                   }
                 }
               ],
-              "Condition": "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageNumber 0"
+              "Condition": "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageIndex 0"
             },
             {
               "Type": "Image",
@@ -148,7 +146,7 @@
                   }
                 }
               ],
-              "Condition": "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageNumber 2"
+              "Condition": "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageIndex 2"
             }
           ],
 
@@ -176,7 +174,7 @@
               },
               "Scale": 4,
               "Action": "PeacefulEnd.Parchment_FirstPage",
-              "Condition": "!PeacefulEnd.Parchment_CurrentPageNumber 0"
+              "Condition": "!PeacefulEnd.Parchment_CurrentPageIndex 0"
             },
             {
               "Type": "Image",
@@ -678,7 +676,7 @@
                     "X": 160,
                     "Y": 40
                   }
-                },
+                }
               ],
               "Elements": [
                 {
