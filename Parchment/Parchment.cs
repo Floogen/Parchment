@@ -72,9 +72,6 @@ namespace Parchment
             // Only runs if debug mode is active
             if (isDebugMode is true && e.Button is SButton.O && Context.IsPlayerFree && Game1.activeClickableMenu is null)
             {
-                var test = Helper.GameContent.Load<List<BookData>>(BookManager.BOOKS_DATA_PATH);
-                _ = test;
-
                 // Consume the button press
                 Helper.Input.Suppress(e.Button);
 
