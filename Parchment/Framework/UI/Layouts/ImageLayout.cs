@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,8 +15,9 @@ namespace Parchment.Framework.UI.Layouts
         public Rectangle TextArea { get; }
         public WrappedText? WrappedText { get; }
         public float TextScale { get; }
+        public float Rotation { get; }
 
-        public ImageLayout(Rectangle sourceRectangle, float drawScale, Vector2 drawSize, Rectangle textArea, WrappedText? wrappedText, float textScale)
+        public ImageLayout(Rectangle sourceRectangle, float drawScale, Vector2 drawSize, Rectangle textArea, WrappedText? wrappedText, float textScale, float rotation)
         {
             SourceRectangle = sourceRectangle;
             DrawScale = drawScale;
@@ -24,6 +25,7 @@ namespace Parchment.Framework.UI.Layouts
             TextArea = textArea;
             WrappedText = wrappedText;
             TextScale = textScale;
+            Rotation = rotation;
         }
     }
 }

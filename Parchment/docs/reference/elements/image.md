@@ -24,6 +24,7 @@ An image is sized by its sprite: `TextureSourceRectangle` × `Scale`. If that's 
 | `TextArea` | rectangle | *the whole sprite* | Where text is drawn, in unscaled sprite pixels **relative to `TextureSourceRectangle`'s top-left**, not to the texture. This is how you place a label inside a sign's recessed panel. The text block is centred vertically within this area. |
 | `TextScale` | number | `1` | The text's scale, independent of `Scale`, which sizes the sprite. |
 | `TextAlignment` | `Left` \| `Center` \| `Right` | `Center` | How each line of text is aligned within `TextArea`. Distinct from `Alignment`, which places the whole image on the page. |
+| `Rotation` | number | `0` | How much rotation is applied to the texture. Note: Does not affect text! |
 
 ### Frames
 

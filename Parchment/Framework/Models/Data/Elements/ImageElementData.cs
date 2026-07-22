@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
@@ -43,6 +43,11 @@ namespace Parchment.Framework.Models.Data
         /// The area within <see cref="TextureSourceRectangle"/> that text is drawn into, in unscaled sprite pixels relative to the source rectangle's top-left. When null, text uses the whole sprite.
         /// </summary>
         public Rectangle? TextArea { get; set; }
+
+        /// <summary>
+        /// The rotation applied to the Texture (does not effect Text)
+        /// </summary>
+        public float Rotation { get; set; } = 0f;
 
         public override (bool Result, string Error) IsValid()
         {
