@@ -1,0 +1,66 @@
+site_name: Parchment
+site_description: A framework for creating readable books in Stardew Valley.
+site_url: https://floogen.github.io/Parchment/
+repo_url: https://github.com/Floogen/Parchment
+repo_name: Source
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - toc.follow
+  palette:
+    - scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: docs/_snippets
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Your first book: getting-started/first-book.md
+  - Concepts:
+      - Units and scale: concepts/units.md
+      - Preparing your art: concepts/art.md
+      - Layout: concepts/layout.md
+      - Conditions: concepts/conditions.md
+      - Trigger actions: concepts/actions.md
+  - Reference:
+      - Book: reference/book.md
+      - Page: reference/page.md
+      - Elements:
+          - Overview: reference/elements/index.md
+          - Title: reference/elements/title.md
+          - Heading: reference/elements/heading.md
+          - Paragraph: reference/elements/paragraph.md
+          - Image: reference/elements/image.md
+          - Divider: reference/elements/divider.md
+          - Panel: reference/elements/panel.md
+          - Banner: reference/elements/banner.md
+          - Button: reference/elements/button.md
+  - Troubleshooting: troubleshooting.md

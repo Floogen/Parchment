@@ -1,0 +1,8 @@
+<!-- Included by pages at docs/reference/elements/. The relative links below assume that depth. -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `TexturePath` | string | *none* | The asset name of the sprite sheet, such as `Assets/PeacefulEnd.Parchment/panelFrame2` or a vanilla path like `LooseSprites/Cursors`. This is a **game asset name**, not a file path in your content pack. Load your PNG into the game's content with a Content Patcher `Load` patch first. See [Loading your art](../../getting-started/first-book.md#loading-your-art). |
+| `TextureSourceRectangle` | rectangle | *the whole texture* | The area of the sprite sheet to draw. Almost always needed: without it, the whole sheet is used, which for a multi-sprite sheet means a much larger element than you expect. |
+| `HoverTextureSourceRectangle` | rectangle | *none* | An alternate source rectangle drawn while the cursor is over the element. **Must be the same size** as `TextureSourceRectangle`. The element's layout is measured from the normal rectangle, so a differently-sized hover sprite will overhang its own bounds. |
+| `TintColor` | [color](../elements/index.md#colors) | *white* | A colour multiplied into the sprite. Multiplying means it can only darken: red on grey art gives red, red on blue art gives near-black. Best on neutral or greyscale art. |
+| `SpriteEffects` | `None` \| `FlipHorizontally` \| `FlipVertically` | `None` | Mirrors the sprite within its own bounds. It does not move the element. If flipping appears to shift the art sideways, the sprite has uneven transparent padding inside its source rectangle. Combine with a comma: `"FlipHorizontally, FlipVertically"`. Ignored by `Panel` and `Button`, which are nine-sliced. |

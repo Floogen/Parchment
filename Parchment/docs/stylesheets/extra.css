@@ -1,0 +1,87 @@
+/* Parchment docs — small presentational helpers. */
+
+:root {
+    --pc-required: #c1440e;
+    --pc-optional: #6b7280;
+}
+
+[data-md-color-scheme="slate"] {
+    --pc-required: #ff8a5c;
+    --pc-optional: #9aa3af;
+}
+
+/* Inline badges used in property tables: <span class="req">required</span> */
+.req,
+.opt {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.1em 0.45em;
+    border-radius: 0.35em;
+    white-space: nowrap;
+}
+
+.req {
+    color: var(--pc-required);
+    border: 1px solid currentColor;
+}
+
+.opt {
+    color: var(--pc-optional);
+    border: 1px solid currentColor;
+}
+
+/* Property tables get a little more room to breathe. */
+.md-typeset table:not([class]) th {
+    white-space: nowrap;
+}
+
+.md-typeset table:not([class]) td code {
+    white-space: nowrap;
+}
+
+/* Keep long JSON samples readable. */
+.md-typeset pre > code {
+    font-size: 0.72rem;
+}
+
+/* Pixel art must not be smoothed by the browser when scaled up. */
+.md-typeset img[src*="/images/"] {
+    image-rendering: pixelated;
+}
+
+/* ── Left sidebar (primary navigation) ─────────────────────────
+   Brighten the non-clickable section headers (e.g. "Reference")
+   and indent the page links nested beneath each one. Scoped to the
+   primary nav so the right-hand table of contents is unaffected. */
+
+/* Section header label: brighter and a touch heavier. */
+.md-nav__title {
+    color: var(--md-default-fg-color);
+    font-weight: 700;
+    opacity: 1;
+}
+
+[data-md-color-scheme="slate"] .md-nav__title {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.md-nav--primary .md-nav__item--section > label.md-nav__link .md-ellipsis {
+    color: var(--md-default-fg-color);
+    font-weight: 700;
+    opacity: 1;
+}
+
+[data-md-color-scheme="slate"] .md-nav--primary .md-nav__item--section > label.md-nav__link .md-ellipsis {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Indent the pages listed under a section header. */
+.md-nav--primary .md-nav__item--section > .md-nav > .md-nav__list {
+    padding-left: 1rem;
+}
+
+.md-header__button.md-logo {
+    display: none;
+}
