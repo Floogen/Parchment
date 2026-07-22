@@ -55,6 +55,8 @@ That's a two-page book with a cover, a heading, a rule, some prose and a parsnip
 
 [Your first book](getting-started/first-book.md) walks through the whole thing: the data patch, the item that opens it and the art.
 
+To open a book without an item, from a tile action, the console, or another mod's C#, see [Opening a book](concepts/opening-books.md).
+
 If you'd rather read the schema directly, start at [Book](reference/book.md). If something looks wrong in-game, [Troubleshooting](troubleshooting.md) is organised by what you see.
 
 ## Versioning

@@ -50,6 +50,7 @@ nav:
       - Layout: concepts/layout.md
       - Conditions: concepts/conditions.md
       - Trigger actions: concepts/actions.md
+      - Opening a book: concepts/opening-books.md
   - Reference:
       - Book: reference/book.md
       - Page: reference/page.md
@@ -63,4 +64,5 @@ nav:
           - Panel: reference/elements/panel.md
           - Banner: reference/elements/banner.md
           - Button: reference/elements/button.md
+      - API: reference/api.md
   - Troubleshooting: troubleshooting.md

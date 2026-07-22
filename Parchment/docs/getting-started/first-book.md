@@ -191,6 +191,9 @@ The custom field is just a string on an object, so you can also point *someone e
 
 You'll also want a way for the player to *get* the item: a shop entry, a mail attachment, a machine output. That's ordinary item modding and Parchment doesn't care how you do it.
 
+!!! tip "An item isn't the only way!"
+    A book can also open from a tile or from another mod. See [Opening a book](../concepts/opening-books.md).
+
 ## 5. Test it
 
 You don't need the item to test the book. With the mod loaded:
