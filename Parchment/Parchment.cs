@@ -1,4 +1,5 @@
 using HarmonyLib;
+using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Managers;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
@@ -21,6 +22,10 @@ namespace Parchment
     {
         public const string CUSTOM_BOOK_ID = "(O)PeacefulEnd.Parchment_Book";
         public const string CUSTOM_BOOK_FIELD_ID = "PeacefulEnd.Parchment/CustomFields/BookId";
+
+        public const string DEFAULT_BOOK_ASSET = "Assets/PeacefulEnd.Parchment/smallBook";
+        public const string DEFAULT_BOOK_GRAYSCALE_ASSET = "Assets/PeacefulEnd.Parchment/smallBookGrayscale";
+        public const string DEFAULT_PAGE_CURL_ASSET = "Assets/PeacefulEnd.Parchment/curlPage";
 
         public static bool isDebugMode = false;
 
@@ -60,11 +65,28 @@ namespace Parchment
             }
 
             // Hook into the required events
+            helper.Events.Content.AssetRequested += OnAssetRequested;
             helper.Events.Input.ButtonPressed += OnButtonPressed;
 
             // Register commands
             helper.ConsoleCommands.Add("parchment_debug", "parchment_debug", (cmd, args) => { isDebugMode = !isDebugMode; });
             helper.ConsoleCommands.Add("parchment_open", "parchment_open <book_id>", OpenBook);
+        }
+
+        private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
+        {
+            if (e.NameWithoutLocale.IsEquivalentTo(DEFAULT_BOOK_ASSET))
+            {
+                e.LoadFrom(() => Helper.ModContent.Load<Texture2D>("Framework/Assets/smallBook.png"), AssetLoadPriority.Low);
+            }
+            else if (e.NameWithoutLocale.IsEquivalentTo(DEFAULT_BOOK_GRAYSCALE_ASSET))
+            {
+                e.LoadFrom(() => Helper.ModContent.Load<Texture2D>("Framework/Assets/smallBookGrayscale.png"), AssetLoadPriority.Low);
+            }
+            else if (e.NameWithoutLocale.IsEquivalentTo(DEFAULT_PAGE_CURL_ASSET))
+            {
+                e.LoadFrom(() => Helper.ModContent.Load<Texture2D>("Framework/Assets/curlPage.png"), AssetLoadPriority.Low);
+            }
         }
 
         private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)

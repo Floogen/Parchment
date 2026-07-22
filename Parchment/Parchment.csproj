@@ -10,11 +10,8 @@
 		<EnableModDeploy>true</EnableModDeploy>
 	</PropertyGroup>
 	<ItemGroup>
-	  <Compile Remove="Framework\Assets\**" />
 	  <Compile Remove="releases\**" />
-	  <EmbeddedResource Remove="Framework\Assets\**" />
 	  <EmbeddedResource Remove="releases\**" />
-	  <None Remove="Framework\Assets\**" />
 	  <None Remove="releases\**" />
 	</ItemGroup>
 
@@ -24,6 +21,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Update="Framework\Assets\curlPage.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Framework\Assets\smallBook.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Framework\Assets\smallBookGrayscale.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="manifest.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
