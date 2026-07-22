@@ -16,8 +16,9 @@ namespace Parchment.Framework.UI.Layouts
         public WrappedText? WrappedText { get; }
         public float TextScale { get; }
         public float Rotation { get; }
+        public Vector2 Origin { get; }
 
-        public ImageLayout(Rectangle sourceRectangle, float drawScale, Vector2 drawSize, Rectangle textArea, WrappedText? wrappedText, float textScale, float rotation)
+        public ImageLayout(Rectangle sourceRectangle, float drawScale, Vector2 drawSize, Rectangle textArea, WrappedText? wrappedText, float textScale, float rotation, Vector2 origin)
         {
             SourceRectangle = sourceRectangle;
             DrawScale = drawScale;
@@ -26,6 +27,7 @@ namespace Parchment.Framework.UI.Layouts
             WrappedText = wrappedText;
             TextScale = textScale;
             Rotation = rotation;
+            Origin = origin;
         }
     }
 }

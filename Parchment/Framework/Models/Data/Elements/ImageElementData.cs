@@ -49,6 +49,11 @@ namespace Parchment.Framework.Models.Data
         /// </summary>
         public float Rotation { get; set; } = 0f;
 
+        /// <summary>
+        /// The pivot point the sprite rotates and scales around, in unscaled source-texture pixels relative to the source rectangle's top-left. (does not effect Text)
+        /// </summary>
+        public Vector2 Origin { get; set; } = Vector2.Zero;
+
         public override (bool Result, string Error) IsValid()
         {
             if (string.IsNullOrWhiteSpace(TexturePath))
