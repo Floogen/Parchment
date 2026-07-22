@@ -13,14 +13,15 @@ namespace Parchment.Framework.Utilities
 {
     public static class MapActionHelper
     {        
-        public static void HandleOpenBook(GameLocation location, string[] args, Farmer player, Vector2 tile)
+        public static bool HandleOpenBook(GameLocation location, string[] args, Farmer player, Point point)
         {
             if (ArgUtility.TryGet(args, 1, out string bookId, out string error) is false || Parchment.bookManager.CreateBook(bookId) is not Book book || book is null)
             {
-                return;
+                return false;
             }
-
             Game1.activeClickableMenu = new BookMenu(book);
+
+            return true;
         }
     }
 }
