@@ -155,6 +155,12 @@ namespace Parchment.Framework.Managers
             _playerToSeenPages[who.Name].Add($"{bookId}.{chapter}.{pageNumber}");
         }
 
+        public void ClearSeen(Farmer who)
+        {
+            _playerToSeenPages[who.Name] = new List<string>();
+            _playerToSeenChapters[who.Name] = new List<string>();
+        }
+
         public bool TryGetBookId(string qualifiedItemId, out string? bookId)
         {
             bookId = null;

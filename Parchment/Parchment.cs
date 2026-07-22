@@ -71,6 +71,7 @@ namespace Parchment
             // Register commands
             helper.ConsoleCommands.Add("parchment_debug", "parchment_debug", (cmd, args) => { isDebugMode = !isDebugMode; });
             helper.ConsoleCommands.Add("parchment_open", "parchment_open <book_id> [page] [chapter]", OpenBook);
+            helper.ConsoleCommands.Add("parchment_clearseen", "parchment_clearseen", (cmd, args) => { bookManager.ClearSeen(Game1.player); });
         }
 
         private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
