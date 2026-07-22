@@ -36,6 +36,6 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<ContentPacks Include="Content Packs\[CP] Parchment" Version="$(Version)" IgnoreModFilePatterns="\.aseprite$" />
+		<ContentPacks Include="Content Packs\[CP] Parchment Example Pack" Version="$(Version)" IgnoreModFilePatterns="\.aseprite$" />
 	</ItemGroup>
 </Project>
