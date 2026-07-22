@@ -27,9 +27,14 @@ namespace Parchment.Framework.Managers
     internal class BookManager : BaseManager
     {
         public const string BOOKS_DATA_PATH = "Data/PeacefulEnd.Parchment/Books";
+        public const string SEEN_PAGES_DATA_PATH = "Data/PeacefulEnd.Parchment/SeenPages";
+        public const string SEEN_CHAPTERS_DATA_PATH = "Data/PeacefulEnd.Parchment/SeenChapters";
 
         public List<BookData> Books { get { return _books; } set { FilterBookData(value); } }
         private List<BookData> _books = new List<BookData>();
+
+        private Dictionary<string, List<string>> _playerToSeenPages { get; set; } = new Dictionary<string, List<string>>();
+        private Dictionary<string, List<string>> _playerToSeenChapters { get; set; } = new Dictionary<string, List<string>>();
 
         public ElementRegistry ElementRegistry { get; }
         public FontResolver FontResolver { get; }
@@ -48,6 +53,9 @@ namespace Parchment.Framework.Managers
         private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
         {
             Books = helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
+
+            _playerToSeenPages = helper.GameContent.Load<Dictionary<string, List<string>>>(SEEN_PAGES_DATA_PATH);
+            _playerToSeenChapters = helper.GameContent.Load<Dictionary<string, List<string>>>(SEEN_CHAPTERS_DATA_PATH);
         }
 
         private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
@@ -55,6 +63,14 @@ namespace Parchment.Framework.Managers
             if (e.NameWithoutLocale.IsEquivalentTo(BOOKS_DATA_PATH))
             {
                 e.LoadFrom(() => Books, AssetLoadPriority.Medium);
+            }
+            else if (e.NameWithoutLocale.IsEquivalentTo(SEEN_PAGES_DATA_PATH))
+            {
+                e.LoadFrom(() => _playerToSeenPages, AssetLoadPriority.Medium);
+            }
+            else if (e.NameWithoutLocale.IsEquivalentTo(SEEN_CHAPTERS_DATA_PATH))
+            {
+                e.LoadFrom(() => _playerToSeenChapters, AssetLoadPriority.Medium);
             }
         }
 
@@ -64,6 +80,16 @@ namespace Parchment.Framework.Managers
             if (books is not null)
             {
                 Books = helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
+            }
+            var seenPages = e.NamesWithoutLocale.FirstOrDefault(a => a.IsEquivalentTo(SEEN_PAGES_DATA_PATH));
+            if (seenPages is not null)
+            {
+                _playerToSeenPages = helper.GameContent.Load<Dictionary<string, List<string>>>(SEEN_PAGES_DATA_PATH);
+            }
+            var seenChapters = e.NamesWithoutLocale.FirstOrDefault(a => a.IsEquivalentTo(SEEN_CHAPTERS_DATA_PATH));
+            if (seenChapters is not null)
+            {
+                _playerToSeenChapters = helper.GameContent.Load<Dictionary<string, List<string>>>(SEEN_CHAPTERS_DATA_PATH);
             }
 
             if (Game1.activeClickableMenu is BookMenu bookMenu)
@@ -87,6 +113,46 @@ namespace Parchment.Framework.Managers
             }
 
             _books = bookData.Where(c => c.IsValid().Result is true).ToList();
+        }
+
+        public bool HasSeenChapter(Farmer who, string bookId, string chapter)
+        {
+            if (_playerToSeenChapters.TryGetValue(who.Name, out var seenChapters) is false || seenChapters is null)
+            {
+                return false;
+            }
+
+            return seenChapters.Any(c => c.EqualsIgnoreCase($"{bookId}.{chapter}"));
+        }
+
+        public bool HasSeenPage(Farmer who, string bookId, string chapter, int pageNumber)
+        {
+            if (_playerToSeenPages.TryGetValue(who.Name, out var seenPages) is false || seenPages is null)
+            {
+                return false;
+            }
+
+            return seenPages.Any(c => c.EqualsIgnoreCase($"{bookId}.{chapter}.{pageNumber}"));
+        }
+
+        public void SetSeenChapter(Farmer who, string bookId, string chapter)
+        {
+            if (_playerToSeenChapters.ContainsKey(who.Name) is false)
+            {
+                _playerToSeenChapters[who.Name] = new List<string>();
+            }
+
+            _playerToSeenChapters[who.Name].Add($"{bookId}.{chapter}");
+        }
+
+        public void SetSeenPage(Farmer who, string bookId, string chapter, int pageNumber)
+        {
+            if (_playerToSeenPages.ContainsKey(who.Name) is false)
+            {
+                _playerToSeenPages[who.Name] = new List<string>();
+            }
+
+            _playerToSeenPages[who.Name].Add($"{bookId}.{chapter}.{pageNumber}");
         }
 
         public bool TryGetBookId(string qualifiedItemId, out string? bookId)

@@ -540,6 +540,46 @@ namespace Parchment.Framework.UI.Menus
             if (menuState is MenuState.Ready)
             {
                 RefreshVisiblePages();
+                MarkVisibleSeen();
+            }
+        }
+
+        private void MarkVisibleSeen()
+        {
+            var who = Game1.player;
+            string bookId = Book.Data.Id;
+            Chapter chapter = GetChapter(_currentChapterIndex);
+
+            if (string.IsNullOrWhiteSpace(chapter.Id))
+            {
+                return;
+            }
+
+            if (Parchment.bookManager.HasSeenChapter(who, bookId, chapter.Id) is false)
+            {
+                Parchment.bookManager.SetSeenChapter(who, bookId, chapter.Id);
+            }
+
+            MarkPageSeen(who, bookId, chapter, GetLeftPageIndex());
+            MarkPageSeen(who, bookId, chapter, GetRightPageIndex());
+        }
+
+        private void MarkPageSeen(Farmer who, string bookId, Chapter chapter, int pageIndex)
+        {
+            if (pageIndex >= _pages.Count)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(chapter.Id))
+            {
+                return;
+            }
+
+            int pageInChapter = pageIndex - chapter.FirstPageIndex;
+            if (Parchment.bookManager.HasSeenPage(who, bookId, chapter.Id, pageInChapter) is false)
+            {
+                Parchment.bookManager.SetSeenPage(who, bookId, chapter.Id, pageInChapter);
             }
         }
 
