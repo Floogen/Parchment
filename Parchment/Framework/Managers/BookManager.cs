@@ -211,10 +211,10 @@ namespace Parchment.Framework.Managers
                         Position = new Point(128, 82),
                         TintColor = Color.YellowGreen.ToSpaceSeparated(),
                         Frames = new List<AnimationFrameData>(){
-                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(48, 0, 16, 16) },
-                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(64, 0, 16, 16) },
-                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(96, 0, 16, 16) },
-                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(112, 0, 16, 16) }
+                            new AnimationFrameData() { Duration = 100, SourcePoint = new Point(48, 0) },
+                            new AnimationFrameData() { Duration = 100, SourcePoint = new Point(64, 0) },
+                            new AnimationFrameData() { Duration = 100, SourcePoint = new Point(96, 0) },
+                            new AnimationFrameData() { Duration = 100, SourcePoint = new Point(112, 0) }
                         },
                         Condition = "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageIndex 0"
                     },
@@ -222,10 +222,10 @@ namespace Parchment.Framework.Managers
                         Position = new Point(780, 82),
                         TintColor = Color.PaleVioletRed.ToSpaceSeparated(),
                         Frames = new List<AnimationFrameData>(){
-                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(48, 0, 16, 16) },
-                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(64, 0, 16, 16) },
-                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(96, 0, 16, 16) },
-                            new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(112, 0, 16, 16) }
+                            new AnimationFrameData() { Duration = 100, SourcePoint = new Point(48, 0) },
+                            new AnimationFrameData() { Duration = 100, SourcePoint = new Point(64, 0) },
+                            new AnimationFrameData() { Duration = 100, SourcePoint = new Point(96, 0) },
+                            new AnimationFrameData() { Duration = 100, SourcePoint = new Point(112, 0) }
                         },
                         Condition = "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_CurrentPageIndex 2"
                     }
@@ -347,30 +347,30 @@ namespace Parchment.Framework.Managers
                         {
                             new ImageElementData() { TexturePath = "LooseSprites/GemBird", TextureSourceRectangle = new Rectangle(0, 0, 32, 32), Scale = 3, Alignment = AlignmentType.Center,
                                 Frames = new List<AnimationFrameData>(){
-                                    new AnimationFrameData() { Duration = 1000, SourceRectangle = new Rectangle(0, 0, 32, 32) },
-                                    new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(32, 0, 32, 32) },
-                                    new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(64, 0, 32, 32) },
-                                    new AnimationFrameData() { Duration = 250, SourceRectangle = new Rectangle(96, 0, 32, 32) },
-                                    new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(64, 0, 32, 32) },
-                                    new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(32, 0, 32, 32) },
+                                    new AnimationFrameData() { Duration = 1000, SourcePoint = new Point(0, 0) },
+                                    new AnimationFrameData() { Duration = 100, SourcePoint = new Point(32, 0) },
+                                    new AnimationFrameData() { Duration = 100, SourcePoint = new Point(64, 0) },
+                                    new AnimationFrameData() { Duration = 250, SourcePoint = new Point(96, 0) },
+                                    new AnimationFrameData() { Duration = 100, SourcePoint = new Point(64, 0) },
+                                    new AnimationFrameData() { Duration = 100, SourcePoint = new Point(32, 0) },
                                 } 
                             },
                             new HeadingElementData() { Text = "! Animated sprites !", FontType = FontType.Small, Scale = 1, Alignment = AlignmentType.Center, SpacingAfter = 32 },
                             new ImageElementData() { TexturePath = "LooseSprites/Cursors2", TextureSourceRectangle = new Rectangle(192, 62, 32, 32), Scale = 3, Alignment = AlignmentType.Center,
                                 Frames = new List<AnimationFrameData>(){
-                                    new AnimationFrameData() { Duration = 1000, SourceRectangle = new Rectangle(192, 62, 32, 32) },
-                                    new AnimationFrameData() { Duration = 250, SourceRectangle = new Rectangle(224, 62, 32, 32) },
-                                    new AnimationFrameData() { Duration = 500, SourceRectangle = new Rectangle(192, 62, 32, 32) },
+                                    new AnimationFrameData() { Duration = 1000, SourcePoint = new Point(192, 62) },
+                                    new AnimationFrameData() { Duration = 250, SourcePoint = new Point(224, 62) },
+                                    new AnimationFrameData() { Duration = 500, SourcePoint = new Point(192, 62) },
                                 },
                                 SpacingAfter = 16
                             },
                             new ImageElementData() { TexturePath = "Characters/Junimo", TextureSourceRectangle = new Rectangle(48, 0, 16, 16), Scale = 8, Alignment = AlignmentType.Center, 
                                 TintColor = Color.LawnGreen.ToSpaceSeparated(),
                                 Frames = new List<AnimationFrameData>(){
-                                    new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(48, 0, 16, 16) },
-                                    new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(64, 0, 16, 16) },
-                                    new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(96, 0, 16, 16) },
-                                    new AnimationFrameData() { Duration = 100, SourceRectangle = new Rectangle(112, 0, 16, 16) }
+                                    new AnimationFrameData() { Duration = 100, SourcePoint = new Point(48, 0) },
+                                    new AnimationFrameData() { Duration = 100, SourcePoint = new Point(64, 0) },
+                                    new AnimationFrameData() { Duration = 100, SourcePoint = new Point(96, 0) },
+                                    new AnimationFrameData() { Duration = 100, SourcePoint = new Point(112, 0) }
                                 },
                                 Description = "Junimo!",
                                 SpacingAfter = 32

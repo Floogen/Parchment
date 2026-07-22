@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Data.Animations;
 using StardewValley;
 using System;
@@ -20,7 +20,8 @@ namespace Parchment.Framework.Utilities.Helpers
 
             if (frames.Count is 1)
             {
-                return frames[0].SourceRectangle;
+                var frame = frames[0];
+                return new Rectangle(frame.SourcePoint.X, frame.SourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
             }
 
             float cycleDuration = 0f;
@@ -32,7 +33,8 @@ namespace Parchment.Framework.Utilities.Helpers
 
             if (cycleDuration <= 0f)
             {
-                return frames[0].SourceRectangle;
+                var frame = frames[0];
+                return new Rectangle(frame.SourcePoint.X, frame.SourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
             }
 
             float cyclePosition = (float)(Game1.currentGameTime.TotalGameTime.TotalMilliseconds % cycleDuration);
@@ -43,13 +45,13 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 if (cyclePosition < frameDuration)
                 {
-                    return frame.SourceRectangle;
+                    return new Rectangle(frame.SourcePoint.X, frame.SourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
                 }
 
                 cyclePosition -= frameDuration;
             }
 
-            return frames[frames.Count - 1].SourceRectangle;
+            return new Rectangle(frames[frames.Count - 1].SourcePoint.X, frames[frames.Count - 1].SourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
         }
     }
 }

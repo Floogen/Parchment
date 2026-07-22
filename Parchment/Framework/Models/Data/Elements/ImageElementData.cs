@@ -88,11 +88,6 @@ namespace Parchment.Framework.Models.Data
 
                 foreach (AnimationFrameData frame in Frames)
                 {
-                    if (frame.SourceRectangle.Width != sourceRectangleFrames.Width || frame.SourceRectangle.Height != sourceRectangleFrames.Height)
-                    {
-                        return (false, $"Every frame in \"Frames\" must be {sourceRectangleFrames.Width}x{sourceRectangleFrames.Height} to match \"TextureSourceRectangle\"!");
-                    }
-
                     if (frame.Duration is float duration && duration <= 0f)
                     {
                         return (false, $"A frame in \"Frames\" has a non-positive \"frame.Duration\"");

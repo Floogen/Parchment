@@ -58,38 +58,30 @@
               "Frames": [
                 {
                   "Duration": 100,
-                  "SourceRectangle": {
+                  "SourcePoint": {
                     "X": 48,
-                    "Y": 0,
-                    "Width": 16,
-                    "Height": 16
+                    "Y": 0
                   }
                 },
                 {
                   "Duration": 100,
-                  "SourceRectangle": {
+                  "SourcePoint": {
                     "X": 64,
-                    "Y": 0,
-                    "Width": 16,
-                    "Height": 16
+                    "Y": 0
                   }
                 },
                 {
                   "Duration": 100,
-                  "SourceRectangle": {
+                  "SourcePoint": {
                     "X": 96,
-                    "Y": 0,
-                    "Width": 16,
-                    "Height": 16
+                    "Y": 0
                   }
                 },
                 {
                   "Duration": 100,
-                  "SourceRectangle": {
+                  "SourcePoint": {
                     "X": 112,
-                    "Y": 0,
-                    "Width": 16,
-                    "Height": 16
+                    "Y": 0
                   }
                 }
               ],
@@ -113,38 +105,30 @@
               "Frames": [
                 {
                   "Duration": 100,
-                  "SourceRectangle": {
+                  "SourcePoint": {
                     "X": 48,
-                    "Y": 0,
-                    "Width": 16,
-                    "Height": 16
+                    "Y": 0
                   }
                 },
                 {
                   "Duration": 100,
-                  "SourceRectangle": {
+                  "SourcePoint": {
                     "X": 64,
-                    "Y": 0,
-                    "Width": 16,
-                    "Height": 16
+                    "Y": 0
                   }
                 },
                 {
                   "Duration": 100,
-                  "SourceRectangle": {
+                  "SourcePoint": {
                     "X": 96,
-                    "Y": 0,
-                    "Width": 16,
-                    "Height": 16
+                    "Y": 0
                   }
                 },
                 {
                   "Duration": 100,
-                  "SourceRectangle": {
+                  "SourcePoint": {
                     "X": 112,
-                    "Y": 0,
-                    "Width": 16,
-                    "Height": 16
+                    "Y": 0
                   }
                 }
               ],
@@ -506,56 +490,44 @@
                   "Frames": [
                     {
                       "Duration": 1000,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 0,
-                        "Y": 0,
-                        "Width": 32,
-                        "Height": 32
+                        "Y": 0
                       }
                     },
                     {
                       "Duration": 100,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 32,
-                        "Y": 0,
-                        "Width": 32,
-                        "Height": 32
+                        "Y": 0
                       }
                     },
                     {
                       "Duration": 100,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 64,
-                        "Y": 0,
-                        "Width": 32,
-                        "Height": 32
+                        "Y": 0
                       }
                     },
                     {
                       "Duration": 250,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 96,
-                        "Y": 0,
-                        "Width": 32,
-                        "Height": 32
+                        "Y": 0
                       }
                     },
                     {
                       "Duration": 100,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 64,
-                        "Y": 0,
-                        "Width": 32,
-                        "Height": 32
+                        "Y": 0
                       }
                     },
                     {
                       "Duration": 100,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 32,
-                        "Y": 0,
-                        "Width": 32,
-                        "Height": 32
+                        "Y": 0
                       }
                     }
                   ]
@@ -583,29 +555,23 @@
                   "Frames": [
                     {
                       "Duration": 1000,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 192,
-                        "Y": 62,
-                        "Width": 32,
-                        "Height": 32
+                        "Y": 62
                       }
                     },
                     {
                       "Duration": 250,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 224,
-                        "Y": 62,
-                        "Width": 32,
-                        "Height": 32
+                        "Y": 62
                       }
                     },
                     {
                       "Duration": 500,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 192,
-                        "Y": 62,
-                        "Width": 32,
-                        "Height": 32
+                        "Y": 62
                       }
                     }
                   ]
@@ -627,38 +593,30 @@
                   "Frames": [
                     {
                       "Duration": 100,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 48,
-                        "Y": 0,
-                        "Width": 16,
-                        "Height": 16
+                        "Y": 0
                       }
                     },
                     {
                       "Duration": 100,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 64,
-                        "Y": 0,
-                        "Width": 16,
-                        "Height": 16
+                        "Y": 0
                       }
                     },
                     {
                       "Duration": 100,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 96,
-                        "Y": 0,
-                        "Width": 16,
-                        "Height": 16
+                        "Y": 0
                       }
                     },
                     {
                       "Duration": 100,
-                      "SourceRectangle": {
+                      "SourcePoint": {
                         "X": 112,
-                        "Y": 0,
-                        "Width": 16,
-                        "Height": 16
+                        "Y": 0
                       }
                     }
                   ]

@@ -33,13 +33,13 @@ Each entry in `Frames`:
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `SourceRectangle` | rectangle | <span class="req">required</span> | The area of the sprite sheet for this frame. **Must be the same size** as the element's `TextureSourceRectangle`, which is what the layout is measured from. |
-| `Duration` | number | *the element's `FrameDuration`* | How long this frame is shown, in milliseconds. |
+| `SourcePoint` | point | <span class="req">required</span> | The coordinate of the sprite for this frame. Automatically inherits the element's `TextureSourceRectangle` for height and width. |
+| `Duration` | number | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
 
 Frames loop, and the cycle runs off game time, so two identical animations on a page play in lockstep.
 
 !!! important "`TextureSourceRectangle` is required when animating"
-    It's the measuring stick: it defines the element's size, while `Frames` defines what's drawn. Without it, the whole sprite sheet becomes the element and your bird is a 128-pixel-wide strip. Frame 0 is usually the same rectangle, and that's fine. The duplication is what keeps the rule simple.
+    It's the measuring stick: it defines the element's size, while `Frames` defines what's drawn. Without it, the whole sprite sheet becomes the element.
 
 ```json
 {
@@ -49,9 +49,9 @@ Frames loop, and the cycle runs off game time, so two identical animations on a 
   "Scale": 3,
   "Alignment": "Center",
   "Frames": [
-    { "Duration": 1000, "SourceRectangle": { "X": 0, "Y": 0, "Width": 32, "Height": 32 } },
-    { "Duration": 100, "SourceRectangle": { "X": 32, "Y": 0, "Width": 32, "Height": 32 } },
-    { "Duration": 100, "SourceRectangle": { "X": 64, "Y": 0, "Width": 32, "Height": 32 } }
+    { "Duration": 1000, "SourcePoint": { "X": 0, "Y": 0 } },
+    { "Duration": 100, "SourcePoint": { "X": 32, "Y": 0 } },
+    { "Duration": 100, "SourcePoint": { "X": 64, "Y": 0 } }
   ]
 }
 ```
