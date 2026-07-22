@@ -867,6 +867,7 @@ namespace Parchment.Framework.UI.Menus
 
             DrawElements(b, page.Background, pageBounds, context);
             DrawElements(b, page.Elements, pageBounds, context);
+            DrawElements(b, page.Foreground, pageBounds, context);
         }
 
         private void DrawElements(SpriteBatch b, IReadOnlyList<Element> elements, Rectangle pageBounds, ElementRenderContext context)

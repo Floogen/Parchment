@@ -12,7 +12,7 @@ Any element can carry a `Condition`, a **game state query** deciding whether it 
 
 When the query is false the element is hidden and the elements below it close the gap. It's a flow hide, not an invisibility toggle: nothing leaves a hole behind.
 
-Conditions work on every element, in every list: a page's `Elements` or `Background`, the book's `Underlay` or `Overlay` and a panel's `Children`.
+Conditions work on every element, in every list: a page's `Elements`, `Background` or `Foreground`, the book's `Underlay` or `Overlay` and a panel's `Children`.
 
 ## Writing queries
 

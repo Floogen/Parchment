@@ -16,6 +16,7 @@ Elements appear in four places, and where they appear changes how they're positi
 | --- | --- |
 | [`Page.Elements`](../page.md) | Stacked top to bottom. |
 | [`Page.Background`](../page.md) | Placed by `Position`, drawn behind the page's elements. |
+| [`Page.Foreground`](../page.md) | Placed by `Position`, drawn over the page's elements. |
 | [`Book.Underlay`](../book.md) | Placed by `Position` relative to the book, drawn behind the book sprite. |
 | [`Book.Overlay`](../book.md) | Placed by `Position` relative to the book, drawn in front of everything. |
 

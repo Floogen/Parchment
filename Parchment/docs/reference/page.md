@@ -18,6 +18,7 @@ A page is a stack of elements. Two consecutive pages make a spread. Page 0 and 1
 | `ChapterId` | string | *none* | The chapter this page belongs to. Pages sharing a value belong to the same chapter and **must be listed consecutively**. See [Chapters](#chapters). |
 | `Elements` | list of [elements](elements/index.md) | *empty* | The page's content, stacked top to bottom in order. |
 | `Background` | list of [elements](elements/index.md) | *none* | Elements drawn **behind** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. |
+| `Foreground` | list of [elements](elements/index.md) | *none* | Elements drawn **over** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. |
 
 ## Chapters
 

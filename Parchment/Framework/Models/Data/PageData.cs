@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using System;
@@ -25,6 +25,11 @@ namespace Parchment.Framework.Models.Data
         /// Elements drawn behind <see cref="Elements"/>, positioned absolutely via <see cref="ElementData.Position"/> rather than stacked. These do not affect the layout.
         /// </summary>
         public List<ElementData>? Background { get; set; }
+
+        /// <summary>
+        /// Elements drawn over <see cref="Elements"/>, positioned absolutely via <see cref="ElementData.Position"/> rather than stacked. These do not affect the layout.
+        /// </summary>
+        public List<ElementData>? Foreground { get; set; }
 
         public override (bool Result, string Error) IsValid()
         {

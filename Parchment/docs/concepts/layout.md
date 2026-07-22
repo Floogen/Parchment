@@ -38,7 +38,7 @@ An [`Image`](../reference/elements/image.md) with text on it separates them prop
 
 ## Placed elements
 
-Not everything stacks. Elements in a page's `Background`, or the book's `Underlay` and `Overlay`, are placed by their `Position` instead, a screen-pixel coordinate relative to the page's content area or the book's top-left.
+Not everything stacks. Elements in a page's `Background` and `Foreground`, or the book's `Underlay` and `Overlay`, are placed by their `Position` instead, a screen-pixel coordinate relative to the page's content area or the book's top-left.
 
 Placed elements don't participate in the layout at all. They can't push anything, nothing pushes them and they can overlap freely. Negative coordinates are fine and are how you hang a bookmark off the side of the book.
 

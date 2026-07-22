@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
@@ -24,6 +24,7 @@ namespace Parchment.Framework.Models
 
         public List<Element> Elements { get; }
         public List<Element> Background { get; }
+        public List<Element> Foreground { get; }
 
         public ElementRenderContext? LastLayoutContext;
 
@@ -32,6 +33,7 @@ namespace Parchment.Framework.Models
             Data = data;
             Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver);
             Background = ElementFactory.CreateList(Data.Background, registry, fontResolver);
+            Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver);
         }
 
         /// <summary>
@@ -40,6 +42,7 @@ namespace Parchment.Framework.Models
         public void PerformLayout(ElementRenderContext context)
         {
             PositionElements(Background, context);
+            PositionElements(Foreground, context);
 
             float contentHeight = StackElements(Elements, context);
             if (contentHeight > context.AvailableHeight)
@@ -56,6 +59,7 @@ namespace Parchment.Framework.Models
 
             hasAnyChanged |= RefreshConditionsFor(Elements);
             hasAnyChanged |= RefreshConditionsFor(Background);
+            hasAnyChanged |= RefreshConditionsFor(Foreground);
 
             if (hasAnyChanged)
             {
