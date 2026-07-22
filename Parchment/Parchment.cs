@@ -8,6 +8,7 @@ using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Patches.Objects;
 using Parchment.Framework.UI.Menus;
 using Parchment.Framework.UI.Rendering;
+using Parchment.Framework.Utilities;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
@@ -67,6 +68,9 @@ namespace Parchment
             // Hook into the required events
             helper.Events.Content.AssetRequested += OnAssetRequested;
             helper.Events.Input.ButtonPressed += OnButtonPressed;
+
+            // Register actions
+            GameLocation.RegisterTouchAction("PeacefulEnd.Parchment_OpenBook", MapActionHelper.HandleOpenBook);
 
             // Register commands
             helper.ConsoleCommands.Add("parchment_debug", "parchment_debug", (cmd, args) => { isDebugMode = !isDebugMode; });
