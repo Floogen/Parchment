@@ -35,7 +35,9 @@ The parts you'll reach for most:
 
 ## Parchment's queries
 
-Parchment adds queries about the book being read. They only work while a book is open. Anywhere else they return false, which is the sensible answer.
+Parchment adds queries about the book being read, plus one pair about what the player has read before.
+
+Most describe the open book, so they only work while a book is open (otherwise they return false). The [reading history](#reading-history) queries are the exception: they read stored page / chapter read history.
 
 ### The book
 
@@ -77,6 +79,78 @@ A worked example, from a bookmark that hides itself on the first page:
   "Condition": "!PeacefulEnd.Parchment_CurrentPageId cover"
 }
 ```
+
+### Reading history
+
+Two queries ask what the current player has read before, rather than what's on screen now. Unlike the queries above they don't need a book open, so you can use them anywhere a game state query is accepted: on a page to mark a chapter as already read, but also in an event, a dialogue line or another mod's condition.
+
+| Query | Arguments | True when |
+| --- | --- | --- |
+| `PeacefulEnd.Parchment_HasSeenChapterId` | `<bookId> <chapterId>` | The player has seen that chapter of that book. |
+| `PeacefulEnd.Parchment_HasSeenPageId` | `<bookId> <chapterId> <pageNumber>` | The player has seen that page of that chapter. |
+
+`<pageNumber>` is the page's position **within its chapter**, counting from 0. That's not the same number as [`CurrentPageIndex`](#the-page), which counts from the front of the whole book (an easy mistake to make once a book has more than one chapter).
+
+```json
+{
+  "Type": "Heading",
+  "Text": "You've read this before.",
+  "Condition": "PeacefulEnd.Parchment_HasSeenChapterId {{ModId}}_CampingGuide tents"
+}
+```
+
+**Where it's stored.** The history lives in two data assets Parchment provides, `Data/PeacefulEnd.Parchment/SeenChapters` and `Data/PeacefulEnd.Parchment/SeenPages`. Each is a dictionary keyed by player name, whose value is the list of entries that player has seen:
+
+- a seen **chapter** is `<bookId>.<chapterId>`, for example `{{ModId}}_CampingGuide.tents`
+- a seen **page** is `<bookId>.<chapterId>.<pageNumber>`, for example `{{ModId}}_CampingGuide.tents.0`
+
+Because they're ordinary data assets, you can edit them with Content Patcher. Parchment reloads its copy whenever the asset changes, so an edit takes effect on the spot. Blanking a player's list resets their history:
+
+```json
+{
+  "Action": "EditData",
+  "Target": "Data/PeacefulEnd.Parchment/SeenChapters",
+  "Entries": {
+    "{{PlayerName}}": null
+  }
+}
+```
+
+The key is the player's name (the same `Name` the game stores on the farmer), so Content Patcher's `{{PlayerName}}` token is an easy way to target the current player's list.
+
+Setting the entry to `null` drops it entirely. A missing player reads as having seen nothing, the same as an empty list. `Data/PeacefulEnd.Parchment/SeenPages` clears the same way.
+
+To change individual entries instead of replacing the whole list, use Content Patcher's `TargetField` to descend into one player's list first. A player's value is a `List<string>`, so it takes the same add / remove / replace shorthand Content Patcher uses on a string list like `Data/Objects` → `ContextTags`, where each entry acts as its own key.
+
+The entries here are whole seen keys, not book IDs:
+
+```json
+{
+  "Action": "EditData",
+  "Target": "Data/PeacefulEnd.Parchment/SeenChapters",
+  "TargetField": [ "{{PlayerName}}" ],
+  "Entries": {
+    "{{ModId}}_CampingGuide.tents": "{{ModId}}_CampingGuide.tents", // mark this chapter seen
+    "{{ModId}}_CampingGuide.cover": null                            // mark this chapter unseen
+  }
+}
+```
+
+`SeenPages` works the same way, keyed by the three-part page entry, for example `{{ModId}}_CampingGuide.tents.0`.
+
+`TargetField` only descends into an entry that already exists, so the player needs a list before you can edit it this way (they get one the first time they read anything). To seed a player who has none yet, set their whole list with a top-level `Entries` patch instead:
+
+```json
+{
+  "Action": "EditData",
+  "Target": "Data/PeacefulEnd.Parchment/SeenChapters",
+  "Entries": {
+    "{{PlayerName}}": [ "{{ModId}}_CampingGuide.tents" ]
+  }
+}
+```
+
+Either route lets you mark something read without the player ever opening the book, using the key formats above.
 
 ## Book states
 
