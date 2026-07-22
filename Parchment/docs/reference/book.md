@@ -56,8 +56,8 @@ The corner you click to turn a page. The offsets are relative to the book frame,
 | `FrameHeight` | integer | `32` | The height of one frame, in unscaled sprite pixels. |
 | `FrameCount` | integer | `7` | How many frames the curl animation has. |
 | `Scale` | number | `5` | How much the curl sprite is magnified. |
-| `PreviousPageOffset` | point | `2, 111` | The top-left of the back-turn corner, in unscaled sprite pixels relative to the book frame's top-left. |
-| `NextPageOffset` | point | `185, 111` | The top-left of the forward-turn corner, in unscaled sprite pixels relative to the book frame's top-left. |
+| `PreviousPageOffset` | point | `1, 113` | The top-left of the back-turn corner, in unscaled sprite pixels relative to the book frame's top-left. |
+| `NextPageOffset` | point | `186, 112` | The top-left of the forward-turn corner, in unscaled sprite pixels relative to the book frame's top-left. |
 
 !!! info "The corner and its hotspot are the same rectangle"
     Each corner's clickable area is exactly the sprite you see: the offset above, sized `FrameWidth` × `FrameHeight` × `Scale`. There's no separate hotspot to keep in sync.

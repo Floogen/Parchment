@@ -17,10 +17,10 @@ namespace Parchment.Framework.Models.Data.Books
         public float Scale { get; set; } = 5f;
 
         /// <summary>The top-left of the back-turn corner, in unscaled sprite pixels relative to the book frame's top-left. The corner's size is <see cref="FrameWidth"/> x <see cref="FrameHeight"/> multiplied by <see cref="Scale"/>, and this rect is both the drawn sprite and its hotspot.</summary>
-        public Point PreviousPageOffset { get; set; } = new Point(2, 111);
+        public Point PreviousPageOffset { get; set; } = new Point(1, 112);
 
         /// <summary>The top-left of the forward-turn corner, in unscaled sprite pixels relative to the book frame's top-left. The corner's size is <see cref="FrameWidth"/> x <see cref="FrameHeight"/> multiplied by <see cref="Scale"/>, and this rect is both the drawn sprite and its hotspot.</summary>
-        public Point NextPageOffset { get; set; } = new Point(185, 111);
+        public Point NextPageOffset { get; set; } = new Point(186, 112);
 
         public override (bool Result, string Error) IsValid()
         {

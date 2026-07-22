@@ -266,8 +266,7 @@ namespace Parchment.Framework.UI.Menus
 
             float centeredX = base.xPositionOnScreen + base.width / 2f - (closedBookRectangle.Width * _appearance.Scale) / 2f;
             float centeredY = base.yPositionOnScreen + base.height / 2f - (closedBookRectangle.Height * _appearance.Scale) / 2f;
-
-            _targetPosition = new Vector2(centeredX + _appearance.Offset.X * _appearance.Scale, centeredY + _appearance.Offset.Y * _appearance.Scale);
+            _targetPosition = new Vector2(MathF.Round(centeredX + _appearance.Offset.X * _appearance.Scale), MathF.Round(centeredY + _appearance.Offset.Y * _appearance.Scale));
             _startPosition = new Vector2(_targetPosition.X, Game1.uiViewport.Height + (closedBookRectangle.Height * _appearance.Scale));
 
             _currentPosition = _startPosition;
