@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Interfaces;
 using StardewModdingAPI;
 using System;
@@ -119,11 +119,26 @@ namespace Parchment.Framework.UI.Layouts
                 return;
             }
 
-            string currentLine = string.Empty;
-
-            foreach (string word in line.Split(' '))
+            int indentLength = 0;
+            while (indentLength < line.Length && line[indentLength] == ' ')
             {
-                string candidateLine = currentLine.Length is 0 ? word : $"{currentLine} {word}";
+                indentLength++;
+            }
+
+            // A line that is nothing but spaces: preserve it rather than culling to blank.
+            if (indentLength == line.Length)
+            {
+                AddLine(lines, line, font, scale);
+                return;
+            }
+
+            string indent = line.Substring(0, indentLength);
+            string currentLine = string.Empty;
+            bool indentPending = true;
+
+            foreach (string word in line.Substring(indentLength).Split(' '))
+            {
+                string candidateLine = currentLine.Length is 0 ? (indentPending ? indent + word : word) : $"{currentLine} {word}";
 
                 if (font.MeasureString(candidateLine, scale).X <= maxWidth)
                 {
@@ -135,15 +150,19 @@ namespace Parchment.Framework.UI.Layouts
                 {
                     AddLine(lines, currentLine, font, scale);
                     currentLine = string.Empty;
+                    indentPending = false;
                 }
 
-                if (font.MeasureString(word, scale).X <= maxWidth)
+                string wordWithIndent = indentPending ? indent + word : word;
+                if (font.MeasureString(wordWithIndent, scale).X <= maxWidth)
                 {
-                    currentLine = word;
+                    currentLine = wordWithIndent;
+                    indentPending = false;
                     continue;
                 }
 
-                currentLine = BreakLongWord(lines, word, font, maxWidth, scale, hyphenateBrokenWords);
+                currentLine = BreakLongWord(lines, wordWithIndent, font, maxWidth, scale, hyphenateBrokenWords);
+                indentPending = false;
             }
 
             if (currentLine.Length > 0)
