@@ -129,8 +129,10 @@ namespace Parchment.Framework.Managers
             {
                 Format = "1.0.0",
                 Id = "Parchment.Test_CampingGuide",
-                TintColor = "165 42 42",
-                Appearance = new BookAppearanceData(),
+                Appearance = new BookAppearanceData()
+                {
+                    TintColor = "165 42 42",
+                },
                 Underlay = new List<ElementData>()
                 {
                     new ImageElementData() { TexturePath = "Characters/Junimo", TextureSourceRectangle = new Rectangle(48, 0, 16, 16), Scale = 4,

@@ -1,4 +1,4 @@
-﻿using Parchment.Framework.Models.Data.Books;
+using Parchment.Framework.Models.Data.Books;
 using Parchment.Framework.Models.Data.Elements;
 using System;
 using System.Collections.Generic;
@@ -35,8 +35,6 @@ namespace Parchment.Framework.Models.Data
         public List<ElementData>? Overlay { get; set; }
 
         public BookLayoutData Layout { get; set; } = new BookLayoutData();
-        /// <summary>The tint applied to the book sprite. Defaults to white / untinted.</summary>
-        public string? TintColor { get; set; }
 
         public override (bool Result, string Error) IsValid()
         {

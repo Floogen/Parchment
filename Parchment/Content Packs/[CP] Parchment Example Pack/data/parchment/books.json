@@ -35,7 +35,9 @@
         "PeacefulEnd.Parchment.ExamplePack_GuideBook": {
           "Format": "1.0.0",
           "Id": "PeacefulEnd.Parchment.ExamplePack_GuideBook",
-          "TintColor": "165 42 42",
+          "Appearance": {
+            "TintColor": "165 42 42"
+          },
 
           "Underlay": [
             {

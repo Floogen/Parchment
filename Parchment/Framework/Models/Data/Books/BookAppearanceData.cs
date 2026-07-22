@@ -12,8 +12,11 @@ namespace Parchment.Framework.Models.Data.Books
         /// <summary>The book sprite sheet. Frames are laid out horizontally, each <see cref="FrameWidth"/> x <see cref="FrameHeight"/>: first the open frames (index 0 is fully closed, the last is fully open), then the page-turn frames. The close animation is the open frames reversed.</summary>
         public string TexturePath { get; set; } = "Assets/PeacefulEnd.Parchment/smallBook";
 
-        /// <summary>An optional grayscale layer drawn beneath <see cref="TexturePath"/> and tinted by <see cref="BookData.TintColor"/>. When null, the book is drawn untinted.</summary>
+        /// <summary>An optional grayscale layer drawn beneath <see cref="TexturePath"/> and tinted by <see cref="TintColor"/>. When null, the book is drawn untinted.</summary>
         public string? GrayscaleTexturePath { get; set; } = "Assets/PeacefulEnd.Parchment/smallBookGrayscale";
+
+        /// <summary>The tint applied to the book sprite. Defaults to white / untinted.</summary>
+        public string? TintColor { get; set; }
 
         public int FrameWidth { get; set; } = 219;
         public int FrameHeight { get; set; } = 158;

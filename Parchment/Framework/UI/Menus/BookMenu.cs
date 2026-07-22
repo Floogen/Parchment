@@ -929,14 +929,14 @@ namespace Parchment.Framework.UI.Menus
 
         private Color ResolveBookTintColor(BookData data)
         {
-            if (string.IsNullOrWhiteSpace(data.TintColor))
+            if (string.IsNullOrWhiteSpace(data.Appearance.TintColor))
             {
                 return Color.White;
             }
 
-            if (ColorParser.TryParse(data.TintColor, out Color parsedColor) is false)
+            if (ColorParser.TryParse(data.Appearance.TintColor, out Color parsedColor) is false)
             {
-                Parchment.monitor.Log($"Book '{data.Id}' has an unparsable {nameof(data.TintColor)} '{data.TintColor}'; the book will not be tinted.", LogLevel.Warn);
+                Parchment.monitor.Log($"Book '{data.Id}' has an unparsable {nameof(data.Appearance.TintColor)} '{data.Appearance.TintColor}'; the book will not be tinted.", LogLevel.Warn);
                 return Color.White;
             }
 

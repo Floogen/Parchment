@@ -6,7 +6,9 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 {
   "Format": "1.0.0",
   "Id": "PeacefulEnd.Parchment_CampingGuide",
-  "TintColor": "165 42 42",
+  "Appearance": {
+    "TintColor": "165 42 42"
+  },
   "Pages": [ ... ]
 }
 ```
@@ -18,7 +20,6 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 | `Format` | string | `1.0.0` | The schema version this book was written against. |
 | `Id` | string | <span class="req">required</span> | A [unique string ID](https://stardewvalleywiki.com/Modding:Common_data_field_types#Unique_string_ID) for the book, conventionally `{ModId}_{Name}`. This is how actions and items refer to it, and it's the name Parchment uses in log messages. |
 | `SpritePath` | string | *none* | The sprite used for the book's item. |
-| `TintColor` | [color](elements/index.md#colors) | *white* | A colour multiplied into the book's greyscale layer. This is how you recolour the cover (see [Appearance](#appearance)). |
 | `Pages` | list of [pages](page.md) | *empty* | The book's pages, in order. Two consecutive pages make a spread. |
 | `Underlay` | list of [elements](elements/index.md) | *none* | Elements drawn **behind** the book sprite, positioned by their `Position` relative to the book's top-left. Negative coordinates place them outside the book's edges. This is how you make a bookmark that sticks out of the side, with the part that overlaps the book hidden behind it. Drawn during the open and close animations, so they ride in with the book. |
 | `Overlay` | list of [elements](elements/index.md) | *none* | Elements drawn **in front of** the book sprite and its pages, positioned by their `Position` relative to the book's top-left. Only drawn once the book is open. |
@@ -37,7 +38,8 @@ Everything about how the book itself is drawn. All defaults describe Parchment's
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
 | `TexturePath` | string | *the built-in book* | The book's sprite sheet. Frames run **horizontally**, each `FrameWidth` × `FrameHeight`: first the open frames (index 0 fully closed, the last fully open), then the page-turn frames. The close animation is the open frames played backwards, so you don't supply those separately. |
-| `GrayscaleTexturePath` | string | *the built-in book* | An optional greyscale layer drawn beneath `TexturePath` and tinted by the book's `TintColor`. This layer is what makes tinting work. Multiplying a colour into greyscale art gives you that colour. Multiplying it into already-coloured art gives you mud. Set to `null` for a book that can't be tinted. |
+| `GrayscaleTexturePath` | string | *the built-in book* | An optional greyscale layer drawn beneath `TexturePath` and tinted by the book's `TintColor`. Multiplying a colour into greyscale art gives you that colour. Set to `null` to skip the recoloring. |
+| `TintColor` | [color](elements/index.md#colors) | *white* | A colour multiplied into the book's greyscale layer. |
 | `FrameWidth` | integer | `219` | The width of one frame, in unscaled sprite pixels. |
 | `FrameHeight` | integer | `158` | The height of one frame, in unscaled sprite pixels. |
 | `OpenFrameCount` | integer | `4` | How many open frames the sheet starts with. |
