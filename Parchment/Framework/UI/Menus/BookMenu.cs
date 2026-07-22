@@ -282,6 +282,72 @@ namespace Parchment.Framework.UI.Menus
             error = null;
             return true;
         }
+        public bool TryOpenAtPageId(string pageId, out string error)
+        {
+            return TryOpenAtPageId(null, pageId, out error);
+        }
+
+        public bool TryOpenAtPageId(string chapterId, string pageId, out string error)
+        {
+            if (string.IsNullOrWhiteSpace(pageId))
+            {
+                error = "No page ID was provided";
+                return false;
+            }
+
+            int chapterFilter = -1;
+            if (chapterId is not null)
+            {
+                if (Book.TryGetChapterIndex(chapterId, out chapterFilter) is false)
+                {
+                    error = $"There is no chapter '{chapterId}'";
+                    return false;
+                }
+            }
+
+            int pageIndex = FindPageIndex(pageId, chapterFilter);
+            if (pageIndex < 0)
+            {
+                error = $"There is no page '{pageId}'";
+                if (chapterFilter >= 0)
+                {
+                    error = $"Chapter '{chapterId}' has no page '{pageId}'";
+                }
+
+                return false;
+            }
+
+            int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
+            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
+
+            ApplyInitialSpread(chapterIndex, spread);
+            error = null;
+
+            return true;
+        }
+
+        private int FindPageIndex(string pageId, int chapterFilter)
+        {
+            int start = 0;
+            int end = _pages.Count;
+
+            if (chapterFilter >= 0)
+            {
+                Chapter chapter = GetChapter(chapterFilter);
+                start = chapter.FirstPageIndex;
+                end = chapter.LastPageIndex + 1;
+            }
+
+            for (int i = start; i < end; i++)
+            {
+                if (string.Equals(GetPageId(i), pageId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
 
         private void ApplyInitialSpread(int chapterIndex, int spread)
         {

@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Microsoft.Xna.Framework.Graphics;
+using Parchment.Framework.API;
 using Parchment.Framework.Managers;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
@@ -76,6 +77,11 @@ namespace Parchment
             helper.ConsoleCommands.Add("parchment_debug", "parchment_debug", (cmd, args) => { isDebugMode = !isDebugMode; });
             helper.ConsoleCommands.Add("parchment_open", "parchment_open <book_id> [page] [chapter]", OpenBook);
             helper.ConsoleCommands.Add("parchment_clearseen", "parchment_clearseen", (cmd, args) => { bookManager.ClearSeen(Game1.player); });
+        }
+
+        public override object GetApi()
+        {
+            return new ParchmentApi();
         }
 
         private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
