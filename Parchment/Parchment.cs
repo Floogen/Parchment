@@ -70,7 +70,7 @@ namespace Parchment
 
             // Register commands
             helper.ConsoleCommands.Add("parchment_debug", "parchment_debug", (cmd, args) => { isDebugMode = !isDebugMode; });
-            helper.ConsoleCommands.Add("parchment_open", "parchment_open <book_id>", OpenBook);
+            helper.ConsoleCommands.Add("parchment_open", "parchment_open <book_id> [page] [chapter]", OpenBook);
         }
 
         private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
@@ -108,7 +108,17 @@ namespace Parchment
                 return;
             }
 
-            Game1.activeClickableMenu = new BookMenu(book);
+            var bookMenu = new BookMenu(book);
+            if (ArgUtility.TryGetInt(args, 1, out int page, out error) is true)
+            {
+                bool passed = ArgUtility.TryGet(args, 2, out string chapter, out error) is true ? bookMenu.TryOpenAtChapterPage(chapter, page, out error) : bookMenu.TryOpenAtChapter(chapter, out error);
+                if (passed is false)
+                {
+                    monitor.Log(error, LogLevel.Warn);
+                }
+            }
+
+            Game1.activeClickableMenu = bookMenu;
         }
     }
 }

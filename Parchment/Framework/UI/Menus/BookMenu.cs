@@ -248,6 +248,53 @@ namespace Parchment.Framework.UI.Menus
             return TryJumpToPage(GetChapter(_currentChapterIndex).LastPageIndex, out error);
         }
 
+        public bool TryOpenAtChapter(string chapterId, out string error)
+        {
+            if (Book.TryGetChapterIndex(chapterId, out int chapterIndex) is false)
+            {
+                error = $"There is no chapter '{chapterId}'";
+                return false;
+            }
+
+            ApplyInitialSpread(chapterIndex, 0);
+            error = null;
+            return true;
+        }
+
+        public bool TryOpenAtChapterPage(string chapterId, int pageInChapter, out string error)
+        {
+            if (Book.TryGetChapterIndex(chapterId, out int chapterIndex) is false)
+            {
+                error = $"There is no chapter '{chapterId}'";
+                return false;
+            }
+
+            Chapter chapter = GetChapter(chapterIndex);
+            int pageIndex = chapter.FirstPageIndex + pageInChapter;
+
+            if (pageInChapter < 0 || pageIndex > chapter.LastPageIndex)
+            {
+                error = $"Chapter '{chapterId}' has no page {pageInChapter}";
+                return false;
+            }
+
+            ApplyInitialSpread(chapterIndex, pageInChapter / 2);
+            error = null;
+            return true;
+        }
+
+        private void ApplyInitialSpread(int chapterIndex, int spread)
+        {
+            _currentChapterIndex = chapterIndex;
+            _currentSpread = spread;
+
+            // If the book has already opened, resync the visible pages
+            if (CurrentState is MenuState.Ready)
+            {
+                RefreshVisiblePages();
+            }
+        }
+
         public void BeginClose()
         {
             if (CurrentState is MenuState.Closing)
