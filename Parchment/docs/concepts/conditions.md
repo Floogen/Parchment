@@ -87,9 +87,7 @@ Two queries ask what the current player has read before, rather than what's on s
 | Query | Arguments | True when |
 | --- | --- | --- |
 | `PeacefulEnd.Parchment_HasSeenChapterId` | `<bookId> <chapterId>` | The player has seen that chapter of that book. |
-| `PeacefulEnd.Parchment_HasSeenPageId` | `<bookId> <chapterId> <pageNumber>` | The player has seen that page of that chapter. |
-
-`<pageNumber>` is the page's position **within its chapter**, counting from 0. That's not the same number as [`CurrentPageIndex`](#the-page), which counts from the front of the whole book (an easy mistake to make once a book has more than one chapter).
+| `PeacefulEnd.Parchment_HasSeenPageId` | `<bookId> <chapterId> <pageId>` | The player has seen that page of that chapter. |
 
 ```json
 {
@@ -102,7 +100,7 @@ Two queries ask what the current player has read before, rather than what's on s
 **Where it's stored.** The history lives in two data assets Parchment provides, `Data/PeacefulEnd.Parchment/SeenChapters` and `Data/PeacefulEnd.Parchment/SeenPages`. Each is a dictionary keyed by player name, whose value is the list of entries that player has seen:
 
 - a seen **chapter** is `<bookId>.<chapterId>`, for example `{{ModId}}_CampingGuide.tents`
-- a seen **page** is `<bookId>.<chapterId>.<pageNumber>`, for example `{{ModId}}_CampingGuide.tents.0`
+- a seen **page** is `<bookId>.<chapterId>.<pageNumber>`, for example `{{ModId}}_CampingGuide.tents.page_one`
 
 Because they're ordinary data assets, you can edit them with Content Patcher. Parchment reloads its copy whenever the asset changes, so an edit takes effect on the spot. Blanking a player's list resets their history:
 

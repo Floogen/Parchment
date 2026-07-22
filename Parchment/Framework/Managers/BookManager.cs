@@ -125,14 +125,14 @@ namespace Parchment.Framework.Managers
             return seenChapters.Any(c => c.EqualsIgnoreCase($"{bookId}.{chapter}"));
         }
 
-        public bool HasSeenPage(Farmer who, string bookId, string chapter, int pageNumber)
+        public bool HasSeenPage(Farmer who, string bookId, string chapter, string pageId)
         {
             if (_playerToSeenPages.TryGetValue(who.Name, out var seenPages) is false || seenPages is null)
             {
                 return false;
             }
 
-            return seenPages.Any(c => c.EqualsIgnoreCase($"{bookId}.{chapter}.{pageNumber}"));
+            return seenPages.Any(c => c.EqualsIgnoreCase($"{bookId}.{chapter}.{pageId}"));
         }
 
         public void SetSeenChapter(Farmer who, string bookId, string chapter)
@@ -145,14 +145,14 @@ namespace Parchment.Framework.Managers
             _playerToSeenChapters[who.Name].Add($"{bookId}.{chapter}");
         }
 
-        public void SetSeenPage(Farmer who, string bookId, string chapter, int pageNumber)
+        public void SetSeenPage(Farmer who, string bookId, string chapter, string pageId)
         {
             if (_playerToSeenPages.ContainsKey(who.Name) is false)
             {
                 _playerToSeenPages[who.Name] = new List<string>();
             }
 
-            _playerToSeenPages[who.Name].Add($"{bookId}.{chapter}.{pageNumber}");
+            _playerToSeenPages[who.Name].Add($"{bookId}.{chapter}.{pageId}");
         }
 
         public void ClearSeen(Farmer who)

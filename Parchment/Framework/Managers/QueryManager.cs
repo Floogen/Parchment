@@ -144,12 +144,12 @@ namespace Parchment.Framework.Managers
             {
                 return false;
             }
-            if (ArgUtility.TryGetInt(query, 3, out int pageNumber, out error) is false)
+            if (ArgUtility.TryGet(query, 3, out string pageId, out error) is false)
             {
                 return false;
             }
 
-            return Parchment.bookManager.HasSeenPage(context.Player, bookId, chapterId, pageNumber);
+            return Parchment.bookManager.HasSeenPage(context.Player, bookId, chapterId, pageId);
         }
 
         private bool HasSeenChapterId(string[] query, GameStateQueryContext context)

@@ -576,10 +576,10 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            int pageInChapter = pageIndex - chapter.FirstPageIndex;
-            if (Parchment.bookManager.HasSeenPage(who, bookId, chapter.Id, pageInChapter) is false)
+            var page = _pages[pageIndex];
+            if (Parchment.bookManager.HasSeenPage(who, bookId, chapter.Id, page.Data.Id) is false)
             {
-                Parchment.bookManager.SetSeenPage(who, bookId, chapter.Id, pageInChapter);
+                Parchment.bookManager.SetSeenPage(who, bookId, chapter.Id, page.Data.Id);
             }
         }
 
