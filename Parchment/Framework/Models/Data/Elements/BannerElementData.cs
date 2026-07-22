@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
@@ -42,6 +42,13 @@ namespace Parchment.Framework.Models.Data
         /// banner sprite. The sprite is pixel art authored at 1x and typically drawn at 4x; the font is not.
         /// </summary>
         public float TextScale { get; set; } = 1f;
+
+        /// <summary>
+        /// An offset applied to the text within the banner, in unscaled sprite pixels.
+        /// Positive X moves text right; negative Y moves text up (higher on the banner).
+        /// Scaled by <see cref="ElementData.Scale"/>.
+        /// </summary>
+        public Point TextOffset { get; set; } = Point.Zero;
 
         public override (bool Result, string Error) IsValid()
         {

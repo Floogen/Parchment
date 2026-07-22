@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Netcode;
 using Parchment.Framework.Models;
@@ -52,9 +52,10 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
             int capWidth = (int)(unscaledCapWidth * data.Scale);
             int padding = (int)(data.Padding * data.Scale);
+            Point offset = new Point((int)(data.TextOffset.X * data.Scale), (int)(data.TextOffset.Y * data.Scale));
             float bannerHeight = sourceRectangle.Height * data.Scale;
-            float maximumTextWidth = Math.Max(0f, context.AvailableWidth - (capWidth + padding) * 2f);
-            float maximumTextHeight = Math.Max(0f, bannerHeight - padding * 2f);
+            float maximumTextWidth = Math.Max(0f, context.AvailableWidth - (capWidth + padding) * 2f - Math.Abs(offset.X) * 2f);
+            float maximumTextHeight = Math.Max(0f, bannerHeight - padding * 2f - Math.Abs(offset.Y) * 2f);
 
             float textScale = data.TextScale;
             if (textScale <= 0f)
@@ -79,7 +80,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
                     bannerWidth = context.AvailableWidth;
                     break;
                 default:
-                    bannerWidth = Math.Min(wrappedText.Size.X + (capWidth + padding) * 2f, context.AvailableWidth);
+                    bannerWidth = Math.Min(wrappedText.Size.X + (capWidth + padding) * 2f + Math.Abs(offset.X) * 2f, context.AvailableWidth);
                     break;
             }
 
@@ -89,7 +90,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             Rectangle middleSource = new Rectangle(sourceRectangle.X + unscaledCapWidth, sourceRectangle.Y, sourceRectangle.Width - unscaledCapWidth * 2, sourceRectangle.Height);
             Rectangle rightSource = new Rectangle(sourceRectangle.Right - unscaledCapWidth, sourceRectangle.Y, unscaledCapWidth, sourceRectangle.Height);
 
-            element.LayoutState = new BannerLayout(wrappedText, textScale, leftSource, middleSource, rightSource, capWidth, padding);
+            element.LayoutState = new BannerLayout(wrappedText, textScale, leftSource, middleSource, rightSource, capWidth, padding, offset);
 
             return new Vector2(bannerWidth, bannerHeight);
         }
@@ -114,8 +115,8 @@ namespace Parchment.Framework.UI.Rendering.Elements
             spriteBatch.Draw(element.Texture, new Vector2(bounds.Right - bannerLayout.CapWidth, bounds.Y), bannerLayout.RightSource, element.TintColor, 0f, Vector2.Zero, data.Scale, SpriteEffects.None, LAYER_DEPTH);
 
             Rectangle textBounds = new Rectangle(
-                bounds.X + bannerLayout.CapWidth + bannerLayout.Padding,
-                bounds.Y + (int)((bounds.Height - bannerLayout.WrappedText.Size.Y) / 2f),
+                bounds.X + bannerLayout.CapWidth + bannerLayout.Padding + bannerLayout.Offset.X,
+                bounds.Y + (int)((bounds.Height - bannerLayout.WrappedText.Size.Y) / 2f) + bannerLayout.Offset.Y,
                 bounds.Width - (bannerLayout.CapWidth + bannerLayout.Padding) * 2,
                 (int)bannerLayout.WrappedText.Size.Y
             );

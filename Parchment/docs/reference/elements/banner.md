@@ -26,6 +26,7 @@ A banner's height is always its source rectangle's height × `Scale`. If you nee
 | `Sizing` | [sizing mode](index.md#sizing-modes) | `ShrinkToFit` | How wide the banner is. `ShrinkToFit` hugs the text. |
 | `Width` | integer | *none* | The **content** width in unscaled sprite pixels × `Scale`. The caps and padding are added around it. Required when `Sizing` is `Fixed`. |
 | `TextScale` | number | `1` | The text's scale, independent of `Scale`, which sizes the sprite. |
+| `TextOffset` | point | `0, 0` | An offset applied to the text, from the origin point in the center of the banner. |
 
 !!! tip "Make the middle segment one pixel wide"
     The middle stretches to whatever width the banner ends up. A one-pixel middle stretches perfectly to any width. A wider patterned one gives uneven columns. A 49-pixel strip with `CapWidth: 24` is the shape you want, not equal thirds, which is only the default because it's the least surprising reading of "three segments". See [Preparing your art](../../concepts/art.md#three-slice-banners).

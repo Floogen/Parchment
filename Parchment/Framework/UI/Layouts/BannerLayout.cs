@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,8 +16,9 @@ namespace Parchment.Framework.UI.Layouts
         public Rectangle RightSource { get; }
         public int CapWidth { get; }
         public int Padding { get; }
+        public Point Offset { get; }
 
-        public BannerLayout(WrappedText wrappedText, float textScale, Rectangle leftSource, Rectangle middleSource, Rectangle rightSource, int capWidth, int padding)
+        public BannerLayout(WrappedText wrappedText, float textScale, Rectangle leftSource, Rectangle middleSource, Rectangle rightSource, int capWidth, int padding, Point offset)
         {
             WrappedText = wrappedText;
             TextScale = textScale;
@@ -26,6 +27,7 @@ namespace Parchment.Framework.UI.Layouts
             RightSource = rightSource;
             CapWidth = capWidth;
             Padding = padding;
+            Offset = offset;
         }
     }
 }

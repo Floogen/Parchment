@@ -45,7 +45,7 @@ Everything about how the book itself is drawn. All defaults describe Parchment's
 | `OpenFrameCount` | integer | `4` | How many open frames the sheet starts with. |
 | `TurnFrameCount` | integer | `6` | How many page-turn frames follow the open frames. |
 | `Scale` | number | `5` | How much the book sprite is magnified. Everything measured against the book art (the page margins, the curl offsets) scales with this. |
-| `Offset` | point | `0, 0` | A nudge applied to the book's centred position, in unscaled sprite pixels. The book is centred on its **frame**, so if your frame has empty space around the art it won't look centred. This is how you correct that. |
+| `Offset` | point | `0, 0` | A nudge applied to the book's centred position, in unscaled sprite pixels. The book is centred on its **frame**, so if your frame has empty space around the art it won't look centred. |
 
 ## Page curl
 
