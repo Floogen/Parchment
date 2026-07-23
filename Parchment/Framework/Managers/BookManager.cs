@@ -309,7 +309,7 @@ namespace Parchment.Framework.Managers
                             new HeadingElementData() { Text = "Manually offset text?", MarginLeft = 32 },
                             new HeadingElementData() { Text = "No offset here!" },
                             new HeadingElementData() { Text = "Right aligned", Alignment = AlignmentType.Right },
-                            new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TintColor = (Color.Black * 0.35f).ToSpaceSeparated(), TextureSourceRectangle = new Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center },
+                            new ImageElementData { TexturePath = "Data/PeacefulEnd.Campgrounds/Campgrounds/Textures/StarterTent", TintColor = (Color.Black * 0.35f).ToSpaceSeparated(), TextureSourceRectangle = new Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center },
                             new HeadingElementData() { Text = "This is a tent (probably)", FontType = FontType.Small, Alignment = AlignmentType.Center, SpacingAfter = 12 },
                             new DividerElementData() { TexturePath = "Assets/PeacefulEnd.Parchment/divider2", Sizing = SizingMode.ShrinkToFit, Alignment = AlignmentType.Center, Scale = 2 },
                             new ParagraphElementData() { Text = "A divider above and below!", Alignment = AlignmentType.Center },
@@ -326,7 +326,7 @@ namespace Parchment.Framework.Managers
                             new PanelElementData { TexturePath = "Assets/PeacefulEnd.Parchment/panelFrame2", Height = 48,
                                 TextureSourceRectangle = new Rectangle(0, 0, 24, 24), Padding = 0, Width = 32, Sizing = SizingMode.Fill, Alignment = AlignmentType.Center, Scale = 4, SpacingAfter = 4,
                                 Children = new List<ElementData>() {
-                                    new ImageElementData { TexturePath = "Data/PeacefulEnd_Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center },
+                                    new ImageElementData { TexturePath = "Data/PeacefulEnd.Campgrounds/Campgrounds/Textures/StarterTent", TextureSourceRectangle = new Rectangle(0, 5, 48, 59), Scale = 2, Alignment = AlignmentType.Center },
                                     new HeadingElementData() { Text = "This is a tent (in a panel)", FontType = FontType.Small, Alignment = AlignmentType.Center },
                                 }
                             }
