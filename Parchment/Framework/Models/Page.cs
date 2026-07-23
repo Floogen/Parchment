@@ -47,7 +47,7 @@ namespace Parchment.Framework.Models
             float contentHeight = StackElements(Elements, context);
             if (contentHeight > context.AvailableHeight)
             {
-                Parchment.monitor.LogOnce($"Page content is {(int)contentHeight}px tall but the page is only {(int)context.AvailableHeight}px, content will overflow!", LogLevel.Warn);
+                Parchment.monitor.LogOnce($"Page content is {(int)contentHeight}px tall but the page is only {(int)context.AvailableHeight}px, content will overflow!", LogLevel.Trace);
             }
 
             LastLayoutContext = context;
