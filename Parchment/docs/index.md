@@ -89,4 +89,4 @@ If you'd rather read the schema directly, start at [Book](reference/book.md). If
 
 ## Versioning
 
-Every book declares the `Format` it was written against. Parchment reads that to keep older books working when the schema changes, so set it, and don't bump it until you've read the changelog.
+Every book declares a `Format`, which is the version of Parchment it was written against. For most situations, this should always be set to Parchment's current version number.
