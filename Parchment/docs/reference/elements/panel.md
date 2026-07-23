@@ -20,13 +20,13 @@ Children stack inside the panel exactly as they do on a page, and the panel is a
 
 ## Panel fields
 
-| Field | Type | Default | Description |
+| Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Children` | list of [elements](index.md) | *none* | The panel's contents, stacked top to bottom. Panels can contain panels. |
-| `Padding` | integer | `0` | Extra space between the frame's **inner edge** and the children, in unscaled sprite pixels × `Scale`. `0` means flush against the inside of the border. You don't need to account for the border's thickness yourself. |
-| `Sizing` | [sizing mode](index.md#sizing-modes) | `Fill` | How wide the panel is. `ShrinkToFit` hugs the widest child. |
-| `Width` | integer | *none* | The **content** width in unscaled sprite pixels × `Scale`. The border and padding are added around it. Required when `Sizing` is `Fixed`. |
-| `Height` | integer | *none* | The content height in unscaled sprite pixels × `Scale`. When omitted, the panel is as tall as its children need. When set, it's exactly this tall and children that would stack past it are dropped. Independent of `Sizing`, which only controls width. |
+| `Children` <span class="opt">optional</span> | list of [`elements`](index.md) | empty list | The panel's contents, stacked top to bottom. Panels can contain panels. |
+| `Padding` <span class="opt">optional</span> | `int` | `0` | Extra space between the frame's **inner edge** and the children, in unscaled sprite pixels × `Scale`. `0` means flush against the inside of the border. You don't need to account for the border's thickness yourself. |
+| `Sizing` <span class="opt">optional</span> | [`sizing mode`](index.md#sizing-modes) | `Fill` | How wide the panel is. `ShrinkToFit` hugs the widest child. |
+| `Width` <span class="opt">optional</span> | `int?` | — | The **content** width in unscaled sprite pixels × `Scale`. The border and padding are added around it. Required when `Sizing` is `Fixed`. |
+| `Height` <span class="opt">optional</span> | `int?` | — | The content height in unscaled sprite pixels × `Scale`. When omitted, the panel is as tall as its children need. When set, it's exactly this tall and children that would stack past it are dropped. Independent of `Sizing`, which only controls width. |
 
 ## Sprite fields
 

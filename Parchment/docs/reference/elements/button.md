@@ -22,12 +22,12 @@ A nine-sliced frame with a label, for running an [action](../../concepts/actions
 
 ## Button fields
 
-| Field | Type | Default | Description |
+| Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Padding` | integer | `0` | Extra space between the frame's inner edge and the label, in unscaled sprite pixels × `Scale`. `0` means flush against the inside of the border. |
-| `Sizing` | [sizing mode](index.md#sizing-modes) | `ShrinkToFit` | How wide the button is. `ShrinkToFit` hugs the label. |
-| `Width` | integer | *none* | The **content** width in unscaled sprite pixels × `Scale`. The border and padding are added around it. Required when `Sizing` is `Fixed`. |
-| `TextScale` | number | `1` | The label's scale, independent of `Scale`, which sizes the frame. |
+| `Padding` <span class="opt">optional</span> | `int` | `0` | Extra space between the frame's inner edge and the label, in unscaled sprite pixels × `Scale`. `0` means flush against the inside of the border. |
+| `Sizing` <span class="opt">optional</span> | [`sizing mode`](index.md#sizing-modes) | `ShrinkToFit` | How wide the button is. `ShrinkToFit` hugs the label. |
+| `Width` <span class="opt">optional</span> | `int?` | — | The **content** width in unscaled sprite pixels × `Scale`. The border and padding are added around it. Required when `Sizing` is `Fixed`. |
+| `TextScale` <span class="opt">optional</span> | `number` | `1` | The label's scale, independent of `Scale`, which sizes the frame. |
 
 ## Text fields
 

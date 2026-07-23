@@ -8,7 +8,7 @@ Everything here is Content Patcher, no C# needed.
 
 Create a Content Patcher content pack in the usual way, with a `manifest.json` declaring Parchment as a dependency:
 
-```json
+```json title="manifest.json"
 {
   "Name": "Your Camping Guide",
   "Author": "you",
@@ -33,7 +33,7 @@ The dependency isn't optional bookkeeping. Parchment is what creates the books a
 
 A book is a [`BookData`](../reference/book.md) object. Start small (one page, one heading) and grow it once you can see it in-game.
 
-```json
+```json title="assets/camping-guide.json"
 {
   "Format": "1.0.0",
   "Id": "{{ModId}}_CampingGuide",
@@ -78,7 +78,7 @@ A book gets long quickly, so keep it out of your `content.json`. Two ways:
 
 `Include` is the tidier option once a book has its own item, its own art and its own data patch. They can all live together in one file.
 
-## 2. Loading your art
+## 2. Loading your art { #loading-your-art }
 
 Every `TexturePath` in a book is a **game asset name**, not a file in your content pack. So any art you want to use has to be loaded into the game's content first.
 
@@ -115,7 +115,7 @@ You can skip this step entirely if your book only uses text and item icons.
 
 Books live in the `Data/PeacefulEnd.Parchment/Books` asset, which Parchment provides. Add yours with `EditData`, keyed by the book's `Id`:
 
-```json
+```json title="content.json"
 {
   "Action": "EditData",
   "Target": "Data/PeacefulEnd.Parchment/Books",
@@ -129,7 +129,7 @@ Books live in the `Data/PeacefulEnd.Parchment/Books` asset, which Parchment prov
 }
 ```
 
-!!! important "The key and the `Id` must match"
+!!! warning "The key and the `Id` must match"
     The asset is a list, and Content Patcher uses each entry's `Id` field as its key. Writing a different key from the `Id` will confuse both Content Patcher and Parchment, so keep them identical. `{{ModId}}` in both is the easy way.
 
 Any number of mods can add books to this asset without stepping on each other, which is why it's `EditData` rather than `Load`. Don't use `Load` here. It would wipe every other mod's books.
@@ -138,7 +138,7 @@ Any number of mods can add books to this asset without stepping on each other, w
 
 A book needs something the player can use. Define an object in `Data/Objects` and point it at your book with a custom field:
 
-```json
+```json title="content.json"
 {
   "Action": "EditData",
   "Target": "Data/Objects",

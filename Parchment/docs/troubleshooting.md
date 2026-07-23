@@ -66,13 +66,11 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **A navigation button does nothing on some pages.** It's doing exactly what it says. `PreviousPage` on the first page of a chapter has nowhere to go. There's no way to grey a button out. Use a `Condition` to hide it instead.
 
-**A button is unreachable.** Parchment is mouse-only right now. Controller players can open a book and close it, but can't click elements.
-
-**Clicks land on the wrong thing.** Underlay elements are hit-tested last, so pages win, but the book's *margins* aren't covered by any page, so an underlay behind them can claim clicks there.
+**Clicks land on the wrong thing.** Underlay elements are hit-tested last, so pages win, but the book's *margins* aren't covered by any page, so an underlay behind them can claim clicks.
 
 ## Placement
 
-**A positioned element didn't move when I changed `Scale`.** Correct. `Position` is in screen pixels and deliberately doesn't scale. Changing `Scale` resizes the element from its top-left. See [Units and scale](concepts/units.md).
+**A positioned element didn't move when I changed `Scale`.** `Position` is in screen pixels and deliberately doesn't scale. Changing `Scale` resizes the element from its top-left. See [Units and scale](concepts/units.md).
 
 **Alignment does nothing.** The element is already as wide as its container, so there's no slack to align within. A `Fill` panel can't be centred. Give it a `Width` and it can.
 

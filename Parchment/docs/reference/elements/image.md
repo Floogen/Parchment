@@ -16,29 +16,29 @@ An image is sized by its sprite: `TextureSourceRectangle` × `Scale`. If that's 
 
 ## Image fields
 
-| Field | Type | Default | Description |
+| Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `ItemId` | string | *none* | A qualified item ID such as `(O)24`, whose icon is drawn. When set, `TexturePath` and `TextureSourceRectangle` are ignored. The item's name and description also fill in `DisplayName` and `Description` automatically, so `ItemId` alone gives you the sprite *and* a vanilla-style tooltip. |
-| `Frames` | list of [frames](#frames) | *none* | Animation frames. When omitted, the sprite is static. |
-| `FrameDuration` | number | `100` | How long a frame is shown when it doesn't specify its own `Duration`, in milliseconds. |
-| `TextArea` | rectangle | *the whole sprite* | Where text is drawn, in unscaled sprite pixels **relative to `TextureSourceRectangle`'s top-left**, not to the texture. This is how you place a label inside a sign's recessed panel. The text block is centred vertically within this area. |
-| `TextScale` | number | `1` | The text's scale, independent of `Scale`, which sizes the sprite. |
-| `TextAlignment` | `Left` \| `Center` \| `Right` | `Center` | How each line of text is aligned within `TextArea`. Distinct from `Alignment`, which places the whole image on the page. |
-| `Rotation` | number | `0` | How much rotation is applied to the texture. Note: Does not affect text! |
-| `Origin` | vector2 | `0.0, 0.0` | The pivot point the sprite rotates and scales around. Note: Does not affect text! |
+| `ItemId` <span class="opt">optional</span> | `string` | — | A qualified item ID such as `(O)24`, whose icon is drawn. When set, `TexturePath` and `TextureSourceRectangle` are ignored. The item's name and description also fill in `DisplayName` and `Description` automatically, so `ItemId` alone gives you the sprite *and* a vanilla-style tooltip. |
+| `Frames` <span class="opt">optional</span> | list of [`frames`](#frames) | — | Animation frames. When omitted, the sprite is static. |
+| `FrameDuration` <span class="opt">optional</span> | `number` | `100` | How long a frame is shown when it doesn't specify its own `Duration`, in milliseconds. |
+| `TextArea` <span class="opt">optional</span> | `Rectangle` | *the whole sprite* | Where text is drawn, in unscaled sprite pixels **relative to `TextureSourceRectangle`'s top-left**, not to the texture. This is how you place a label inside a sign's recessed panel. The text block is centred vertically within this area. |
+| `TextScale` <span class="opt">optional</span> | `number` | `1` | The text's scale, independent of `Scale`, which sizes the sprite. |
+| `TextAlignment` <span class="opt">optional</span> | `Left` \| `Center` \| `Right` | `Center` | How each line of text is aligned within `TextArea`. Distinct from `Alignment`, which places the whole image on the page. |
+| `Rotation` <span class="opt">optional</span> | `number` | `0` | How much rotation is applied to the texture. Note: does not affect text! |
+| `Origin` <span class="opt">optional</span> | `Vector2` | `{ X: 0.0, Y: 0.0 }` | The pivot point the sprite rotates and scales around. Note: does not affect text! |
 
 ### Frames
 
 Each entry in `Frames`:
 
-| Field | Type | Default | Description |
+| Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `SourcePoint` | point | <span class="req">required</span> | The coordinate of the sprite for this frame. Automatically inherits the element's `TextureSourceRectangle` for height and width. |
-| `Duration` | number | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
+| `SourcePoint` <span class="req">required</span> | `Point` | — | The coordinate of the sprite for this frame. Automatically inherits the element's `TextureSourceRectangle` for height and width. |
+| `Duration` <span class="opt">optional</span> | `number` | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
 
 Frames loop, and the cycle runs off game time, so two identical animations on a page play in lockstep.
 
-!!! important "`TextureSourceRectangle` is required when animating"
+!!! warning "`TextureSourceRectangle` is required when animating"
     It's the measuring stick: it defines the element's size, while `Frames` defines what's drawn. Without it, the whole sprite sheet becomes the element.
 
 ```json

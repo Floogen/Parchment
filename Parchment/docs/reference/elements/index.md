@@ -20,20 +20,49 @@ Elements appear in four places, and where they appear changes how they're positi
 | [`Book.Underlay`](../book.md) | Placed by `Position` relative to the book, drawn behind the book sprite. |
 | [`Book.Overlay`](../book.md) | Placed by `Position` relative to the book, drawn in front of everything. |
 
+---
+
 ## Element types
 
-| Type | Purpose |
-| --- | --- |
-| [`Title`](title.md) | Large heading text. |
-| [`Heading`](heading.md) | Section heading text. |
-| [`Paragraph`](paragraph.md) | Body text. |
-| [`Image`](image.md) | A sprite, an animation or an item's icon, optionally with text drawn on it. |
-| [`Divider`](divider.md) | A horizontal rule, plain or decorative. |
-| [`Panel`](panel.md) | A nine-sliced frame containing other elements. |
-| [`Banner`](banner.md) | A three-sliced strip with text in the middle, a scroll or ribbon. |
-| [`Button`](button.md) | A nine-sliced frame with a label, for running an action. |
+<div class="grid cards" markdown>
+
+-   **[Title](title.md)** (`Title`)
+
+    Large heading text.
+
+-   **[Heading](heading.md)** (`Heading`)
+
+    Section heading text.
+
+-   **[Paragraph](paragraph.md)** (`Paragraph`)
+
+    Body text.
+
+-   **[Image](image.md)** (`Image`)
+
+    A sprite, an animation or an item's icon, optionally with text drawn on it.
+
+-   **[Divider](divider.md)** (`Divider`)
+
+    A horizontal rule, plain or decorative.
+
+-   **[Panel](panel.md)** (`Panel`)
+
+    A nine-sliced frame containing other elements.
+
+-   **[Banner](banner.md)** (`Banner`)
+
+    A three-sliced strip with text in the middle, a scroll or ribbon.
+
+-   **[Button](button.md)** (`Button`)
+
+    A nine-sliced frame with a label, for running an action.
+
+</div>
 
 An unrecognised `Type` is skipped with a warning rather than breaking the book.
+
+---
 
 ## Common fields
 
@@ -55,6 +84,8 @@ Understood by [`Title`](title.md), [`Heading`](heading.md), [`Paragraph`](paragr
 Understood by [`Image`](image.md), [`Panel`](panel.md), [`Banner`](banner.md), [`Button`](button.md) and [`Divider`](divider.md).
 
 --8<-- "sprite.md"
+
+---
 
 ## Font types
 

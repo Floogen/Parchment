@@ -27,11 +27,11 @@ A textured divider's height comes from its source rectangle. A textureless one's
 
 ## Divider fields
 
-| Field | Type | Default | Description |
+| Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Sizing` | [sizing mode](index.md#sizing-modes) | `Fill` | How wide the divider is. `Fill` stretches it across the column. `ShrinkToFit` draws the sprite at its natural size, placed by `Alignment`. `ShrinkToFit` requires a `TexturePath`, since a plain line has no natural width. |
-| `Width` | integer | *none* | The divider's width in unscaled sprite pixels × `Scale`. Required when `Sizing` is `Fixed`. |
-| `Thickness` | integer | `1` | The line's height in unscaled sprite pixels × `Scale`. **Only used when there's no texture** (with one, the art decides how thick the divider is). |
+| `Sizing` <span class="opt">optional</span> | [`sizing mode`](index.md#sizing-modes) | `Fill` | How wide the divider is. `Fill` stretches it across the column. `ShrinkToFit` draws the sprite at its natural size, placed by `Alignment`. `ShrinkToFit` requires a `TexturePath`, since a plain line has no natural width. |
+| `Width` <span class="opt">optional</span> | `int?` | — | The divider's width in unscaled sprite pixels × `Scale`. Required when `Sizing` is `Fixed`. |
+| `Thickness` <span class="opt">optional</span> | `int` | `1` | The line's height in unscaled sprite pixels × `Scale`. **Only used when there's no texture** (with one, the art decides how thick the divider is). |
 
 ## Sprite fields
 

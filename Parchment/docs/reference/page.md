@@ -1,5 +1,7 @@
 # Page
 
+`PageData`
+
 A page is a stack of elements. Two consecutive pages make a spread. Page 0 and 1 are the first spread's left and right leaves, 2 and 3 the second, and so on.
 
 ```json
@@ -10,15 +12,19 @@ A page is a stack of elements. Two consecutive pages make a spread. Page 0 and 1
 }
 ```
 
+---
+
 ## Fields
 
-| Field | Type | Default | Description |
+| Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Id` | string | <span class="req">required</span> | An identifier for the page, unique within the book. Actions and conditions can refer to a page by ID, which survives inserting pages in a way that a page number doesn't. |
-| `ChapterId` | string | *none* | The chapter this page belongs to. Pages sharing a value belong to the same chapter and **must be listed consecutively**. See [Chapters](#chapters). |
-| `Elements` | list of [elements](elements/index.md) | *empty* | The page's content, stacked top to bottom in order. |
-| `Background` | list of [elements](elements/index.md) | *none* | Elements drawn **behind** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. |
-| `Foreground` | list of [elements](elements/index.md) | *none* | Elements drawn **over** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. |
+| `Id` <span class="req">required</span> | `string` | — | An identifier for the page, unique within the book. Actions and conditions can refer to a page by ID, which survives inserting pages in a way that a page number doesn't. |
+| `ChapterId` <span class="opt">optional</span> | `string` | — | The chapter this page belongs to. Pages sharing a value belong to the same chapter and **must be listed consecutively**. See [Chapters](#chapters). |
+| `Elements` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | The page's content, stacked top to bottom in order. |
+| `Background` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **behind** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. |
+| `Foreground` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **over** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. |
+
+---
 
 ## Chapters
 
