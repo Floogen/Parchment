@@ -1,8 +1,8 @@
 # Parchment
 
-Parchment is a Stardew Valley framework for making books the player can actually read: a field guide, a wizard's tome, a hand-written journal. You describe the book as data and Parchment handles the rest: the book slides in, opens, turns its pages and lays out whatever you put on them.
+Parchment is a Stardew Valley framework which allows mod authors to create fully customizable in-game books. You describe the book as data and Parchment handles the rest!
 
-It's built for Content Patcher authors. A book is JSON, its art is a PNG and you never need to write C#.
+A Parchment book is JSON, along with some sprites (optional, if using default book texture).
 
 ---
 
@@ -16,7 +16,7 @@ It's built for Content Patcher authors. A book is JSON, its art is a PNG and you
 
 -   **[Concepts](concepts/units.md)**
 
-    Units, layout, art, conditions and actions: the ideas every book is built on.
+    Units, layout, art, conditions and actions.
 
 -   **[Reference](reference/book.md)**
 
