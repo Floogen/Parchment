@@ -56,12 +56,12 @@ namespace Parchment.Framework.Models.Data
 
         public override (bool Result, string Error) IsValid()
         {
-            if (string.IsNullOrWhiteSpace(TexturePath))
+            if (string.IsNullOrWhiteSpace(TexturePath) && ItemId is null)
             {
                 return (false, $"\"TexturePath\" is required!");
             }
 
-            if (TextureSourceRectangle is Rectangle sourceRectangle && (sourceRectangle.Width <= 0 || sourceRectangle.Height <= 0))
+            if (TextureSourceRectangle is Rectangle sourceRectangle && (sourceRectangle.Width <= 0 || sourceRectangle.Height <= 0) && ItemId is null)
             {
                 return (false, $"\"TextureSourceRectangle\" must have a positive width and height!");
             }
