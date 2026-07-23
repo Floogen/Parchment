@@ -1,0 +1,11 @@
+The below assets were originally created by Gowl and Pixel Vault on itch.io and modified according their respective licenses.
+
+License links:
+https://pixel-vault.itch.io/pixel-book-ui-v1
+https://gowldev.itch.io/pixelwood-valley-ui-expansion
+
+Assets:
+smallBook.png
+smallBookGrayscale.png
+
+You must comply with the associated licenses if intending to use them outside of the Parchment framework (i.e. for other games).
