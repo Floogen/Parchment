@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
@@ -23,7 +23,12 @@ namespace Parchment.Framework.Models.Data
 
         public override (bool Result, string Error) IsValid()
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(Text))
+            {
+                return (false, $"\"Text\" is required.");
+            }
+
+            return base.IsValid();
         }
     }
 }

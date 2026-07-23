@@ -105,7 +105,7 @@ namespace Parchment.Framework.Models.Data
                 return (false, $"Either \"TexturePath\" or \"ItemId\" must be given!");
             }
 
-            return (true, string.Empty);
+            return base.IsValid();
         }
     }
 }

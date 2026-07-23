@@ -33,7 +33,50 @@ namespace Parchment.Framework.Models.Data
 
         public override (bool Result, string Error) IsValid()
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(Id))
+            {
+                return (false, $"\"Id\" is required.");
+            }
+
+            var elementsIsValidData = ValidateElements(Elements);
+            if (elementsIsValidData.Result is false)
+            {
+                return (false, $"[Elements] {elementsIsValidData.Error}");
+            }
+
+            if (Background is not null)
+            {
+                var backgroundIsValidData = ValidateElements(Background);
+                if (backgroundIsValidData.Result is false)
+                {
+                    return (false, $"[Background] {backgroundIsValidData.Error}");
+                }
+            }
+
+            if (Foreground is not null)
+            {
+                var foregroundIsValidData = ValidateElements(Foreground);
+                if (foregroundIsValidData.Result is false)
+                {
+                    return (false, $"[Foreground] {foregroundIsValidData.Error}");
+                }
+            }
+
+            return (true, string.Empty);
+        }
+
+        private (bool Result, string Error) ValidateElements(List<ElementData> elements)
+        {
+            foreach (ElementData element in elements)
+            {
+                var isValidData = element.IsValid();
+                if (isValidData.Result is false)
+                {
+                    return (false, $"Element \"{element.Id}\" ({element.Type}): {isValidData.Error}");
+                }
+            }
+
+            return (true, string.Empty);
         }
     }
 }

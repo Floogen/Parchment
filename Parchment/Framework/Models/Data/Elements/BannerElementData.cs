@@ -67,7 +67,7 @@ namespace Parchment.Framework.Models.Data
                 return (false, $"\"CapWidth\" ({cap}) leaves no middle segment in a source rectangle {sourceRectangle.Width}px wide.");
             }
 
-            return (true, string.Empty);
+            return base.IsValid();
         }
     }
 }

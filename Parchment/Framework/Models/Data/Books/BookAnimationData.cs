@@ -24,7 +24,17 @@ namespace Parchment.Framework.Models.Data.Books
 
         public override (bool Result, string Error) IsValid()
         {
-            throw new NotImplementedException();
+            if (SlideDuration <= 0f || OpenDuration <= 0f || CloseDuration <= 0f || TurnDuration <= 0f || CurlDuration <= 0f)
+            {
+                return (false, $"All durations must be positive.");
+            }
+
+            if (ContentSwapProgress < 0f || ContentSwapProgress > 1f)
+            {
+                return (false, $"\"ContentSwapProgress\" ({ContentSwapProgress}) must be between 0 and 1.");
+            }
+
+            return (true, string.Empty);
         }
     }
 }

@@ -100,9 +100,6 @@ namespace Parchment.Framework.Managers
 
         private void FilterBookData(List<BookData> bookData)
         {
-            /// TODO: Finish implementing the various IsValid checks
-            _books = bookData;
-            return;
             foreach (var book in bookData)
             {
                 var isValidData = book.IsValid();

@@ -54,7 +54,22 @@ namespace Parchment.Framework.Models.Data.Elements
 
         public override (bool Result, string Error) IsValid()
         {
-            throw new NotImplementedException();
+            if (Scale <= 0f)
+            {
+                return (false, $"\"Scale\" must be positive.");
+            }
+
+            if (MarginLeft < 0 || MarginRight < 0)
+            {
+                return (false, $"\"MarginLeft\" and \"MarginRight\" cannot be negative.");
+            }
+
+            if (SpacingAfter < 0)
+            {
+                return (false, $"\"SpacingAfter\" cannot be negative.");
+            }
+
+            return (true, string.Empty);
         }
     }
 }

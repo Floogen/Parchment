@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
@@ -47,8 +47,7 @@ namespace Parchment.Framework.Models.Data
             {
                 return (false, $"\"Sizing\" cannot be {nameof(SizingMode.ShrinkToFit)} without a \"TexturePath\", since a plain line has no natural width!");
             }
-
-            return (true, string.Empty);
+            return base.IsValid();
         }
     }
 }

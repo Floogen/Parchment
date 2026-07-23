@@ -38,7 +38,55 @@ namespace Parchment.Framework.Models.Data
 
         public override (bool Result, string Error) IsValid()
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(Id))
+            {
+                return (false, $"\"Id\" is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(Format))
+            {
+                return (false, $"\"Format\" is required.");
+            }
+
+            if (Pages.Count == 0)
+            {
+                return (false, $"\"Pages\" must contain at least one page.");
+            }
+
+            foreach (PageData page in Pages)
+            {
+                var isValidData = page.IsValid();
+                if (isValidData.Result is false)
+                {
+                    return (false, $"Page \"{page.Id}\": {isValidData.Error}");
+                }
+            }
+
+            if (Overlay is not null)
+            {
+                foreach (var element in Overlay)
+                {
+                    var isValidData = element.IsValid();
+                    if (isValidData.Result is false)
+                    {
+                        return (false, $"Element \"{element.Id}\" ({element.Type}): {isValidData.Error}");
+                    }
+                }
+            }
+
+            if (Underlay is not null)
+            {
+                foreach (var element in Underlay)
+                {
+                    var isValidData = element.IsValid();
+                    if (isValidData.Result is false)
+                    {
+                        return (false, $"Element \"{element.Id}\" ({element.Type}): {isValidData.Error}");
+                    }
+                }
+            }
+
+            return (true, string.Empty);
         }
     }
 }
