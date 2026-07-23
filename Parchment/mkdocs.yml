@@ -13,6 +13,9 @@ edit_uri: edit/main/docs/
 
 copyright: Parchment is a framework mod for Stardew Valley.
 
+exclude_docs: |
+  _snippets/
+
 theme:
   name: material
   language: en
