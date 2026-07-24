@@ -588,12 +588,36 @@ namespace Parchment.Framework.UI.Menus
                 _hoveredElement.IsHovered = false;
             }
 
+            // Assigned before the action runs, so an action that changes what's hovered doesn't dispatch this element a second time
             _hoveredElement = element;
 
-            if (_hoveredElement is not null)
+            if (_hoveredElement is null)
             {
-                _hoveredElement.IsHovered = true;
+                return;
             }
+
+            _hoveredElement.IsHovered = true;
+            RunHoverAction(_hoveredElement);
+        }
+
+        private void RunHoverAction(Element element)
+        {
+            if (string.IsNullOrWhiteSpace(element.Data.HoverAction))
+            {
+                return;
+            }
+
+            if (TriggerActionManager.TryRunAction(element.Data.HoverAction, out string error, out Exception exception) is false)
+            {
+                Parchment.monitor.Log($"Element hover action '{element.Data.HoverAction}' failed: {error}", LogLevel.Warn);
+
+                if (exception is not null)
+                {
+                    Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
+                }
+            }
+
+            RefreshVisiblePages();
         }
 
         private void SetMenuState(MenuState menuState)
