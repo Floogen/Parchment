@@ -32,6 +32,8 @@ Set the `Action` property on a `Buildings`-layer tile to the action followed by 
 
 `<bookId>` is the book's `Id` as registered in `Data/PeacefulEnd.Parchment/Books` (the same string `parchment_open` uses).
 
+To float a conditional icon above the tile so the player notices it, see [Book indicators](indicators.md).
+
 
 See the wiki for the map side of this (setting tile properties in Tiled or patching a vanilla map):
 

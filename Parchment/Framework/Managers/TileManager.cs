@@ -17,13 +17,13 @@ namespace Parchment.Framework.Managers
 {
     public class TileManager : BaseManager
     {
-        private const string BOOK_MARKER_PROPERTY = "ParchmentBookMarker";
+        private const string BookIndicatorProperty = "PeacefulEnd.Parchment_BookIndicator";
 
-        private Dictionary<TemporaryAnimatedSprite, string> _markersToQueries;
+        private Dictionary<TemporaryAnimatedSprite, string> _indicatorsToQueries;
 
         public TileManager(IMonitor monitor, IModHelper helper) : base(monitor, helper)
         {
-            _markersToQueries = new Dictionary<TemporaryAnimatedSprite, string>();
+            _indicatorsToQueries = new Dictionary<TemporaryAnimatedSprite, string>();
 
             helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
             helper.Events.Player.Warped += OnWarped;
@@ -33,17 +33,17 @@ namespace Parchment.Framework.Managers
         {
             if (e.IsMultipleOf(30))
             {
-                foreach (var marker in _markersToQueries)
+                foreach (var indicator in _indicatorsToQueries)
                 {
-                    if (marker.Key is null)
+                    if (indicator.Key is null)
                     {
                         continue;
                     }
 
-                    if (GameStateQuery.CheckConditions(marker.Value) is false)
+                    if (GameStateQuery.CheckConditions(indicator.Value) is false)
                     {
-                        _markersToQueries.Remove(marker.Key);
-                        Game1.currentLocation.removeTemporarySpritesWithID(marker.Key.id);
+                        _indicatorsToQueries.Remove(indicator.Key);
+                        Game1.currentLocation.removeTemporarySpritesWithID(indicator.Key.id);
                     }
                 }
             }
@@ -51,14 +51,14 @@ namespace Parchment.Framework.Managers
 
         private void OnWarped(object? sender, StardewModdingAPI.Events.WarpedEventArgs e)
         {
-            _markersToQueries.Clear();
+            _indicatorsToQueries.Clear();
 
-            SpawnBookMarkers(e.NewLocation);
+            SpawnBookIndicators(e.NewLocation);
         }
 
-        private void SpawnBookMarkers(GameLocation location)
+        private void SpawnBookIndicators(GameLocation location)
         {
-            // Get any tiles flagged as a book marker
+            // Get any tiles flagged as a book indicator
             var layer = location.Map?.GetLayer("Buildings");
             if (layer is null)
             {
@@ -70,20 +70,20 @@ namespace Parchment.Framework.Managers
                 for (int y = 0; y < layer.LayerHeight; y++)
                 {
                     var tile = layer.Tiles[x, y];
-                    if (tile is null || TryGetBookMarkerProperty(tile, out string bookMarkerProperty) is false)
+                    if (tile is null || TryGetBookIndicatorProperty(tile, out string bookIndicatorProperty) is false)
                     {
                         continue;
                     }
 
-                    string[] args = ArgUtility.SplitBySpaceQuoteAware(bookMarkerProperty);
+                    string[] args = ArgUtility.SplitBySpaceQuoteAware(bookIndicatorProperty);
                     if (ArgUtility.TryGetVector2(args, 0, out Vector2 offset, out string error, name: "offset") is false)
                     {
-                        monitor.LogOnce($"The tile at ({x}, {y}) on the Buildings layer with the property \"{BOOK_MARKER_PROPERTY}\" has an invalid offset value. Must follow the format: X Y \"GSQ\"", LogLevel.Warn);
+                        monitor.LogOnce($"The tile at ({x}, {y}) on the Buildings layer with the property \"{BookIndicatorProperty}\" has an invalid offset value. Must follow the format: X Y \"GSQ\"", LogLevel.Warn);
                         continue;
                     }
                     if (ArgUtility.TryGetOptionalRemainder(args, 2, out string gameStateQuery) is false || string.IsNullOrWhiteSpace(gameStateQuery))
                     {
-                        monitor.LogOnce($"The tile at ({x}, {y}) on the Buildings layer with the property \"{BOOK_MARKER_PROPERTY}\" has an invalid game state query. Must follow the format: X Y \"GSQ\"", LogLevel.Warn);
+                        monitor.LogOnce($"The tile at ({x}, {y}) on the Buildings layer with the property \"{BookIndicatorProperty}\" has an invalid game state query. Must follow the format: X Y \"GSQ\"", LogLevel.Warn);
                         continue;
                     }
 
@@ -99,19 +99,20 @@ namespace Parchment.Framework.Managers
                             yPeriodicRange = 16f,
                             layerDepth = 1f,
                             scale = 4f,
-                            id = ((y * layer.LayerWidth) + x) * 5000
+                            id = (x + y) * 5000
                         };
 
-                        _markersToQueries.Add(sprite, gameStateQuery);
+                        _indicatorsToQueries.Add(sprite, gameStateQuery);
                         location.temporarySprites.Add(sprite);
                     }
                 }
             }
         }
 
-        private static bool TryGetBookMarkerProperty(Tile tile, out string value)
+        private static bool TryGetBookIndicatorProperty(Tile tile, out string value)
         {
-            if (tile.Properties.TryGetValue(BOOK_MARKER_PROPERTY, out PropertyValue? property) is false && tile.TileIndexProperties.TryGetValue(BOOK_MARKER_PROPERTY, out property) is false)
+            // Tile properties take precedence over tilesheet properties, matching GameLocation.doesTileHaveProperty
+            if (tile.Properties.TryGetValue(BookIndicatorProperty, out PropertyValue property) is false && tile.TileIndexProperties.TryGetValue(BookIndicatorProperty, out property) is false)
             {
                 value = string.Empty;
                 return false;
