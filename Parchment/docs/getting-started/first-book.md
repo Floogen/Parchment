@@ -20,7 +20,7 @@ Create a Content Patcher content pack in the usual way, with a `manifest.json` d
   },
   "Dependencies": [
     {
-      "UniqueID": "PeacefulEnd.Parchment",
+      "UniqueID": "PeacefulEnd.Parchment.Core",
       "IsRequired": true
     }
   ]

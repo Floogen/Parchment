@@ -29,7 +29,7 @@ public override void Entry(IModHelper helper)
 
 private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
 {
-    parchment = Helper.ModRegistry.GetApi<IParchmentApi>("PeacefulEnd.Parchment");
+    parchment = Helper.ModRegistry.GetApi<IParchmentApi>("PeacefulEnd.Parchment.Core");
 }
 ```
 
