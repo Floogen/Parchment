@@ -28,7 +28,7 @@
         }
       }
     },
-  /* Example of using ParchmentBookMarker tile property (on Buildings layer) to display a hovering book icon until the PeacefulEnd.Campgrounds.Parchment_CampingGuide book is read
+    /* Example of using PeacefulEnd.Parchment_BookIndicator tile property (on Buildings layer) to display a hovering book icon until the PeacefulEnd.Campgrounds.Parchment_CampingGuide book is read
     {
       "Action": "EditMap",
       "Target": "Maps/ArchaeologyHouse",
