@@ -132,6 +132,11 @@ namespace Parchment.Framework.Managers
             return seenPages.Any(c => c.EqualsIgnoreCase($"{bookId}.{chapter}.{pageId}"));
         }
 
+        public bool HasSeenChapterlessPage(Farmer who, string bookId, string pageId)
+        {
+            return HasSeenPage(who, bookId, string.Empty, pageId);
+        }
+
         public void SetSeenChapter(Farmer who, string bookId, string chapter)
         {
             if (_playerToSeenChapters.ContainsKey(who.Name) is false)

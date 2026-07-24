@@ -5,6 +5,7 @@ using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Books;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Pages;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Rendering;
 using Parchment.Framework.Utilities.Helpers;
@@ -606,28 +607,79 @@ namespace Parchment.Framework.UI.Menus
             if (menuState is MenuState.Ready)
             {
                 RefreshVisiblePages();
-                MarkVisibleSeen();
+                HandleVisiblePages();
             }
         }
 
-        private void MarkVisibleSeen()
+        /// <summary>Runs the visible spread's <see cref="PageData.OnView"/> triggers, then records the spread as seen.
+        /// The spread is captured up front because a trigger's action can navigate away, and the pages that were on screen are the ones to mark.
+        /// Triggers run before <see cref="MarkVisibleSeen"/> so one can gate itself on the page not having been seen yet.
+        /// </summary>
+        private void HandleVisiblePages()
         {
-            var who = Game1.player;
-            string bookId = Book.Data.Id;
             Chapter chapter = GetChapter(_currentChapterIndex);
+            int leftPageIndex = GetLeftPageIndex();
+            int rightPageIndex = GetRightPageIndex();
 
-            if (string.IsNullOrWhiteSpace(chapter.Id))
+            DispatchPageTriggers(leftPageIndex);
+
+            // A left page action may have turned the page, closed the book or jumped elsewhere, in which case the right page was never really viewed.
+            if (CurrentState is MenuState.Ready)
+            {
+                DispatchPageTriggers(rightPageIndex);
+            }
+
+            MarkVisibleSeen(chapter, leftPageIndex, rightPageIndex);
+        }
+
+        private void DispatchPageTriggers(int pageIndex)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
             {
                 return;
             }
 
-            if (Parchment.bookManager.HasSeenChapter(who, bookId, chapter.Id) is false)
+            List<PageTriggerData>? triggers = _pages[pageIndex].Data.OnView;
+            if (triggers is null)
+            {
+                return;
+            }
+
+            string pageId = _pages[pageIndex].Data.Id;
+            foreach (PageTriggerData trigger in triggers)
+            {
+                if (string.IsNullOrWhiteSpace(trigger.Condition) is false && GameStateQuery.CheckConditions(trigger.Condition) is false)
+                {
+                    continue;
+                }
+
+                foreach (string action in trigger.Actions)
+                {
+                    if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
+                    {
+                        Parchment.monitor.Log($"OnView action '{action}' on page '{pageId}' failed: {error}", LogLevel.Warn);
+
+                        if (exception is not null)
+                        {
+                            Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void MarkVisibleSeen(Chapter chapter, int leftPageIndex, int rightPageIndex)
+        {
+            var who = Game1.player;
+            string bookId = Book.Data.Id;
+
+            if (string.IsNullOrWhiteSpace(chapter.Id) is false && Parchment.bookManager.HasSeenChapter(who, bookId, chapter.Id) is false)
             {
                 Parchment.bookManager.SetSeenChapter(who, bookId, chapter.Id);
             }
 
-            MarkPageSeen(who, bookId, chapter, GetLeftPageIndex());
-            MarkPageSeen(who, bookId, chapter, GetRightPageIndex());
+            MarkPageSeen(who, bookId, chapter, leftPageIndex);
+            MarkPageSeen(who, bookId, chapter, rightPageIndex);
         }
 
         private void MarkPageSeen(Farmer who, string bookId, Chapter chapter, int pageIndex)
@@ -637,15 +689,11 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(chapter.Id))
-            {
-                return;
-            }
-
             var page = _pages[pageIndex];
-            if (Parchment.bookManager.HasSeenPage(who, bookId, chapter.Id, page.Data.Id) is false)
+            string chapterId = chapter.Id ?? string.Empty;
+            if (Parchment.bookManager.HasSeenPage(who, bookId, chapterId, page.Data.Id) is false)
             {
-                Parchment.bookManager.SetSeenPage(who, bookId, chapter.Id, page.Data.Id);
+                Parchment.bookManager.SetSeenPage(who, bookId, chapterId, page.Data.Id);
             }
         }
 

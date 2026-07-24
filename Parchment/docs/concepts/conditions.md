@@ -88,6 +88,7 @@ Two queries ask what the current player has read before, rather than what's on s
 | --- | --- | --- |
 | `PeacefulEnd.Parchment_HasSeenChapterId` | `<bookId> <chapterId>` | The player has seen that chapter of that book. |
 | `PeacefulEnd.Parchment_HasSeenPageId` | `<bookId> <chapterId> <pageId>` | The player has seen that page of that chapter. |
+| `PeacefulEnd.Parchment_HasSeenChapterlessPageId` | `<bookId> <pageId>` | The player has seen that page, where the page has no `ChapterId`. |
 
 ```json
 {
@@ -100,7 +101,8 @@ Two queries ask what the current player has read before, rather than what's on s
 **Where it's stored.** The history lives in two data assets Parchment provides, `Data/PeacefulEnd.Parchment/SeenChapters` and `Data/PeacefulEnd.Parchment/SeenPages`. Each is a dictionary keyed by player name, whose value is the list of entries that player has seen:
 
 - a seen **chapter** is `<bookId>.<chapterId>`, for example `{{ModId}}_CampingGuide.tents`
-- a seen **page** is `<bookId>.<chapterId>.<pageNumber>`, for example `{{ModId}}_CampingGuide.tents.page_one`
+- a seen **page** is `<bookId>.<chapterId>.<pageId>`, for example `{{ModId}}_CampingGuide.tents.page_one`
+- a page with no `ChapterId` leaves the middle segment empty, so it reads `<bookId>..<pageId>`. That's what `HasSeenChapterlessPageId` looks up
 
 Because they're ordinary data assets, you can edit them with Content Patcher. Parchment reloads its copy whenever the asset changes, so an edit takes effect on the spot. Blanking a player's list resets their history:
 
@@ -134,7 +136,7 @@ The entries here are whole seen keys, not book IDs:
 }
 ```
 
-`SeenPages` works the same way, keyed by the three-part page entry, for example `{{ModId}}_CampingGuide.tents.0`.
+`SeenPages` works the same way, keyed by the three-part page entry, for example `{{ModId}}_CampingGuide.tents.page_one`.
 
 `TargetField` only descends into an entry that already exists, so the player needs a list before you can edit it this way (they get one the first time they read anything). To seed a player who has none yet, set their whole list with a top-level `Entries` patch instead:
 

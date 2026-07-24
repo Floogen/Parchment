@@ -83,6 +83,27 @@ An action and a [`Condition`](conditions.md) on the same element gives you navig
 
 Conditions are re-checked right after an action runs, so a button that changes the game state can make a neighbouring element appear on the same click.
 
+## Running actions without a click
+
+A page can run actions the moment it becomes visible, through [`OnView`](../reference/page.md#on-view):
+
+```json
+{
+  "Id": "shrine",
+  "ChapterId": "rites",
+  "OnView": [
+    { 
+      "Condition": "SEASON Winter", 
+      "Actions": [ "AddMail Current PeacefulEnd.Parchment_ExampleMailIdTest All" ]
+    }
+  ]
+}
+```
+
+The distinction to hold onto: an element's `Action` runs when the reader chooses it, while an `OnView` action runs whether they intended to or not. Use it for things that follow from having read the page (such as setting mail flags).
+
+Its `Condition` also behaves differently from every other one in Parchment, in that it is checked once per view. [On view](../reference/page.md#on-view) covers that and the spread ordering rules.
+
 ## Gotchas
 
 **Nothing validates the action name up front.** A typo'd action fails when the player clicks it, with a warning in the SMAPI log naming the string you wrote. Test your buttons.
