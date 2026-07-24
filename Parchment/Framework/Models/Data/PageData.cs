@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Pages;
 using Parchment.Framework.Models.Enums;
 using System;
 using System.Collections.Generic;
@@ -31,6 +32,12 @@ namespace Parchment.Framework.Models.Data
         /// </summary>
         public List<ElementData>? Foreground { get; set; }
 
+        /// <summary>
+        /// Trigger actions run each time this page becomes visible, whether from the book opening, a page turn or a jump. Turning back to a page runs them again,
+        /// so gate anything that should happen once behind a <see cref="PageTriggerData.Condition"/> such as PeacefulEnd.Parchment_HasSeenPageId.
+        /// </summary>
+        public List<PageTriggerData>? OnView { get; set; }
+
         public override (bool Result, string Error) IsValid()
         {
             if (string.IsNullOrWhiteSpace(Id))
@@ -59,6 +66,18 @@ namespace Parchment.Framework.Models.Data
                 if (foregroundIsValidData.Result is false)
                 {
                     return (false, $"[Foreground] {foregroundIsValidData.Error}");
+                }
+            }
+
+            if (OnView is not null)
+            {
+                for (int i = 0; i < OnView.Count; i++)
+                {
+                    var triggerIsValidData = OnView[i].IsValid();
+                    if (triggerIsValidData.Result is false)
+                    {
+                        return (false, $"[OnView] Trigger at index {i}: {triggerIsValidData.Error}");
+                    }
                 }
             }
 
