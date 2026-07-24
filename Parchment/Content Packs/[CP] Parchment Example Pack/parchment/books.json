@@ -28,7 +28,7 @@
         }
       }
     },
-    /* Example of using PeacefulEnd.Parchment_BookIndicator tile property (on Buildings layer) to display a hovering book icon until the PeacefulEnd.Campgrounds.Parchment_CampingGuide book is read
+  /* Example of using the PeacefulEnd.Parchment_BookIndicator tile property (on Buildings layer) to display a hovering book icon until the PeacefulEnd.Campgrounds.Parchment_CampingGuide book is read
     {
       "Action": "EditMap",
       "Target": "Maps/ArchaeologyHouse",
@@ -274,7 +274,7 @@
                   "Sizing": "ShrinkToFit",
                   "Scale": 2,
                   "Alignment": "Center",
-                  "Action": "PeacefulEnd.Parchment_LastPage",
+                  "Action": "RemoveMail Current PeacefulEnd.Parchment_ExampleMailIdTest All",
                   "Sound": "bigSelect"
                 }
               ]
@@ -353,6 +353,12 @@
             {
               "Id": "test",
               "ChapterId": "chapter-1",
+              "OnView": [
+                {
+                  "Condition": "!PLAYER_HAS_MAIL Current PeacefulEnd.Parchment_ExampleMailIdTest Any",
+                  "Actions": [ "AddMoney 500", "AddMail Current PeacefulEnd.Parchment_ExampleMailIdTest All" ]
+                }
+              ],
               "Elements": [
                 {
                   "Type": "Heading",
