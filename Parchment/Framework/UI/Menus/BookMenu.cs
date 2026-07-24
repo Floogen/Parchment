@@ -249,6 +249,24 @@ namespace Parchment.Framework.UI.Menus
             return TryJumpToPage(GetChapter(_currentChapterIndex).LastPageIndex, out error);
         }
 
+        /// <summary>Positions the book on a page by its index within the whole book, before the menu is shown.</summary>
+        public bool TryOpenAtPage(int pageIndex, out string error)
+        {
+            if (pageIndex < 0 || pageIndex >= _pages.Count)
+            {
+                error = $"Page index {pageIndex} is out of range (0-{_pages.Count - 1})";
+                return false;
+            }
+
+            int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
+            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
+
+            ApplyInitialSpread(chapterIndex, spread);
+            error = null;
+
+            return true;
+        }
+
         public bool TryOpenAtChapter(string chapterId, out string error)
         {
             if (Book.TryGetChapterIndex(chapterId, out int chapterIndex) is false)
