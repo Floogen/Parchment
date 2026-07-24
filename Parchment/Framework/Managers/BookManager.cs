@@ -33,6 +33,9 @@ namespace Parchment.Framework.Managers
         public List<BookData> Books { get { return _books; } set { FilterBookData(value); } }
         private List<BookData> _books = new List<BookData>();
 
+        // The last validation error per book ID for those that were dropped by FilterBookData
+        private readonly Dictionary<string, string> _bookIdToValidationError = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         private Dictionary<string, List<string>> _playerToSeenPages { get; set; } = new Dictionary<string, List<string>>();
         private Dictionary<string, List<string>> _playerToSeenChapters { get; set; } = new Dictionary<string, List<string>>();
 
@@ -100,16 +103,29 @@ namespace Parchment.Framework.Managers
 
         private void FilterBookData(List<BookData> bookData)
         {
+            var validBooks = new List<BookData>();
+            _bookIdToValidationError.Clear();
+
             foreach (var book in bookData)
             {
                 var isValidData = book.IsValid();
                 if (isValidData.Result is false)
                 {
+                    _bookIdToValidationError[book.Id ?? string.Empty] = isValidData.Error;
                     monitor.LogOnce($"Skipping invalid BookData with name \"{book.Id}\": {isValidData.Error}", LogLevel.Warn);
+                    continue;
                 }
+
+                validBooks.Add(book);
             }
 
-            _books = bookData.Where(c => c.IsValid().Result is true).ToList();
+            _books = validBooks;
+        }
+
+        /// <summary>Gets why a book was rejected during validation, so callers can be told rather than only the log.</summary>
+        public bool TryGetValidationError(string bookId, out string error)
+        {
+            return _bookIdToValidationError.TryGetValue(bookId ?? string.Empty, out error);
         }
 
         public bool HasSeenChapter(Farmer who, string bookId, string chapter)
