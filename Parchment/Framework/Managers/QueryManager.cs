@@ -25,6 +25,7 @@ namespace Parchment.Framework.Managers
         public const string IS_GOING_FORWARD = "PeacefulEnd.Parchment_IsPagingForward";
 
         public const string HAS_SEEN_PAGE_ID = "PeacefulEnd.Parchment_HasSeenPageId";
+        public const string HAS_SEEN_CHAPTERLESS_PAGE_ID = "PeacefulEnd.Parchment_HasSeenChapterlessPageId";
         public const string HAS_SEEN_CHAPTER_ID = "PeacefulEnd.Parchment_HasSeenChapterId";
 
         public const string CURRENT_PAGE_INDEX = "PeacefulEnd.Parchment_CurrentPageIndex";
@@ -50,6 +51,7 @@ namespace Parchment.Framework.Managers
             GameStateQuery.Register(IS_GOING_FORWARD, IsPagingForward);
 
             GameStateQuery.Register(HAS_SEEN_PAGE_ID, HasSeenPageId);
+            GameStateQuery.Register(HAS_SEEN_CHAPTERLESS_PAGE_ID, HasSeenChapterlessPageId);
             GameStateQuery.Register(HAS_SEEN_CHAPTER_ID, HasSeenChapterId);
 
             GameStateQuery.Register(CURRENT_PAGE_INDEX, CurrentPageIndex);
@@ -150,6 +152,20 @@ namespace Parchment.Framework.Managers
             }
 
             return Parchment.bookManager.HasSeenPage(context.Player, bookId, chapterId, pageId);
+        }
+
+        private bool HasSeenChapterlessPageId(string[] query, GameStateQueryContext context)
+        {
+            if (ArgUtility.TryGet(query, 1, out string bookId, out string error) is false)
+            {
+                return false;
+            }
+            if (ArgUtility.TryGet(query, 2, out string pageId, out error) is false)
+            {
+                return false;
+            }
+
+            return Parchment.bookManager.HasSeenChapterlessPage(context.Player, bookId, pageId);
         }
 
         private bool HasSeenChapterId(string[] query, GameStateQueryContext context)
