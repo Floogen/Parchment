@@ -113,6 +113,7 @@ nav:
       - Layout: concepts/layout.md
       - Conditions: concepts/conditions.md
       - Trigger actions: concepts/actions.md
+      - Book indicators: concepts/indicators.md
       - Opening a book: concepts/opening-books.md
   - Reference:
       - Book: reference/book.md
