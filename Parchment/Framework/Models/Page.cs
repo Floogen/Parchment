@@ -96,6 +96,9 @@ namespace Parchment.Framework.Models
                 }
             }
 
+            // Frame conditions don't affect layout, since the element is sized by its source rectangle rather than the active frame, so this deliberately doesn't feed into hasChanged and trigger a relayout
+            AnimationHelper.RefreshActiveFrames(element);
+
             foreach (Element child in element.Children)
             {
                 hasChanged |= RefreshCondition(child);

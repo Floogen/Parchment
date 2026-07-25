@@ -12,7 +12,7 @@ Any element can carry a `Condition`, a **game state query** deciding whether it 
 
 When the query is false the element is hidden and the elements below it close the gap. It's a flow hide, not an invisibility toggle: nothing leaves a hole behind.
 
-Conditions work on every element, in every list: a page's `Elements`, `Background` or `Foreground`, the book's `Underlay` or `Overlay` and a panel's `Children`.
+Conditions work on every element, in every list: a page's `Elements`, `Background` or `Foreground`, the book's `Underlay` or `Overlay` and a panel's `Children`. Individual [animation frames](#animation-frames) take one too.
 
 ## Writing queries
 
@@ -178,6 +178,29 @@ Pair it with `IsPagingForward` to decorate a turn:
   "Condition": "PeacefulEnd.Parchment_CurrentBookState Turning, PeacefulEnd.Parchment_IsPagingForward"
 }
 ```
+
+## Animation frames
+
+An [`Image`](../reference/elements/image.md)'s animation frames each accept a `Condition`, so parts of an animation can come and go without the element itself doing so.
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/pond",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 32, "Height": 32 },
+  "Frames": [
+    { "SourcePoint": { "X": 0, "Y": 0 } },
+    { "SourcePoint": { "X": 32, "Y": 0 } },
+    { "SourcePoint": { "X": 64, "Y": 0 }, "Condition": "!SEASON Winter" }
+  ]
+}
+```
+
+A failing frame is skipped rather than held on, so the cycle shortens and the surviving frames run closer together. It's the same behaviour as a hidden element letting the ones below it close the gap.
+
+When every frame fails, the element draws `TextureSourceRectangle` by itself and the animation simply stops. That makes an all-conditional animation a clean way to say "move only under these circumstances", provided the source rectangle points at a sprite worth showing still.
+
+Frame conditions are checked on the same schedule as element conditions and they never affect layout: an image is sized by its source rectangle, not by whichever frame is showing.
 
 ## When conditions are checked
 

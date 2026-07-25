@@ -1,6 +1,7 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Interfaces;
 using StardewModdingAPI;
@@ -33,6 +34,9 @@ namespace Parchment.Framework.Models
 
         public IFont? Font { get; set; }
         public Texture2D? Texture { get; set; }
+
+        // The frames whose Condition currently passes, refreshed alongside element conditions. Null when the element has no frames and empty when every frame's condition failed, which makes the element draw its source rectangle statically.
+        public List<AnimationFrameData>? ActiveFrames { get; set; }
 
         internal object? LayoutState { get; set; }
         public bool IsHovered { get; set; }

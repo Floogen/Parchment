@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
@@ -113,6 +113,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 Texture = texture,
                 Children = CreateChildren(data, registry, fontResolver)
             };
+
+            // Prep the active frames, so a conditional animation is correct on the first draw rather than after the first condition refresh
+            AnimationHelper.RefreshActiveFrames(element);
 
             // Pull latest texture
             if (textureAssetName is not null)

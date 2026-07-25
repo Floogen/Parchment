@@ -58,6 +58,10 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **The hover state overhangs the element.** `HoverTextureSourceRectangle` is a different size from `TextureSourceRectangle`. The layout is measured from the normal rectangle, so the hover sprite draws at the normal one's scale and spills. Make them the same size.
 
+**An animation went still.** Every frame carried a `Condition` and none of them passed, so the element fell back to drawing `TextureSourceRectangle`. That's the designed behaviour, not a failure. If the still it lands on looks wrong, aim the source rectangle at a better cell.
+
+**One frame never shows up.** Its `Condition` isn't passing. A malformed query is false rather than an error, so the frame is quietly skipped and the animation just runs shorter. Check the query by hand.
+
 **The tint did nothing, or turned everything black.** Tints multiply. Red on grey gives red. Red on blue gives near-black. Anything on black stays black. Tinting wants neutral or greyscale art.
 
 ## Clicks and actions
