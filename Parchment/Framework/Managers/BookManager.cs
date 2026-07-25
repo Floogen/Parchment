@@ -374,11 +374,15 @@ namespace Parchment.Framework.Managers
                                 } 
                             },
                             new HeadingElementData() { Text = "! Animated sprites !", FontType = FontType.Small, Scale = 1, Alignment = AlignmentType.Center, SpacingAfter = 32 },
-                            new ImageElementData() { TexturePath = "LooseSprites/Cursors2", TextureSourceRectangle = new Rectangle(192, 62, 32, 32), Scale = 3, Alignment = AlignmentType.Center,
+                            new ImageElementData() { TexturePath = "LooseSprites/Cursors2", TextureSourceRectangle = new Rectangle(192, 62, 32, 32), Scale = 3, Alignment = AlignmentType.Center, Origin = new Vector2(16, 16),
                                 Frames = new List<AnimationFrameData>(){
                                     new AnimationFrameData() { Duration = 1000, SourcePoint = new Point(192, 62) },
-                                    new AnimationFrameData() { Duration = 250, SourcePoint = new Point(224, 62) },
+                                    new AnimationFrameData() { Duration = 250, SourcePoint = new Point(224, 62), Scale = 1.25f },
                                     new AnimationFrameData() { Duration = 500, SourcePoint = new Point(192, 62) },
+                                },
+                                HoverFrames = new List<AnimationFrameData>(){
+                                    new AnimationFrameData() { Duration = 120, SourcePoint = new Point(192, 62) },
+                                    new AnimationFrameData() { Duration = 120, SourcePoint = new Point(224, 62), Scale = 1.15f },
                                 },
                                 SpacingAfter = 16
                             },

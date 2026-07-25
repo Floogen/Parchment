@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
@@ -116,8 +117,17 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return;
             }
 
-            Rectangle frameRectangle = AnimationHelper.GetFrame(sourceRectangle, element.ActiveFrames, data.FrameDuration);
-            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), frameRectangle, element.TintColor, imageLayout.Rotation, imageLayout.Origin, imageLayout.DrawScale, data.SpriteEffects, LAYER_DEPTH);
+            AnimationFrameData? activeFrame = AnimationHelper.GetActiveFrame(AnimationHelper.GetPlayingFrames(element), data.FrameDuration);
+            Rectangle frameRectangle = AnimationHelper.GetFrameRectangle(sourceRectangle, activeFrame);
+
+            // The layout was measured at the element's own scale, so a frame scale above 1 deliberately overhangs the bounds rather than relaying the page out mid-animation
+            float frameScale = imageLayout.DrawScale * AnimationHelper.GetFrameScale(activeFrame);
+
+            // Origin is a pivot, not an offset, but SpriteBatch subtracts it from the draw position. Adding it back keeps the sprite inside its measured bounds, so Rotation and the frame scale turn about that point instead of dragging the sprite off it.
+            // This uses the layout's scale rather than frameScale on purpose: compensating with the frame scale would move the pivot as the frame grew, turning a pulse into a drift.
+            Vector2 drawPosition = new Vector2(bounds.X + imageLayout.Origin.X * imageLayout.DrawScale, bounds.Y + imageLayout.Origin.Y * imageLayout.DrawScale);
+
+            spriteBatch.Draw(element.Texture, drawPosition, frameRectangle, element.TintColor, imageLayout.Rotation, imageLayout.Origin, frameScale, data.SpriteEffects, LAYER_DEPTH);
 
             if (imageLayout.WrappedText is null)
             {

@@ -38,6 +38,8 @@ The easy convention is to stack the two states vertically in the sheet, so the r
 
 A hover state is normally a recolour or a small highlight, not a redraw, so this is rarely a constraint in practice.
 
+An [`Image`](../reference/elements/image.md#hover-frames) can animate its hover state instead, with `HoverFrames`. The same rule applies for the same reason: those frames are drawn at the size `TextureSourceRectangle` measured, so the whole hover row wants to match the normal row cell for cell. Stacking the idle row and the hover row vertically keeps that honest, since the two lists then differ only in `Y`.
+
 ## Nine-slice frames
 
 [`Panel`](../reference/elements/panel.md) and [`Button`](../reference/elements/button.md) are nine-sliced: the four corners are drawn as-is, the four edges stretch along one axis and the middle stretches both ways.
@@ -80,6 +82,8 @@ Frames don't have to be adjacent, or in one row or in any particular order. Each
 
 The source rectangle earns a second job if you use [frame conditions](../reference/elements/image.md#frames): it's what draws when every frame has been conditioned out. Point it at a cell that reads as a finished sprite rather than at whichever frame happened to be first, and a stopped animation still looks deliberate.
 
+A frame's [`Scale`](../reference/elements/image.md#frame-scale) sidesteps the same-size rule rather than breaking it. It multiplies the drawn size without re-measuring anything, so the element keeps the space it reserved and a frame above 1 simply overhangs it. Reach for it when you want a temporary shift in scale, not when you want to fit a bigger drawing into the cycle: for that, widen the source rectangle so every frame shares the larger size and pad the smaller cells with transparency.
+
 ## Tinting wants greyscale
 
 `TintColor` multiplies. Red on grey gives red. Red on blue gives near-black. Anything on black stays black.
@@ -92,9 +96,10 @@ Before you finalize a sprite:
 
 - Drawn at 1×, and the book's `Scale` is a whole number
 - Source rectangle tight to the painted pixels
-- Hover rectangle the same size as the normal one
+- Hover rectangle the same size as the normal one, and any hover frames drawn on the same grid
 - Nine-slice: visible border inside the corner third, middle flat
 - Three-slice: middle one pixel wide
 - Animation frames all the same size as the source rectangle
+- Frame `Scale` kept modest, since it draws outside the space the element reserved
 - Source rectangle usable as a still, since conditional animations fall back to it
 - Anything tintable drawn in greys

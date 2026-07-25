@@ -574,6 +574,10 @@
                     "Width": 32,
                     "Height": 32
                   },
+                  "Origin": {
+                    "X": 16,
+                    "Y": 16
+                  },
                   "Scale": 3,
                   "Alignment": "Center",
                   "SpacingAfter": 16,
@@ -590,7 +594,8 @@
                       "SourcePoint": {
                         "X": 224,
                         "Y": 62
-                      }
+                      },
+                      "Scale": 1.25
                     },
                     {
                       "Duration": 500,
@@ -598,6 +603,23 @@
                         "X": 192,
                         "Y": 62
                       }
+                    }
+                  ],
+                  "HoverFrames": [
+                    {
+                      "Duration": 120,
+                      "SourcePoint": {
+                        "X": 192,
+                        "Y": 62
+                      }
+                    },
+                    {
+                      "Duration": 120,
+                      "SourcePoint": {
+                        "X": 224,
+                        "Y": 62
+                      },
+                      "Scale": 1.15
                     }
                   ]
                 },
