@@ -35,11 +35,19 @@ Each entry in `Frames`:
 | --- | --- | --- | --- |
 | `SourcePoint` <span class="req">required</span> | `Point` | — | The coordinate of the sprite for this frame. Automatically inherits the element's `TextureSourceRectangle` for height and width. |
 | `Duration` <span class="opt">optional</span> | `number` | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
+| `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../../concepts/conditions.md) deciding whether this frame plays. When omitted the frame always plays. |
 
 Frames loop, and the cycle runs off game time, so two identical animations on a page play in lockstep.
 
+A frame whose `Condition` fails is **skipped**, not paused on. The cycle gets shorter and the remaining frames close the gap, the same way a hidden element lets the ones below it close up. Conditions are re-checked while the book is open, so an animation can gain and lose frames as the game state changes.
+
+When *every* frame's condition fails, the element falls back to drawing `TextureSourceRectangle` on its own. An animation that's entirely conditional therefore goes still rather than disappearing.
+
 !!! warning "`TextureSourceRectangle` is required when animating"
     It's the measuring stick: it defines the element's size, while `Frames` defines what's drawn. Without it, the whole sprite sheet becomes the element.
+
+!!! tip "Point it at a frame you'd be happy to see"
+    Because it's the fallback, `TextureSourceRectangle` should be a sprite that stands on its own. Aim it at a blank cell and a fully conditional animation renders as nothing.
 
 ```json
 {
@@ -52,6 +60,21 @@ Frames loop, and the cycle runs off game time, so two identical animations on a 
     { "Duration": 1000, "SourcePoint": { "X": 0, "Y": 0 } },
     { "Duration": 100, "SourcePoint": { "X": 32, "Y": 0 } },
     { "Duration": 100, "SourcePoint": { "X": 64, "Y": 0 } }
+  ]
+}
+```
+
+A candle that only flickers after dark. Both frames drop out during the day, leaving the unlit sprite the source rectangle points at:
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/candle",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 16, "Height": 16 },
+  "Scale": 4,
+  "Frames": [
+    { "SourcePoint": { "X": 16, "Y": 0 }, "Condition": "TIME 1800 2600" },
+    { "SourcePoint": { "X": 32, "Y": 0 }, "Condition": "TIME 1800 2600" }
   ]
 }
 ```

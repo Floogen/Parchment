@@ -58,6 +58,10 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **The hover state overhangs the element.** `HoverTextureSourceRectangle` is a different size from `TextureSourceRectangle`. The layout is measured from the normal rectangle, so the hover sprite draws at the normal one's scale and spills. Make them the same size.
 
+**An animation went still.** Every frame carried a `Condition` and none of them passed, so the element fell back to drawing `TextureSourceRectangle`. That's the designed behaviour, not a failure. If the still it lands on looks wrong, aim the source rectangle at a better cell.
+
+**One frame never shows up.** Its `Condition` isn't passing. A malformed query is false rather than an error, so the frame is quietly skipped and the animation just runs shorter. Check the query by hand.
+
 **The tint did nothing, or turned everything black.** Tints multiply. Red on grey gives red. Red on blue gives near-black. Anything on black stays black. Tinting wants neutral or greyscale art.
 
 ## Clicks and actions
@@ -67,6 +71,12 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 **A navigation button does nothing on some pages.** It's doing exactly what it says. `PreviousPage` on the first page of a chapter has nowhere to go. There's no way to grey a button out. Use a `Condition` to hide it instead.
 
 **Clicks land on the wrong thing.** Underlay elements are hit-tested last, so pages win, but the book's *margins* aren't covered by any page, so an underlay behind them can claim clicks.
+
+**A background or foreground element shows no tooltip.** It has neither a `DisplayName` nor a `Description`, so it's treated as decoration and the cursor passes through it.
+
+**A foreground element covers the buttons under it.** It's interactive, so it does claim the cursor over its whole rectangle. Either shrink it to the art or drop the `Action`, `HoverAction`, tooltip or `HoverTextureSourceRectangle` that made it interactive in the first place.
+
+**A background tooltip appears over a foreground one.** It can't. Foreground wins, then the stacked elements, then background. If the wrong tooltip appears, two elements overlap and the one you didn't expect is higher in that order. `parchment_debug` will show both boxes.
 
 ## Placement
 

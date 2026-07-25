@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Utilities;
 using System;
@@ -45,6 +45,11 @@ namespace Parchment.Framework.Models.Data.Elements
 
         /// <summary>A trigger action to run when this element is clicked. When null, the element is not interactive.</summary>
         public string? Action { get; set; }
+
+        /// <summary>A trigger action to run when the cursor moves onto this element. It runs once on entry rather than repeatedly while the cursor rests there, though moving away and back runs it again.
+        /// Gate it with <see cref="Condition"/> when it should only happen once, since a hidden element can't be hovered.
+        /// </summary>
+        public string? HoverAction { get; set; }
 
         /// <summary>The sound to play when this element is clicked. Only used when <see cref="Action"/> is set.</summary>
         public string? Sound { get; set; } = "bigSelect";

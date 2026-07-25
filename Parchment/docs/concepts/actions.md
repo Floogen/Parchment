@@ -104,6 +104,14 @@ The distinction to hold onto: an element's `Action` runs when the reader chooses
 
 Its `Condition` also behaves differently from every other one in Parchment, in that it is checked once per view. [On view](../reference/page.md#on-view) covers that and the spread ordering rules.
 
+
+A [`HoverAction`](../reference/elements/index.md) runs when the cursor moves onto an element, once per entry rather than continuously. Moving away and back runs it again, and `Sound` doesn't apply.
+
+!!! warning "Hovering"
+    A reader crosses elements just by moving the mouse, so they may run a `HoverAction` without meaning to. Keep them to things that are harmless to repeat, such as setting a flag.
+
+An element's `Condition` gates hovering too: a hidden element can't be hovered, so a hover action whose own effect fails the condition removes itself.
+
 ## Gotchas
 
 **Nothing validates the action name up front.** A typo'd action fails when the player clicks it, with a warning in the SMAPI log naming the string you wrote. Test your buttons.

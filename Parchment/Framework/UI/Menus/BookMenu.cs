@@ -249,6 +249,24 @@ namespace Parchment.Framework.UI.Menus
             return TryJumpToPage(GetChapter(_currentChapterIndex).LastPageIndex, out error);
         }
 
+        /// <summary>Positions the book on a page by its index within the whole book, before the menu is shown.</summary>
+        public bool TryOpenAtPage(int pageIndex, out string error)
+        {
+            if (pageIndex < 0 || pageIndex >= _pages.Count)
+            {
+                error = $"Page index {pageIndex} is out of range (0-{_pages.Count - 1})";
+                return false;
+            }
+
+            int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
+            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
+
+            ApplyInitialSpread(chapterIndex, spread);
+            error = null;
+
+            return true;
+        }
+
         public bool TryOpenAtChapter(string chapterId, out string error)
         {
             if (Book.TryGetChapterIndex(chapterId, out int chapterIndex) is false)
@@ -573,7 +591,13 @@ namespace Parchment.Framework.UI.Menus
                 return null;
             }
 
-            return Page.HitTest(_pages[pageIndex].Elements, pageBounds, screenPosition);
+            Page page = _pages[pageIndex];
+
+            // Topmost first, mirroring the draw order in DrawPage. The absolutely positioned layers only claim the cursor when the element under it has a description, display name or action, so decorative art doesn't cover the stacked elements.
+            Element? hitElement = Page.HitTest(page.Foreground, pageBounds, screenPosition, interactiveOnly: true);
+            hitElement ??= Page.HitTest(page.Elements, pageBounds, screenPosition);
+
+            return hitElement ?? Page.HitTest(page.Background, pageBounds, screenPosition, interactiveOnly: true);
         }
 
         private void SetHoveredElement(Element? element)
@@ -588,12 +612,36 @@ namespace Parchment.Framework.UI.Menus
                 _hoveredElement.IsHovered = false;
             }
 
+            // Assigned before the action runs, so an action that changes what's hovered doesn't dispatch this element a second time
             _hoveredElement = element;
 
-            if (_hoveredElement is not null)
+            if (_hoveredElement is null)
             {
-                _hoveredElement.IsHovered = true;
+                return;
             }
+
+            _hoveredElement.IsHovered = true;
+            RunHoverAction(_hoveredElement);
+        }
+
+        private void RunHoverAction(Element element)
+        {
+            if (string.IsNullOrWhiteSpace(element.Data.HoverAction))
+            {
+                return;
+            }
+
+            if (TriggerActionManager.TryRunAction(element.Data.HoverAction, out string error, out Exception exception) is false)
+            {
+                Parchment.monitor.Log($"Element hover action '{element.Data.HoverAction}' failed: {error}", LogLevel.Warn);
+
+                if (exception is not null)
+                {
+                    Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
+                }
+            }
+
+            RefreshVisiblePages();
         }
 
         private void SetMenuState(MenuState menuState)

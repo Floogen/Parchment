@@ -1,6 +1,7 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Interfaces;
 using StardewModdingAPI;
@@ -34,8 +35,16 @@ namespace Parchment.Framework.Models
         public IFont? Font { get; set; }
         public Texture2D? Texture { get; set; }
 
+        // The frames whose Condition currently passes, refreshed alongside element conditions. Null when the element has no frames and empty when every frame's condition failed, which makes the element draw its source rectangle statically.
+        public List<AnimationFrameData>? ActiveFrames { get; set; }
+
         internal object? LayoutState { get; set; }
         public bool IsHovered { get; set; }
+
+        /// <summary>Whether this element does anything when the cursor reaches it, whether that is a tooltip, an action or a swap to hover art.
+        /// Absolutely positioned layers such as <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/> use this so purely decorative art passes the cursor through to whatever sits under it.
+        /// </summary>
+        public bool IsInteractive => string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || string.IsNullOrWhiteSpace(Data.Action) is false || string.IsNullOrWhiteSpace(Data.HoverAction) is false || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null);
 
         public IReadOnlyList<Element> Children { get; init; } = Array.Empty<Element>();
 

@@ -24,11 +24,15 @@ namespace Parchment.Framework.Models.Data
 
         /// <summary>
         /// Elements drawn behind <see cref="Elements"/>, positioned absolutely via <see cref="ElementData.Position"/> rather than stacked. These do not affect the layout.
+        /// An element here is only reachable by the cursor when it has something to offer, such as <see cref="ElementData.Description"/>, <see cref="ElementData.DisplayName"/> or <see cref="ElementData.Action"/>,
+        /// which keeps decorative art from covering the stacked elements above it.
         /// </summary>
         public List<ElementData>? Background { get; set; }
 
         /// <summary>
         /// Elements drawn over <see cref="Elements"/>, positioned absolutely via <see cref="ElementData.Position"/> rather than stacked. These do not affect the layout.
+        /// An element here is only reachable by the cursor when it has something to offer, such as <see cref="ElementData.Description"/>, <see cref="ElementData.DisplayName"/> or <see cref="ElementData.Action"/>,
+        /// which keeps decorative art from covering the stacked elements below it.
         /// </summary>
         public List<ElementData>? Foreground { get; set; }
 

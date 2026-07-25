@@ -78,6 +78,8 @@ That rectangle is the measuring stick. It's what sets the element's size, once, 
 
 Frames don't have to be adjacent, or in one row or in any particular order. Each names its own rectangle. That means a hover row and an animation row can coexist in one sheet: hover changes `Y`, animation walks `X`.
 
+The source rectangle earns a second job if you use [frame conditions](../reference/elements/image.md#frames): it's what draws when every frame has been conditioned out. Point it at a cell that reads as a finished sprite rather than at whichever frame happened to be first, and a stopped animation still looks deliberate.
+
 ## Tinting wants greyscale
 
 `TintColor` multiplies. Red on grey gives red. Red on blue gives near-black. Anything on black stays black.
@@ -94,4 +96,5 @@ Before you finalize a sprite:
 - Nine-slice: visible border inside the corner third, middle flat
 - Three-slice: middle one pixel wide
 - Animation frames all the same size as the source rectangle
+- Source rectangle usable as a still, since conditional animations fall back to it
 - Anything tintable drawn in greys
