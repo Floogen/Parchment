@@ -62,6 +62,12 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **One frame never shows up.** Its `Condition` isn't passing. A malformed query is false rather than an error, so the frame is quietly skipped and the animation just runs shorter. Check the query by hand.
 
+**The hover animation never plays.** The element isn't being hovered. In a page's `Background` or `Foreground` that used to mean it needed a tooltip or an action to be reachable, but `HoverFrames` now counts on its own, so check the cursor is actually reaching it: something in `Foreground` drawn over the top will take the hover first. `parchment_debug` shows the boxes.
+
+**The hover animation starts partway through.** Working as intended. Frame cycles run off absolute game time and don't reset when the cursor arrives, so a hover animation joins mid-cycle. Write it as a loop rather than a one-shot.
+
+**The hover animation went still.** Every frame in `HoverFrames` was conditioned out, so the element fell back to `Frames`. If `Frames` is empty too, you get `TextureSourceRectangle`. That's the designed cascade, not a failure.
+
 **A frame with `Scale` overlaps whatever sits under it.** Working as intended. Frame scale is applied when drawing and never re-measures the element, so anything above 1 grows outside the space the page reserved. Add `SpacingAfter`, or lower the multiplier.
 
 **A scaled frame lurched sideways instead of pulsing in place.** It grows from `Origin`, which defaults to the top-left corner. Move the pivot to the middle of the source rectangle to pulse about the centre: `8, 8` for a 16×16 sprite.

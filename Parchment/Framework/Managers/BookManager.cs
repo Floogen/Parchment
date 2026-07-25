@@ -380,6 +380,10 @@ namespace Parchment.Framework.Managers
                                     new AnimationFrameData() { Duration = 250, SourcePoint = new Point(224, 62), Scale = 1.25f },
                                     new AnimationFrameData() { Duration = 500, SourcePoint = new Point(192, 62) },
                                 },
+                                HoverFrames = new List<AnimationFrameData>(){
+                                    new AnimationFrameData() { Duration = 120, SourcePoint = new Point(192, 62) },
+                                    new AnimationFrameData() { Duration = 120, SourcePoint = new Point(224, 62), Scale = 1.15f },
+                                },
                                 SpacingAfter = 16
                             },
                             new ImageElementData() { TexturePath = "Characters/Junimo", TextureSourceRectangle = new Rectangle(48, 0, 16, 16), Scale = 8, Alignment = AlignmentType.Center, 

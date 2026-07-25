@@ -117,7 +117,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return;
             }
 
-            AnimationFrameData? activeFrame = AnimationHelper.GetActiveFrame(element.ActiveFrames, data.FrameDuration);
+            AnimationFrameData? activeFrame = AnimationHelper.GetActiveFrame(AnimationHelper.GetPlayingFrames(element), data.FrameDuration);
             Rectangle frameRectangle = AnimationHelper.GetFrameRectangle(sourceRectangle, activeFrame);
 
             // The layout was measured at the element's own scale, so a frame scale above 1 deliberately overhangs the bounds rather than relaying the page out mid-animation

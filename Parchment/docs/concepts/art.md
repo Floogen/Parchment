@@ -38,6 +38,8 @@ The easy convention is to stack the two states vertically in the sheet, so the r
 
 A hover state is normally a recolour or a small highlight, not a redraw, so this is rarely a constraint in practice.
 
+An [`Image`](../reference/elements/image.md#hover-frames) can animate its hover state instead, with `HoverFrames`. The same rule applies for the same reason: those frames are drawn at the size `TextureSourceRectangle` measured, so the whole hover row wants to match the normal row cell for cell. Stacking the idle row and the hover row vertically keeps that honest, since the two lists then differ only in `Y`.
+
 ## Nine-slice frames
 
 [`Panel`](../reference/elements/panel.md) and [`Button`](../reference/elements/button.md) are nine-sliced: the four corners are drawn as-is, the four edges stretch along one axis and the middle stretches both ways.
@@ -94,7 +96,7 @@ Before you finalize a sprite:
 
 - Drawn at 1×, and the book's `Scale` is a whole number
 - Source rectangle tight to the painted pixels
-- Hover rectangle the same size as the normal one
+- Hover rectangle the same size as the normal one, and any hover frames drawn on the same grid
 - Nine-slice: visible border inside the corner third, middle flat
 - Three-slice: middle one pixel wide
 - Animation frames all the same size as the source rectangle

@@ -13,36 +13,46 @@ namespace Parchment.Framework.Utilities.Helpers
 {
     public static class AnimationHelper
     {
-        /// <summary>Rebuilds an element's active frames from its per-frame conditions, and reports whether the active set changed.</summary>
+        /// <summary>Rebuilds an element's active frames from its per-frame conditions, and reports whether either active set changed.</summary>
         public static bool RefreshActiveFrames(Element element)
         {
-            if (element.Data is not ImageElementData imageData || imageData.Frames is null || imageData.Frames.Count is 0)
+            ImageElementData? imageData = element.Data as ImageElementData;
+
+            bool hasFramesChanged = TryBuildActiveFrames(imageData?.Frames, element.ActiveFrames, out List<AnimationFrameData>? activeFrames);
+            if (hasFramesChanged is true)
             {
-                if (element.ActiveFrames is null)
-                {
-                    return false;
-                }
+                element.ActiveFrames = activeFrames;
+            }
 
-                element.ActiveFrames = null;
+            bool hasHoverFramesChanged = TryBuildActiveFrames(imageData?.HoverFrames, element.ActiveHoverFrames, out List<AnimationFrameData>? activeHoverFrames);
+            if (hasHoverFramesChanged is true)
+            {
+                element.ActiveHoverFrames = activeHoverFrames;
+            }
 
-                return true;
+            return hasFramesChanged || hasHoverFramesChanged;
+        }
+
+        /// <summary>Filters one authored frame list by its per-frame conditions, and reports whether the result differs from what's already cached.</summary>
+        private static bool TryBuildActiveFrames(List<AnimationFrameData>? frames, List<AnimationFrameData>? currentFrames, out List<AnimationFrameData>? updatedFrames)
+        {
+            if (frames is null || frames.Count is 0)
+            {
+                updatedFrames = null;
+
+                return currentFrames is not null;
             }
 
             // Frames without conditions never change, so the original list is reused rather than copied every refresh
-            if (HasConditionalFrames(imageData.Frames) is false)
+            if (HasConditionalFrames(frames) is false)
             {
-                if (ReferenceEquals(element.ActiveFrames, imageData.Frames) is true)
-                {
-                    return false;
-                }
+                updatedFrames = frames;
 
-                element.ActiveFrames = imageData.Frames;
-
-                return true;
+                return ReferenceEquals(currentFrames, frames) is false;
             }
 
             var activeFrames = new List<AnimationFrameData>();
-            foreach (AnimationFrameData frame in imageData.Frames)
+            foreach (AnimationFrameData frame in frames)
             {
                 if (string.IsNullOrWhiteSpace(frame.Condition) is false && GameStateQuery.CheckConditions(frame.Condition) is false)
                 {
@@ -52,14 +62,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 activeFrames.Add(frame);
             }
 
-            if (HasSameFrames(element.ActiveFrames, activeFrames) is true)
-            {
-                return false;
-            }
+            updatedFrames = activeFrames;
 
-            element.ActiveFrames = activeFrames;
-
-            return true;
+            return HasSameFrames(currentFrames, activeFrames) is false;
         }
 
         private static bool HasConditionalFrames(List<AnimationFrameData> frames)
@@ -93,8 +98,21 @@ namespace Parchment.Framework.Utilities.Helpers
             return true;
         }
 
+        /// <summary>Gets the frame list an element should be playing, preferring the hover animation while the cursor is on it.
+        /// A hover list that is absent or fully conditioned out falls through to the normal animation, so the idle loop carries on rather than freezing.
+        /// </summary>
+        public static List<AnimationFrameData>? GetPlayingFrames(Element element)
+        {
+            if (element.IsHovered is true && element.ActiveHoverFrames is not null && element.ActiveHoverFrames.Count is not 0)
+            {
+                return element.ActiveHoverFrames;
+            }
+
+            return element.ActiveFrames;
+        }
+
         /// <summary>Gets the frame that should be drawn right now, or null when there is nothing to play and the element should fall back to its own source rectangle.
-        /// Callers that need both the rectangle and the frame's scale should hold onto this.
+        /// Callers that need both the rectangle and the frame's scale should hold onto this rather than asking twice, since the answer moves with the clock.
         /// </summary>
         public static AnimationFrameData? GetActiveFrame(List<AnimationFrameData>? frames, float defaultFrameDuration)
         {

@@ -27,6 +27,11 @@ namespace Parchment.Framework.Models.Data
         /// <summary>The animation frames. When null or empty, the element draws <see cref="TextureSourceRectangle"/> statically.</summary>
         public List<AnimationFrameData>? Frames { get; set; }
 
+        /// <summary>The animation frames played while the cursor is over the element, replacing <see cref="Frames"/> for as long as it stays there. Frames take their size from <see cref="TextureSourceRectangle"/> the same way, so this changes what is drawn rather than the element's layout.
+        /// When null, empty or fully conditioned out, the element carries on with <see cref="Frames"/> rather than going still, so a hover animation can drop away without interrupting the idle one.
+        /// </summary>
+        public List<AnimationFrameData>? HoverFrames { get; set; }
+
         /// <summary>The default duration for frames that don't specify one, in milliseconds.</summary>
         public float FrameDuration { get; set; } = 100f;
 
@@ -80,25 +85,16 @@ namespace Parchment.Framework.Models.Data
                 }
             }
 
-            if (Frames is not null && Frames.Count > 0)
+            var frameResult = ValidateFrames(Frames, nameof(Frames));
+            if (frameResult.Result is false)
             {
-                if (TextureSourceRectangle is not Rectangle sourceRectangleFrames)
-                {
-                    return (false, $"\"TextureSourceRectangle\" is required when \"Frames\" is set, since it defines the layout size.");
-                }
+                return frameResult;
+            }
 
-                foreach (AnimationFrameData frame in Frames)
-                {
-                    if (frame.Duration is float duration && duration <= 0f)
-                    {
-                        return (false, $"A frame in \"Frames\" has a non-positive \"frame.Duration\"");
-                    }
-
-                    if (frame.Scale <= 0f)
-                    {
-                        return (false, $"A frame in \"Frames\" has a non-positive \"frame.Scale\"");
-                    }
-                }
+            var hoverFrameResult = ValidateFrames(HoverFrames, nameof(HoverFrames));
+            if (hoverFrameResult.Result is false)
+            {
+                return hoverFrameResult;
             }
 
             if (FrameDuration <= 0f)
@@ -112,6 +108,35 @@ namespace Parchment.Framework.Models.Data
             }
 
             return base.IsValid();
+        }
+
+        /// <summary>Validates one frame list. Both <see cref="Frames"/> and <see cref="HoverFrames"/> are measured against <see cref="TextureSourceRectangle"/>, so they carry the same requirements.</summary>
+        private (bool Result, string Error) ValidateFrames(List<AnimationFrameData>? frames, string fieldName)
+        {
+            if (frames is null || frames.Count is 0)
+            {
+                return (true, string.Empty);
+            }
+
+            if (TextureSourceRectangle is not Rectangle)
+            {
+                return (false, $"\"TextureSourceRectangle\" is required when \"{fieldName}\" is set, since it defines the layout size.");
+            }
+
+            foreach (AnimationFrameData frame in frames)
+            {
+                if (frame.Duration is float duration && duration <= 0f)
+                {
+                    return (false, $"A frame in \"{fieldName}\" has a non-positive \"frame.Duration\"");
+                }
+
+                if (frame.Scale <= 0f)
+                {
+                    return (false, $"A frame in \"{fieldName}\" has a non-positive \"frame.Scale\"");
+                }
+            }
+
+            return (true, string.Empty);
         }
     }
 }

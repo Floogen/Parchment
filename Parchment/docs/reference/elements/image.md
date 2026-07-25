@@ -20,6 +20,7 @@ An image is sized by its sprite: `TextureSourceRectangle` × `Scale`. If that's 
 | --- | --- | --- | --- |
 | `ItemId` <span class="opt">optional</span> | `string` | — | A qualified item ID such as `(O)24`, whose icon is drawn. When set, `TexturePath` and `TextureSourceRectangle` are ignored. The item's name and description also fill in `DisplayName` and `Description` automatically, so `ItemId` alone gives you the sprite *and* a vanilla-style tooltip. |
 | `Frames` <span class="opt">optional</span> | list of [`frames`](#frames) | — | Animation frames. When omitted, the sprite is static. |
+| `HoverFrames` <span class="opt">optional</span> | list of [`frames`](#frames) | — | Animation frames played while the cursor is over the element, replacing `Frames` for as long as it stays there. See [Hover frames](#hover-frames). |
 | `FrameDuration` <span class="opt">optional</span> | `number` | `100` | How long a frame is shown when it doesn't specify its own `Duration`, in milliseconds. |
 | `TextArea` <span class="opt">optional</span> | `Rectangle` | *the whole sprite* | Where text is drawn, in unscaled sprite pixels **relative to `TextureSourceRectangle`'s top-left**, not to the texture. This is how you place a label inside a sign's recessed panel. The text block is centred vertically within this area. |
 | `TextScale` <span class="opt">optional</span> | `number` | `1` | The text's scale, independent of `Scale`, which sizes the sprite. |
@@ -103,6 +104,39 @@ A pulse needs no extra art at all, just the same cell drawn bigger for a moment:
   ]
 }
 ```
+
+### Hover frames
+
+`HoverFrames` is a second frame list that takes over while the cursor is on the element. It's the animated counterpart to [`HoverTextureSourceRectangle`](#sprite-fields), which swaps a single still.
+
+Both lists are sized by `TextureSourceRectangle`, so this changes what's drawn and never the element's layout. Everything a frame understands works in either list: `Duration`, `Condition` and `Scale` all behave the same, and both lists share the element's `FrameDuration` as their default.
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/lantern",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 16, "Height": 16 },
+  "Scale": 4,
+  "DisplayName": "Lantern",
+  "Frames": [
+    { "Duration": 600, "SourcePoint": { "X": 0, "Y": 0 } },
+    { "Duration": 600, "SourcePoint": { "X": 16, "Y": 0 } }
+  ],
+  "HoverFrames": [
+    { "Duration": 120, "SourcePoint": { "X": 0, "Y": 16 } },
+    { "Duration": 120, "SourcePoint": { "X": 16, "Y": 16 } }
+  ]
+}
+```
+
+Leaving `HoverFrames` out means the normal animation simply keeps playing under the cursor, which is the behaviour every existing book already has.
+
+**An empty hover animation falls back rather than freezing.** If every frame in `HoverFrames` is conditioned out, the element carries on with `Frames` instead of dropping to a still. The order of preference is `HoverFrames`, then `Frames`, then `TextureSourceRectangle`, so a hover animation can come and go with the game state without interrupting the idle loop.
+
+**`HoverFrames` alone makes an element hoverable.** In a page's `Background` or `Foreground`, an element with nothing else to offer is [transparent to the cursor](../page.md#background-and-foreground). A hover animation counts as something to offer, the same way a `HoverTextureSourceRectangle` does, so it will be reachable without needing a tooltip or an action.
+
+!!! warning "Hover frames don't restart on hover"
+    Frame cycles run off absolute game time so that identical animations stay in lockstep, and `HoverFrames` is no exception. The hover animation joins at whatever point in its cycle the clock is at, rather than starting from its first frame. That's invisible for a loop, such as a flicker or a jiggle, and noticeable for a one-shot reveal. Write hover animations as loops.
 
 ## Text fields
 

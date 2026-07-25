@@ -604,6 +604,23 @@
                         "Y": 62
                       }
                     }
+                  ],
+                  "HoverFrames": [
+                    {
+                      "Duration": 120,
+                      "SourcePoint": {
+                        "X": 192,
+                        "Y": 62
+                      }
+                    },
+                    {
+                      "Duration": 120,
+                      "SourcePoint": {
+                        "X": 224,
+                        "Y": 62
+                      },
+                      "Scale": 1.15
+                    }
                   ]
                 },
                 {
