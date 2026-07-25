@@ -590,7 +590,8 @@
                       "SourcePoint": {
                         "X": 224,
                         "Y": 62
-                      }
+                      },
+                      "Scale": 1.25
                     },
                     {
                       "Duration": 500,

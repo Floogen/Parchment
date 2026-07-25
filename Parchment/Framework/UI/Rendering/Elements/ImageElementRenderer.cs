@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
@@ -116,8 +117,13 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return;
             }
 
-            Rectangle frameRectangle = AnimationHelper.GetFrame(sourceRectangle, element.ActiveFrames, data.FrameDuration);
-            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), frameRectangle, element.TintColor, imageLayout.Rotation, imageLayout.Origin, imageLayout.DrawScale, data.SpriteEffects, LAYER_DEPTH);
+            AnimationFrameData? activeFrame = AnimationHelper.GetActiveFrame(element.ActiveFrames, data.FrameDuration);
+            Rectangle frameRectangle = AnimationHelper.GetFrameRectangle(sourceRectangle, activeFrame);
+
+            // The layout was measured at the element's own scale, so a frame scale above 1 deliberately overhangs the bounds rather than relaying the page out mid-animation
+            float frameScale = imageLayout.DrawScale * AnimationHelper.GetFrameScale(activeFrame);
+
+            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), frameRectangle, element.TintColor, imageLayout.Rotation, imageLayout.Origin, frameScale, data.SpriteEffects, LAYER_DEPTH);
 
             if (imageLayout.WrappedText is null)
             {

@@ -93,18 +93,19 @@ namespace Parchment.Framework.Utilities.Helpers
             return true;
         }
 
-        /// <summary>Gets the source rectangle to draw. When no frames are given, or every frame was filtered out by its condition, the element's own source rectangle is used.</summary>
-        public static Rectangle GetFrame(Rectangle sourceRectangle, List<AnimationFrameData>? frames, float defaultFrameDuration)
+        /// <summary>Gets the frame that should be drawn right now, or null when there is nothing to play and the element should fall back to its own source rectangle.
+        /// Callers that need both the rectangle and the frame's scale should hold onto this.
+        /// </summary>
+        public static AnimationFrameData? GetActiveFrame(List<AnimationFrameData>? frames, float defaultFrameDuration)
         {
             if (frames is null || frames.Count is 0 || Game1.currentGameTime is null)
             {
-                return sourceRectangle;
+                return null;
             }
 
             if (frames.Count is 1)
             {
-                var frame = frames[0];
-                return new Rectangle(frame.SourcePoint.X, frame.SourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
+                return frames[0];
             }
 
             float cycleDuration = 0f;
@@ -116,8 +117,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             if (cycleDuration <= 0f)
             {
-                var frame = frames[0];
-                return new Rectangle(frame.SourcePoint.X, frame.SourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
+                return frames[0];
             }
 
             float cyclePosition = (float)(Game1.currentGameTime.TotalGameTime.TotalMilliseconds % cycleDuration);
@@ -128,13 +128,38 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 if (cyclePosition < frameDuration)
                 {
-                    return new Rectangle(frame.SourcePoint.X, frame.SourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
+                    return frame;
                 }
 
                 cyclePosition -= frameDuration;
             }
 
-            return new Rectangle(frames[frames.Count - 1].SourcePoint.X, frames[frames.Count - 1].SourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
+            return frames[frames.Count - 1];
+        }
+
+        /// <summary>Gets the source rectangle for a frame, which takes its size from the element's own source rectangle so every frame measures the same. A null frame draws that rectangle unchanged.</summary>
+        public static Rectangle GetFrameRectangle(Rectangle sourceRectangle, AnimationFrameData? frame)
+        {
+            if (frame is null)
+            {
+                return sourceRectangle;
+            }
+
+            return new Rectangle(frame.SourcePoint.X, frame.SourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
+        }
+
+        /// <summary>Gets the multiplier a frame applies on top of the element's own scale. A null frame draws at the element's scale.</summary>
+        public static float GetFrameScale(AnimationFrameData? frame)
+        {
+            return frame?.Scale ?? 1f;
+        }
+
+        /// <summary>Gets the source rectangle to draw. When no frames are given, or every frame was filtered out by its condition, the element's own source rectangle is used.
+        /// This ignores <see cref="AnimationFrameData.Scale"/>, so a caller that draws the result should use <see cref="GetActiveFrame"/> instead.
+        /// </summary>
+        public static Rectangle GetFrame(Rectangle sourceRectangle, List<AnimationFrameData>? frames, float defaultFrameDuration)
+        {
+            return GetFrameRectangle(sourceRectangle, GetActiveFrame(frames, defaultFrameDuration));
         }
     }
 }

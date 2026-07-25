@@ -35,6 +35,7 @@ Each entry in `Frames`:
 | --- | --- | --- | --- |
 | `SourcePoint` <span class="req">required</span> | `Point` | — | The coordinate of the sprite for this frame. Automatically inherits the element's `TextureSourceRectangle` for height and width. |
 | `Duration` <span class="opt">optional</span> | `number` | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
+| `Scale` <span class="opt">optional</span> | `number` | `1` | A multiplier on the element's `Scale` while this frame draws. See [Frame scale](#frame-scale). |
 | `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../../concepts/conditions.md) deciding whether this frame plays. When omitted the frame always plays. |
 
 Frames loop, and the cycle runs off game time, so two identical animations on a page play in lockstep.
@@ -75,6 +76,29 @@ A candle that only flickers after dark. Both frames drop out during the day, lea
   "Frames": [
     { "SourcePoint": { "X": 16, "Y": 0 }, "Condition": "TIME 1800 2600" },
     { "SourcePoint": { "X": 32, "Y": 0 }, "Condition": "TIME 1800 2600" }
+  ]
+}
+```
+
+### Frame scale
+
+`Scale` on a frame is the one thing that changes a sprite's size mid-animation. The element is measured once, at `TextureSourceRectangle` × the element's own `Scale`, and that measurement is what reserves space on the page and what the cursor is tested against. A frame at `1.2` draws twenty percent larger over the top of that reserved space rather than pushing the elements below it down.
+
+It grows from `Origin`, which defaults to the sprite's top-left corner, so a scaled frame spreads right and down unless you move the pivot.
+
+A pulse needs no extra art at all, just the same cell drawn bigger for a moment:
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/pulse",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 16, "Height": 16 },
+  "Scale": 4,
+  "SpacingAfter": 24,
+  "Frames": [
+    { "Duration": 700, "SourcePoint": { "X": 0, "Y": 0 } },
+    { "Duration": 120, "SourcePoint": { "X": 0, "Y": 0 }, "Scale": 1.15 },
+    { "Duration": 200, "SourcePoint": { "X": 0, "Y": 0 } }
   ]
 }
 ```

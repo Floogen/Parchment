@@ -377,7 +377,7 @@ namespace Parchment.Framework.Managers
                             new ImageElementData() { TexturePath = "LooseSprites/Cursors2", TextureSourceRectangle = new Rectangle(192, 62, 32, 32), Scale = 3, Alignment = AlignmentType.Center,
                                 Frames = new List<AnimationFrameData>(){
                                     new AnimationFrameData() { Duration = 1000, SourcePoint = new Point(192, 62) },
-                                    new AnimationFrameData() { Duration = 250, SourcePoint = new Point(224, 62) },
+                                    new AnimationFrameData() { Duration = 250, SourcePoint = new Point(224, 62), Scale = 1.25f },
                                     new AnimationFrameData() { Duration = 500, SourcePoint = new Point(192, 62) },
                                 },
                                 SpacingAfter = 16

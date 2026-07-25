@@ -92,6 +92,11 @@ namespace Parchment.Framework.Models.Data
                     {
                         return (false, $"A frame in \"Frames\" has a non-positive \"frame.Duration\"");
                     }
+
+                    if (frame.Scale <= 0f)
+                    {
+                        return (false, $"A frame in \"Frames\" has a non-positive \"frame.Scale\"");
+                    }
                 }
             }
 

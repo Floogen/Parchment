@@ -62,6 +62,10 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **One frame never shows up.** Its `Condition` isn't passing. A malformed query is false rather than an error, so the frame is quietly skipped and the animation just runs shorter. Check the query by hand.
 
+**A frame with `Scale` overlaps whatever sits under it.** Working as intended. Frame scale is applied when drawing and never re-measures the element, so anything above 1 grows outside the space the page reserved. Add `SpacingAfter`, or lower the multiplier.
+
+**A scaled frame lurched sideways instead of pulsing in place.** It grows from `Origin`, which defaults to the top-left corner. Move the pivot to the middle of the source rectangle to pulse about the centre, bearing in mind that `Origin` also shifts where the sprite lands.
+
 **The tint did nothing, or turned everything black.** Tints multiply. Red on grey gives red. Red on blue gives near-black. Anything on black stays black. Tinting wants neutral or greyscale art.
 
 ## Clicks and actions
@@ -72,7 +76,7 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **Clicks land on the wrong thing.** Underlay elements are hit-tested last, so pages win, but the book's *margins* aren't covered by any page, so an underlay behind them can claim clicks.
 
-**A background or foreground element shows no tooltip.** It has neither a `DisplayName` nor a `Description`, so it's treated as decoration and the cursor passes through it.
+**A background or foreground element shows no tooltip.** It has neither a `DisplayName` nor a `Description`, so it's treated as decoration and the cursor passes through it. Give it one of the two.
 
 **A foreground element covers the buttons under it.** It's interactive, so it does claim the cursor over its whole rectangle. Either shrink it to the art or drop the `Action`, `HoverAction`, tooltip or `HoverTextureSourceRectangle` that made it interactive in the first place.
 
