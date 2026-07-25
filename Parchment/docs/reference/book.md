@@ -32,6 +32,9 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 | `Animation` <span class="opt">optional</span> | [`Animation`](#animation) | *see below* | Animation timings and sounds. |
 | `Layout` <span class="opt">optional</span> | [`Layout`](#layout) | *see below* | The page margins. |
 
+!!! note "Underlay and overlay elements always take the cursor"
+    Unlike a page's [`Background` and `Foreground`](page.md#background-and-foreground), a decorative element here is hit-tested whether or not it has a tooltip or an action, and the overlay is tested before the pages. Keep overlay art to the area it actually covers rather than stretching a transparent sheet over the whole book.
+
 !!! note "The book's name and description live on the item"
     A book has no `Title` or `Description` of its own. What the player sees comes from the item that opens it, its `DisplayName` and `Description` in `Data/Objects`. That also means those are localisable through the usual `[LocalizedText ...]` tokens.
 

@@ -41,6 +41,11 @@ namespace Parchment.Framework.Models
         internal object? LayoutState { get; set; }
         public bool IsHovered { get; set; }
 
+        /// <summary>Whether this element does anything when the cursor reaches it, whether that is a tooltip, an action or a swap to hover art.
+        /// Absolutely positioned layers such as <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/> use this so purely decorative art passes the cursor through to whatever sits under it.
+        /// </summary>
+        public bool IsInteractive => string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || string.IsNullOrWhiteSpace(Data.Action) is false || string.IsNullOrWhiteSpace(Data.HoverAction) is false || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null);
+
         public IReadOnlyList<Element> Children { get; init; } = Array.Empty<Element>();
 
         public Element(ElementData data, IElementRenderer renderer)

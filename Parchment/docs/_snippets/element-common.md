@@ -13,5 +13,5 @@
 | `Action` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) run when the element is clicked. When set, the element becomes interactive: any element type can have one, not just `Button`. |
 | `Sound` <span class="opt">optional</span> | `string` | `bigSelect` | The cue played when the element is clicked. Only used when `Action` is set. Set to `null` for a silent click. |
 | `HoverAction` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) run when the cursor moves onto the element. Runs on entry, not while the cursor rests there. `Sound` doesn't apply. |
-| `DisplayName` <span class="opt">optional</span> | `string` | — | The bold title of the element's hover tooltip. |
-| `Description` <span class="opt">optional</span> | `string` | — | The body of the element's hover tooltip. |
+| `DisplayName` <span class="opt">optional</span> | `string` | — | The bold title of the element's hover tooltip. Works in every list, including a page's `Background` and `Foreground`. |
+| `Description` <span class="opt">optional</span> | `string` | — | The body of the element's hover tooltip. Works in every list, including a page's `Background` and `Foreground`, where setting it is also what makes an otherwise decorative element [reachable by the cursor](../page.md#background-and-foreground). |

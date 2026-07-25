@@ -179,7 +179,10 @@ namespace Parchment.Framework.Models
             return currentY;
         }
 
-        public static Element? HitTest(IReadOnlyList<Element> elements, Rectangle containerBounds, Point screenPosition)
+        /// <param name="interactiveOnly">When true, elements that do nothing on hover or click are stepped over instead of claiming the cursor. Used for <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/>,
+        /// where a decorative element covering the page would otherwise block everything beneath it. Their children are still tested, so a plain panel can hold an element carrying a description.
+        /// </param>
+        public static Element? HitTest(IReadOnlyList<Element> elements, Rectangle containerBounds, Point screenPosition, bool interactiveOnly = false)
         {
             foreach (Element element in elements)
             {
@@ -195,9 +198,18 @@ namespace Parchment.Framework.Models
                 }
 
                 Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
-                Element? hitChild = HitTest(element.Children, contentBounds, screenPosition);
+                Element? hitChild = HitTest(element.Children, contentBounds, screenPosition, interactiveOnly);
+                if (hitChild is not null)
+                {
+                    return hitChild;
+                }
 
-                return hitChild ?? element;
+                if (interactiveOnly && element.IsInteractive is false)
+                {
+                    continue;
+                }
+
+                return element;
             }
 
             return null;

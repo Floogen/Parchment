@@ -355,7 +355,7 @@ namespace Parchment.Framework.Managers
                         Background = new List<ElementData>()
                         {
                             new ImageElementData() { TexturePath = "Assets/PeacefulEnd.Parchment/backgroundNoise1", Position = new Point(48, 272), Scale = 6 },
-                            new HeadingElementData() { Text = "This is drawn in the background\n(ontop of another background)", FontType = FontType.Small, Position = new Point(64, 336), Scale = 1 }
+                            new HeadingElementData() { Text = "This is drawn in the background\n(ontop of another background)", FontType = FontType.Small, Position = new Point(64, 336), Scale = 1, Description = "Background elements can have hover text too!" }
                         }
                     },
                     new PageData {

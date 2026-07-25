@@ -10,7 +10,7 @@ An element is one piece of content on a page: a heading, a picture, a framed cal
 }
 ```
 
-Elements appear in four places, and where they appear changes how they're positioned:
+Elements appear in five places, and where they appear changes how they're positioned:
 
 | Where | Positioning |
 | --- | --- |
@@ -19,6 +19,8 @@ Elements appear in four places, and where they appear changes how they're positi
 | [`Page.Foreground`](../page.md) | Placed by `Position`, drawn over the page's elements. |
 | [`Book.Underlay`](../book.md) | Placed by `Position` relative to the book, drawn behind the book sprite. |
 | [`Book.Overlay`](../book.md) | Placed by `Position` relative to the book, drawn in front of everything. |
+
+Where an element appears doesn't change what it can do. A tooltip, an `Action` or a `HoverAction` works the same in any of the five. Note that an element in `Page.Background` or `Page.Foreground` with none of those is [transparent to the cursor](../page.md#background-and-foreground), so decorative art doesn't cover the page.
 
 ---
 

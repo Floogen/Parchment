@@ -72,6 +72,12 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **Clicks land on the wrong thing.** Underlay elements are hit-tested last, so pages win, but the book's *margins* aren't covered by any page, so an underlay behind them can claim clicks.
 
+**A background or foreground element shows no tooltip.** It has neither a `DisplayName` nor a `Description`, so it's treated as decoration and the cursor passes through it.
+
+**A foreground element covers the buttons under it.** It's interactive, so it does claim the cursor over its whole rectangle. Either shrink it to the art or drop the `Action`, `HoverAction`, tooltip or `HoverTextureSourceRectangle` that made it interactive in the first place.
+
+**A background tooltip appears over a foreground one.** It can't. Foreground wins, then the stacked elements, then background. If the wrong tooltip appears, two elements overlap and the one you didn't expect is higher in that order. `parchment_debug` will show both boxes.
+
 ## Placement
 
 **A positioned element didn't move when I changed `Scale`.** `Position` is in screen pixels and deliberately doesn't scale. Changing `Scale` resizes the element from its top-left. See [Units and scale](concepts/units.md).

@@ -21,9 +21,46 @@ A page is a stack of elements. Two consecutive pages make a spread. Page 0 and 1
 | `Id` <span class="req">required</span> | `string` | — | An identifier for the page, unique within the book. Actions and conditions can refer to a page by ID, which survives inserting pages in a way that a page number doesn't. |
 | `ChapterId` <span class="opt">optional</span> | `string` | — | The chapter this page belongs to. Pages sharing a value belong to the same chapter and **must be listed consecutively**. See [Chapters](#chapters). |
 | `Elements` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | The page's content, stacked top to bottom in order. |
-| `Background` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **behind** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. |
-| `Foreground` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **over** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. |
+| `Background` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **behind** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. They can carry a tooltip or an action, see [Background and foreground](#background-and-foreground). |
+| `Foreground` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **over** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. They can carry a tooltip or an action, see [Background and foreground](#background-and-foreground). |
 | `OnView` <span class="opt">optional</span> | list of [`triggers`](#on-view) | empty list | Actions run each time the page becomes visible, without the reader clicking anything. See [On view](#on-view). |
+
+---
+
+## Background and foreground
+
+`Background` and `Foreground` hold placed elements rather than stacked ones, drawn under and over `Elements` respectively. Everything else about an element still applies here: `Condition` hides it, `Frames` animate it and `DisplayName` and `Description` give it a hover tooltip.
+
+The cursor works through the three lists from the top down, so `Foreground` gets first refusal, then `Elements`, then `Background`. Within a list the first match wins and a container's children are tested before the container itself.
+
+```json
+{
+  "Id": "shrine",
+  "Elements": [
+    { "Type": "Paragraph", "Text": "..." }
+  ],
+  "Foreground": [
+    {
+      "Type": "Image",
+      "TexturePath": "{{ModId}}/inkblot",
+      "Position": { "X": 220, "Y": 96 },
+      "DisplayName": "Ink blot",
+      "Description": "Someone has spilled over this passage."
+    }
+  ]
+}
+```
+
+### Decorative elements are transparent to the cursor
+
+A placed element only claims the cursor when it has something to offer: a `Description`, a `DisplayName`, an `Action`, a `HoverAction` or a `HoverTextureSourceRectangle`. An element with none of those is passed straight through as if it weren't there.
+
+That rule exists because these two lists are usually art. A full-page border in `Foreground` would otherwise sit over every button on the page and swallow the lot.
+
+A plain container is transparent even when its children aren't, so a `Panel` with no tooltip of its own can hold an `Image` that has one and only the image reacts.
+
+!!! note "This applies to pages, not to the book"
+    [`Book.Underlay` and `Book.Overlay`](book.md) are hit-tested whatever they contain, so a decorative element there does claim the cursor. `Page.Elements` is likewise always hit-tested, since a stacked element takes up space that nothing else can occupy anyway.
 
 ---
 

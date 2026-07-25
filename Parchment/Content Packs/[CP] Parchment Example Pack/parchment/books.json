@@ -486,6 +486,7 @@
                 {
                   "Type": "Heading",
                   "Text": "This is drawn in the background\n(ontop of another background)",
+                  "Description": "Background elements can have hover text too!",
                   "FontType": "Small",
                   "Position": {
                     "X": 64,

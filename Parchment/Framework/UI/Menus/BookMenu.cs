@@ -591,7 +591,13 @@ namespace Parchment.Framework.UI.Menus
                 return null;
             }
 
-            return Page.HitTest(_pages[pageIndex].Elements, pageBounds, screenPosition);
+            Page page = _pages[pageIndex];
+
+            // Topmost first, mirroring the draw order in DrawPage. The absolutely positioned layers only claim the cursor when the element under it has a description, display name or action, so decorative art doesn't cover the stacked elements.
+            Element? hitElement = Page.HitTest(page.Foreground, pageBounds, screenPosition, interactiveOnly: true);
+            hitElement ??= Page.HitTest(page.Elements, pageBounds, screenPosition);
+
+            return hitElement ?? Page.HitTest(page.Background, pageBounds, screenPosition, interactiveOnly: true);
         }
 
         private void SetHoveredElement(Element? element)
