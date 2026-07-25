@@ -51,6 +51,7 @@ namespace Parchment.Framework.Models.Data
 
         /// <summary>
         /// The pivot point the sprite rotates and scales around, in unscaled source-texture pixels relative to the source rectangle's top-left. (does not effect Text)
+        /// This only changes what the sprite turns and grows about, never where it rests, so an unrotated sprite at its own scale draws in the same place whatever this is set to.
         /// </summary>
         public Vector2 Origin { get; set; } = Vector2.Zero;
 

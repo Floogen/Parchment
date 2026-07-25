@@ -123,7 +123,11 @@ namespace Parchment.Framework.UI.Rendering.Elements
             // The layout was measured at the element's own scale, so a frame scale above 1 deliberately overhangs the bounds rather than relaying the page out mid-animation
             float frameScale = imageLayout.DrawScale * AnimationHelper.GetFrameScale(activeFrame);
 
-            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), frameRectangle, element.TintColor, imageLayout.Rotation, imageLayout.Origin, frameScale, data.SpriteEffects, LAYER_DEPTH);
+            // Origin is a pivot, not an offset, but SpriteBatch subtracts it from the draw position. Adding it back keeps the sprite inside its measured bounds, so Rotation and the frame scale turn about that point instead of dragging the sprite off it.
+            // This uses the layout's scale rather than frameScale on purpose: compensating with the frame scale would move the pivot as the frame grew, turning a pulse into a drift.
+            Vector2 drawPosition = new Vector2(bounds.X + imageLayout.Origin.X * imageLayout.DrawScale, bounds.Y + imageLayout.Origin.Y * imageLayout.DrawScale);
+
+            spriteBatch.Draw(element.Texture, drawPosition, frameRectangle, element.TintColor, imageLayout.Rotation, imageLayout.Origin, frameScale, data.SpriteEffects, LAYER_DEPTH);
 
             if (imageLayout.WrappedText is null)
             {

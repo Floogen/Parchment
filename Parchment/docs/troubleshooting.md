@@ -64,7 +64,9 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **A frame with `Scale` overlaps whatever sits under it.** Working as intended. Frame scale is applied when drawing and never re-measures the element, so anything above 1 grows outside the space the page reserved. Add `SpacingAfter`, or lower the multiplier.
 
-**A scaled frame lurched sideways instead of pulsing in place.** It grows from `Origin`, which defaults to the top-left corner. Move the pivot to the middle of the source rectangle to pulse about the centre, bearing in mind that `Origin` also shifts where the sprite lands.
+**A scaled frame lurched sideways instead of pulsing in place.** It grows from `Origin`, which defaults to the top-left corner. Move the pivot to the middle of the source rectangle to pulse about the centre: `8, 8` for a 16×16 sprite.
+
+**A rotated or pivoted sprite moved after updating.** `Origin` used to shift the sprite as well as pivot it, by `Origin` × `Scale` up and to the left. That was a bug and it's fixed, so the sprite now sits where its bounds say. If you compensated for the old offset with `Position` or a margin, take that compensation back out.
 
 **The tint did nothing, or turned everything black.** Tints multiply. Red on grey gives red. Red on blue gives near-black. Anything on black stays black. Tinting wants neutral or greyscale art.
 
@@ -76,7 +78,7 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **Clicks land on the wrong thing.** Underlay elements are hit-tested last, so pages win, but the book's *margins* aren't covered by any page, so an underlay behind them can claim clicks.
 
-**A background or foreground element shows no tooltip.** It has neither a `DisplayName` nor a `Description`, so it's treated as decoration and the cursor passes through it. Give it one of the two.
+**A background or foreground element shows no tooltip.** It has neither a `DisplayName` nor a `Description`, so it's treated as decoration and the cursor passes through it. Give it one of the two. An `Image` with an `ItemId` gets both filled in for free.
 
 **A foreground element covers the buttons under it.** It's interactive, so it does claim the cursor over its whole rectangle. Either shrink it to the art or drop the `Action`, `HoverAction`, tooltip or `HoverTextureSourceRectangle` that made it interactive in the first place.
 

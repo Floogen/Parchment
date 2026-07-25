@@ -25,7 +25,7 @@ An image is sized by its sprite: `TextureSourceRectangle` × `Scale`. If that's 
 | `TextScale` <span class="opt">optional</span> | `number` | `1` | The text's scale, independent of `Scale`, which sizes the sprite. |
 | `TextAlignment` <span class="opt">optional</span> | `Left` \| `Center` \| `Right` | `Center` | How each line of text is aligned within `TextArea`. Distinct from `Alignment`, which places the whole image on the page. |
 | `Rotation` <span class="opt">optional</span> | `number` | `0` | How much rotation is applied to the texture. Note: does not affect text! |
-| `Origin` <span class="opt">optional</span> | `Vector2` | `{ X: 0.0, Y: 0.0 }` | The pivot point the sprite rotates and scales around. Note: does not affect text! |
+| `Origin` <span class="opt">optional</span> | `Vector2` | `{ X: 0.0, Y: 0.0 }` | The pivot point the sprite rotates and scales around, in unscaled sprite pixels relative to `TextureSourceRectangle`'s top-left. It changes what the sprite turns and grows about, never where it rests, so a still sprite at its own `Scale` looks identical at any value. Note: does not affect text! |
 
 ### Frames
 
@@ -84,7 +84,7 @@ A candle that only flickers after dark. Both frames drop out during the day, lea
 
 `Scale` on a frame is the one thing that changes a sprite's size mid-animation. The element is measured once, at `TextureSourceRectangle` × the element's own `Scale`, and that measurement is what reserves space on the page and what the cursor is tested against. A frame at `1.2` draws twenty percent larger over the top of that reserved space rather than pushing the elements below it down.
 
-It grows from `Origin`, which defaults to the sprite's top-left corner, so a scaled frame spreads right and down unless you move the pivot.
+It grows from `Origin`, which defaults to the sprite's top-left corner, so a scaled frame spreads right and down unless you move the pivot. Put `Origin` in the middle of the source rectangle (`8, 8` for a 16×16 sprite) and the frame grows evenly in every direction instead. The pivot itself doesn't move as the frame scales, so a pulse stays put rather than creeping across the page.
 
 A pulse needs no extra art at all, just the same cell drawn bigger for a moment:
 
@@ -94,6 +94,7 @@ A pulse needs no extra art at all, just the same cell drawn bigger for a moment:
   "TexturePath": "{{ModId}}/pulse",
   "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 16, "Height": 16 },
   "Scale": 4,
+  "Origin": { "X": 8, "Y": 8 },
   "SpacingAfter": 24,
   "Frames": [
     { "Duration": 700, "SourcePoint": { "X": 0, "Y": 0 } },

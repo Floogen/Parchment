@@ -574,6 +574,10 @@
                     "Width": 32,
                     "Height": 32
                   },
+                  "Origin": {
+                    "X": 16,
+                    "Y": 16
+                  },
                   "Scale": 3,
                   "Alignment": "Center",
                   "SpacingAfter": 16,
