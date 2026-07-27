@@ -28,7 +28,7 @@
         }
       }
     },
-  /* Example of using the PeacefulEnd.Parchment_BookIndicator tile property (on Buildings layer) to display a hovering book icon until the PeacefulEnd.Campgrounds.Parchment_CampingGuide book is read
+    /* Example of using the PeacefulEnd.Parchment_BookIndicator tile property (on Buildings layer) to display a hovering book icon until the PeacefulEnd.Campgrounds.Parchment_CampingGuide book is read
     {
       "Action": "EditMap",
       "Target": "Maps/ArchaeologyHouse",
@@ -210,6 +210,15 @@
             {
               "Id": "cover",
               "ChapterId": "chapter-1",
+              "Background": [
+                {
+                  "Type": "PageNumber",
+                  "Position": {
+                    "X": 10,
+                    "Y": 500
+                  }
+                }
+              ],
               "Elements": [
                 {
                   "Type": "Image",
@@ -283,6 +292,15 @@
             {
               "Id": "info",
               "ChapterId": "chapter-1",
+              "Background": [
+                {
+                  "Type": "PageNumber",
+                  "Position": {
+                    "X": 440,
+                    "Y": 500
+                  }
+                }
+              ],
               "Elements": [
                 {
                   "Type": "Banner",
@@ -353,6 +371,16 @@
             {
               "Id": "test",
               "ChapterId": "chapter-1",
+              "Background": [
+                {
+                  "Type": "PageNumber",
+                  "Format": "Custom Format Page # {0}",
+                  "Position": {
+                    "X": 10,
+                    "Y": 500
+                  }
+                }
+              ],
               "OnView": [
                 {
                   "Condition": "!PLAYER_HAS_MAIL Current PeacefulEnd.Parchment_ExampleMailIdTest Any",
@@ -761,6 +789,17 @@
             {
               "Id": "hopped",
               "ChapterId": "chapter-2",
+              "Background": [
+                {
+                  "Type": "PageNumber",
+                  "Scope": "Chapter",
+                  "Format": "Chapter Specific Page # {0}",
+                  "Position": {
+                    "X": 10,
+                    "Y": 500
+                  }
+                }
+              ],
               "Elements": [
                 {
                   "Type": "Banner",
@@ -778,6 +817,17 @@
             {
               "Id": "last!",
               "ChapterId": "chapter-2",
+              "Background": [
+                {
+                  "Type": "PageNumber",
+                  "Scope": "Book",
+                  "Format": "Book Page # {0}",
+                  "Position": {
+                    "X": 275,
+                    "Y": 500
+                  }
+                }
+              ],
               "Elements": [
                 {
                   "Type": "Banner",
