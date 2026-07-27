@@ -29,6 +29,10 @@ namespace Parchment
         public const string DEFAULT_BOOK_GRAYSCALE_ASSET = "Assets/PeacefulEnd.Parchment/smallBookGrayscale";
         public const string DEFAULT_PAGE_CURL_ASSET = "Assets/PeacefulEnd.Parchment/curlPage";
 
+        public const string DEFAULT_NOTEBOOK_ASSET = "Assets/PeacefulEnd.Parchment/notebook";
+        public const string DEFAULT_NOTEBOOK_GRAYSCALE_ASSET = "Assets/PeacefulEnd.Parchment/notebookGrayscale";
+        public const string DEFAULT_NOTEBOOK_PAGE_CURL_ASSET = "Assets/PeacefulEnd.Parchment/curlPage2";
+
         public static bool isDebugMode = false;
 
         // Shared static helpers
@@ -100,6 +104,18 @@ namespace Parchment
             {
                 e.LoadFrom(() => Helper.ModContent.Load<Texture2D>("Framework/Assets/curlPage.png"), AssetLoadPriority.Low);
             }
+            else if (e.NameWithoutLocale.IsEquivalentTo(DEFAULT_NOTEBOOK_ASSET))
+            {
+                e.LoadFrom(() => Helper.ModContent.Load<Texture2D>("Framework/Assets/notebook.png"), AssetLoadPriority.Low);
+            }
+            else if (e.NameWithoutLocale.IsEquivalentTo(DEFAULT_NOTEBOOK_GRAYSCALE_ASSET))
+            {
+                e.LoadFrom(() => Helper.ModContent.Load<Texture2D>("Framework/Assets/notebookGrayscale.png"), AssetLoadPriority.Low);
+            }
+            else if (e.NameWithoutLocale.IsEquivalentTo(DEFAULT_NOTEBOOK_PAGE_CURL_ASSET))
+            {
+                e.LoadFrom(() => Helper.ModContent.Load<Texture2D>("Framework/Assets/curlPage2.png"), AssetLoadPriority.Low);
+            }
         }
 
         private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
@@ -110,7 +126,7 @@ namespace Parchment
                 // Consume the button press
                 Helper.Input.Suppress(e.Button);
 
-                Game1.activeClickableMenu = new BookMenu(bookManager.CreateBook("PeacefulEnd.Parchment.ExamplePack_GuideBook"));
+                Game1.activeClickableMenu = new BookMenu(bookManager.CreateBook("PeacefulEnd.Parchment.ExamplePack_Notebook"));
             }
         }
 

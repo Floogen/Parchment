@@ -24,6 +24,15 @@
 		<None Update="Framework\Assets\curlPage.png">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+		<None Update="Framework\Assets\curlPage2.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Framework\Assets\notebook.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Framework\Assets\notebookGrayscale.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="Framework\Assets\smallBook.png">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>

@@ -50,8 +50,208 @@
       "Action": "EditData",
       "Target": "Data/PeacefulEnd.Parchment/Books",
       "Entries": {
+        "PeacefulEnd.Parchment.ExamplePack_Notebook": {
+          "Format": "1.5.0",
+          "Id": "PeacefulEnd.Parchment.ExamplePack_Notebook",
+          "Appearance": {
+            "TexturePath": "Assets/PeacefulEnd.Parchment/notebook",
+            "GrayscaleTexturePath": "Assets/PeacefulEnd.Parchment/notebookGrayscale",
+            "FrameWidth": 219,
+            "FrameHeight": 143,
+            "OpenFrameCount": 6,
+            "TurnFrameCount": 7,
+            "TintColor": "165 42 42"
+          },
+          "PageCurl": {
+            "TexturePath": "Assets/PeacefulEnd.Parchment/curlPage2",
+            "PreviousPageOffset": {
+              "X": 5,
+              "Y": 105
+            },
+            "NextPageOffset": {
+              "X": 182,
+              "Y": 105
+            }
+          },
+
+          "Pages": [
+            {
+              "Id": "cover",
+              "ChapterId": "chapter-1",
+              "Background": [
+                {
+                  "Type": "PageNumber",
+                  "Position": {
+                    "X": 10,
+                    "Y": 475
+                  }
+                }
+              ],
+              "Elements": [
+                {
+                  "Type": "Image",
+                  "Text": "Example Guide",
+                  "FontType": "Small",
+                  "TextArea": {
+                    "X": 14,
+                    "Y": 5,
+                    "Width": 65,
+                    "Height": 10
+                  },
+                  "Alignment": "Center",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/bannerTitle2",
+                  "Scale": 4
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "By ...",
+                  "Alignment": "Center"
+                },
+                {
+                  "Type": "Panel",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/panelFrame2",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 24,
+                    "Height": 24
+                  },
+                  "Padding": 0,
+                  "Width": 32,
+                  "Sizing": "Fixed",
+                  "Alignment": "Center",
+                  "Scale": 4,
+                  "SpacingAfter": 4,
+                  "Children": [
+                    {
+                      "Type": "Paragraph",
+                      "Text": "This is a fixed panel. Probably. Maybe."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Id": "cover2",
+              "ChapterId": "chapter-1",
+              "Background": [
+                {
+                  "Type": "PageNumber",
+                  "Position": {
+                    "X": 425,
+                    "Y": 475
+                  }
+                }
+              ],
+              "Elements": [
+                {
+                  "Type": "Button",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/button1",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "HoverTextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 18,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "Text": "Click me!",
+                  "FontType": "Small",
+                  "TextScale": 1,
+                  "Padding": 0,
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 2,
+                  "Alignment": "Center",
+                  "Action": "RemoveMail Current PeacefulEnd.Parchment_ExampleMailIdTest All",
+                  "Actions": [
+                    "AddMoney 500",
+                    "AddItem (O)24 1"
+                  ],
+                  "Sound": "bigSelect"
+                }
+              ]
+            },
+            {
+              "Id": "cover2",
+              "ChapterId": "chapter-1",
+              "Background": [
+                {
+                  "Type": "PageNumber",
+                  "Position": {
+                    "X": 10,
+                    "Y": 475
+                  }
+                }
+              ],
+              "Elements": [
+                {
+                  "Type": "Image",
+                  "TexturePath": "LooseSprites/Cursors2",
+                  "TextureSourceRectangle": {
+                    "X": 192,
+                    "Y": 62,
+                    "Width": 32,
+                    "Height": 32
+                  },
+                  "Origin": {
+                    "X": 16,
+                    "Y": 16
+                  },
+                  "Scale": 3,
+                  "Alignment": "Center",
+                  "SpacingAfter": 16,
+                  "Frames": [
+                    {
+                      "Duration": 1000,
+                      "SourcePoint": {
+                        "X": 192,
+                        "Y": 62
+                      }
+                    },
+                    {
+                      "Duration": 250,
+                      "SourcePoint": {
+                        "X": 224,
+                        "Y": 62
+                      },
+                      "Scale": 1.25
+                    },
+                    {
+                      "Duration": 500,
+                      "SourcePoint": {
+                        "X": 192,
+                        "Y": 62
+                      }
+                    }
+                  ],
+                  "HoverFrames": [
+                    {
+                      "Duration": 120,
+                      "SourcePoint": {
+                        "X": 192,
+                        "Y": 62
+                      }
+                    },
+                    {
+                      "Duration": 120,
+                      "SourcePoint": {
+                        "X": 224,
+                        "Y": 62
+                      },
+                      "Scale": 1.15
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
         "PeacefulEnd.Parchment.ExamplePack_GuideBook": {
-          "Format": "1.0.0",
+          "Format": "1.5.0",
           "Id": "PeacefulEnd.Parchment.ExamplePack_GuideBook",
           "Appearance": {
             "TintColor": "165 42 42"
