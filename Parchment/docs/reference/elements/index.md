@@ -60,6 +60,10 @@ Where an element appears doesn't change what it can do. A tooltip, an `Action` o
 
     A nine-sliced frame with a label, for running an action.
 
+-   **[Page number](page-number.md)** (`PageNumber`)
+
+    The page's own number, filled in automatically.
+
 </div>
 
 An unrecognised `Type` is skipped with a warning rather than breaking the book.

@@ -59,6 +59,7 @@ namespace Parchment.Framework.UI.Rendering
             Register(ElementType.Banner, new BannerElementRenderer());
             Register(ElementType.Button, new ButtonElementRenderer());
             Register(ElementType.Divider, new DividerElementRenderer());
+            Register(ElementType.PageNumber, new PageNumberElementRenderer());
         }
 
         public bool TryResolve(string key, out ElementRegistration registration)

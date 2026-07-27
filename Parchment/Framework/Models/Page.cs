@@ -22,15 +22,24 @@ namespace Parchment.Framework.Models
     {
         public PageData Data { get; }
 
+        /// <summary>This page's 0-based position within the book, which is what a <see cref="Enums.ElementType.PageNumber"/> element renders (as a 1-based number).</summary>
+        public int Index { get; }
+
+        /// <summary>This page's 0-based position within its chapter, used by a <see cref="Enums.ElementType.PageNumber"/> element scoped to <see cref="Enums.PageNumberScope.Chapter"/>.
+        /// Assigned by <see cref="Book"/> once chapters are known, as a page can't work out its own chapter while the chapters are still being built.
+        /// </summary>
+        public int IndexInChapter { get; internal set; } = -1;
+
         public List<Element> Elements { get; }
         public List<Element> Background { get; }
         public List<Element> Foreground { get; }
 
         public ElementRenderContext? LastLayoutContext;
 
-        public Page(PageData data, ElementRegistry registry, FontResolver fontResolver)
+        public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver)
         {
             Data = data;
+            Index = index;
             Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver);
             Background = ElementFactory.CreateList(Data.Background, registry, fontResolver);
             Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver);

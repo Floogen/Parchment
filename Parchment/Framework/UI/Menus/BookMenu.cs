@@ -1156,7 +1156,7 @@ namespace Parchment.Framework.UI.Menus
 
         private ElementRenderContext EnsureLayout(Page page, Rectangle pageContentBounds)
         {
-            ElementRenderContext context = BuildRenderContext(pageContentBounds);
+            ElementRenderContext context = BuildRenderContext(pageContentBounds, page);
 
             if (page.LastLayoutContext != context)
             {
@@ -1167,9 +1167,9 @@ namespace Parchment.Framework.UI.Menus
             return context;
         }
 
-        private ElementRenderContext BuildRenderContext(Rectangle pageBounds)
+        private ElementRenderContext BuildRenderContext(Rectangle pageBounds, Page page)
         {
-            return new ElementRenderContext(pageBounds.Width, pageBounds.Height);
+            return new ElementRenderContext(pageBounds.Width, pageBounds.Height, page.Index, page.IndexInChapter);
         }
 
         private ElementRenderContext EnsureBookLayout()
