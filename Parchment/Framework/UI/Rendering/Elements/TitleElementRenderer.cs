@@ -19,7 +19,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
 {
     public class TitleElementRenderer : TextElementRenderer<TitleElementData>
     {
-        protected override string GetText(TitleElementData data)
+        protected override string GetText(TitleElementData data, ElementRenderContext context)
         {
             return data.Text ?? string.Empty;
         }

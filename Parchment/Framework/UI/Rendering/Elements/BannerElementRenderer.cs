@@ -23,7 +23,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
     {
         private const float LAYER_DEPTH = 0.86f;
 
-        protected override string GetText(BannerElementData data)
+        protected override string GetText(BannerElementData data, ElementRenderContext context)
         {
             return data.Text ?? string.Empty;
         }
@@ -64,7 +64,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 textScale = naturalLineHeight > 0f ? Math.Max(1f, (float)Math.Floor(maximumTextHeight / naturalLineHeight)) : 1f;
             }
 
-            WrappedText wrappedText = TextWrapper.Wrap(GetText(data), element.Font, maximumTextWidth, textScale);
+            WrappedText wrappedText = TextWrapper.Wrap(GetText(data, context), element.Font, maximumTextWidth, textScale);
             if (wrappedText.Size.Y > maximumTextHeight)
             {
                 Parchment.monitor.LogOnce($"Banner text is {(int)wrappedText.Size.Y}px tall but the banner only has {(int)maximumTextHeight}px; text will overflow. Try a smaller {nameof(data.TextScale)} or a shorter font.", LogLevel.Warn);

@@ -128,5 +128,6 @@ nav:
           - Panel: reference/elements/panel.md
           - Banner: reference/elements/banner.md
           - Button: reference/elements/button.md
+          - Page number: reference/elements/page-number.md
       - API: reference/api.md
   - Troubleshooting: troubleshooting.md

@@ -110,7 +110,7 @@ namespace Parchment
                 // Consume the button press
                 Helper.Input.Suppress(e.Button);
 
-                Game1.activeClickableMenu = new BookMenu(bookManager.CreateTestBook());
+                Game1.activeClickableMenu = new BookMenu(bookManager.CreateBook("PeacefulEnd.Parchment.ExamplePack_GuideBook"));
             }
         }
 

@@ -63,8 +63,21 @@ namespace Parchment.Framework.Models
             chapters.Add(new Chapter(currentChapterId, firstPageIndex, Pages.Count - firstPageIndex));
 
             WarnOnNonContiguousChapters(chapters);
+            AssignChapterPageIndexes(chapters);
 
             return chapters;
+        }
+
+        /// <summary>Records each page's position within its own chapter. Chapters are contiguous runs of pages, so a repeated chapter ID restarts the count rather than continuing the earlier run.</summary>
+        private void AssignChapterPageIndexes(List<Chapter> chapters)
+        {
+            foreach (Chapter chapter in chapters)
+            {
+                for (int offset = 0; offset < chapter.PageCount; offset++)
+                {
+                    Pages[chapter.FirstPageIndex + offset].IndexInChapter = offset;
+                }
+            }
         }
 
         private void WarnOnNonContiguousChapters(List<Chapter> chapters)
@@ -120,7 +133,8 @@ namespace Parchment.Framework.Models
             int pageIndex = 0;
             foreach (PageData pageData in Data.Pages ?? Enumerable.Empty<PageData>())
             {
-                var page = CreatePage(pageData, $"{Data.Id}/page[{pageIndex}]", elementRegistry, fontResolver);
+                // The page's own index is its position in the built list rather than the loop counter, so a skipped page doesn't leave a gap in the numbering the reader sees
+                var page = CreatePage(pageData, pages.Count, $"{Data.Id}/page[{pageIndex}]", elementRegistry, fontResolver);
 
                 pageIndex++;
                 if (page is null)
@@ -134,7 +148,7 @@ namespace Parchment.Framework.Models
             return pages;
         }
 
-        private Page? CreatePage(PageData pageData, string pageDescription, ElementRegistry elementRegistry, FontResolver fontResolver)
+        private Page? CreatePage(PageData pageData, int index, string pageDescription, ElementRegistry elementRegistry, FontResolver fontResolver)
         {
             if (pageData is null)
             {
@@ -142,7 +156,7 @@ namespace Parchment.Framework.Models
                 return null;
             }
 
-            return new Page(pageData, elementRegistry, fontResolver);
+            return new Page(pageData, index, elementRegistry, fontResolver);
         }
 
         public bool RefreshConditions()

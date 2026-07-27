@@ -20,7 +20,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
 {
     public abstract class TextElementRenderer<TElement> : ElementRenderer<TElement> where TElement : ElementData
     {
-        protected abstract string GetText(TElement data);
+        protected abstract string GetText(TElement data, ElementRenderContext context);
 
         protected override Vector2 Measure(TElement data, Element element, ElementRenderContext context)
         {
@@ -31,7 +31,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return Vector2.Zero;
             }
 
-            WrappedText wrappedText = TextWrapper.Wrap(this.GetText(data), element.Font, context.AvailableWidth, element.Data.Scale);
+            WrappedText wrappedText = TextWrapper.Wrap(this.GetText(data, context), element.Font, context.AvailableWidth, element.Data.Scale);
             element.LayoutState = wrappedText;
 
             return wrappedText.Size;
