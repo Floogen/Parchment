@@ -130,4 +130,5 @@ nav:
           - Button: reference/elements/button.md
           - Page number: reference/elements/page-number.md
       - API: reference/api.md
+      - Building books in C#: reference/building-books.md
   - Troubleshooting: troubleshooting.md

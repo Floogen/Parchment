@@ -81,9 +81,9 @@ namespace Parchment
             helper.ConsoleCommands.Add("parchment_clearseen", "parchment_clearseen", (cmd, args) => { bookManager.ClearSeen(Game1.player); });
         }
 
-        public override object GetApi()
+        public override object GetApi(IModInfo mod)
         {
-            return new ParchmentApi();
+            return new ParchmentApi(mod);
         }
 
         private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)

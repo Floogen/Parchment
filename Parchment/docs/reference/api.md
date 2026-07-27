@@ -2,6 +2,8 @@
 
 This page is for **SMAPI mod authors** who want to open a book from their own code. If you're using Content Patcher, see [Opening a book](../concepts/opening-books.md) instead.
 
+To build a book in code rather than open an existing one, see [Building books in C#](building-books.md).
+
 ## Getting the API
 
 Copy this interface into your mod:
@@ -17,8 +19,20 @@ public interface IParchmentApi
 
     /// <summary>Opens a book at a page's PageData.Id.</summary>
     bool TryOpenBookAtPageId(string bookId, string chapterId, string pageId);
+
+    /// <summary>Starts building a book in code.</summary>
+    IBookBuilder CreateBook(string bookId);
+
+    /// <summary>Removes a book your mod registered.</summary>
+    bool TryUnregisterBook(string bookId, out string error);
+
+    /// <summary>Gets whether a book with the given ID is loaded, from any source.</summary>
+    bool HasBook(string bookId);
 }
 ```
+
+!!! note "`CreateBook` needs three more interfaces"
+    `IBookBuilder`, `IPageBuilder` and `IElementBuilder` are listed in [Building books in C#](building-books.md). Copy all four or drop `CreateBook` from your copy, since `GetApi` returns `null` when it can't map every member.
 
 Then fetch it once both mods have loaded in `GameLaunched`:
 
@@ -71,3 +85,16 @@ parchment?.TryOpenBookAtPage("YourMod_FieldGuide", null, 5);
 | `page` | int | A 0-based page number, relative to `chapterId` when you pass one and to the whole book otherwise. |
 
 Every method returns `true` when the book was found and opened and `false` when the book, chapter or page couldn't be resolved. Failures are logged with the reason, including when a book was dropped during loading because its data was invalid.
+
+`HasBook` covers books from content packs and from the C# API alike, so it's the way to check for an optional book from another mod before offering to open it:
+
+```csharp
+if (parchment.HasBook("someone.Else_Book") is true)
+{
+    parchment.TryOpenBook("someone.Else_Book");
+}
+```
+
+## Building a book
+
+`CreateBook` returns a builder for assembling a book in code, either registered alongside content pack books or opened on the spot. See [Building books in C#](building-books.md).

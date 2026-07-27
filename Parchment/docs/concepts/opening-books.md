@@ -45,4 +45,4 @@ For testing, `parchment_open <bookId> [page] [chapter]` opens a book straight aw
 
 ## From another mod
 
-A SMAPI mod can open a book in code through Parchment's [C# API](../reference/api.md).
+A SMAPI mod can open a book in code through Parchment's [C# API](../reference/api.md), and can [build one in code](../reference/building-books.md) for content a content pack can't express.
