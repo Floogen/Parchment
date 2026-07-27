@@ -32,7 +32,7 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **It's at the bottom of a full page.** Elements that stack past the page are dropped with a warning. Parchment doesn't reflow (see [Layout](concepts/layout.md#when-content-doesnt-fit)).
 
-**It failed validation.** A bad element is skipped at load with a warning naming the problem. `Sizing: Fixed` without `Width`, a `Button` without an `Action`, animation frames that don't match the source rectangle's size. All of these drop the element rather than the book.
+**It failed validation.** A bad element is skipped at load with a warning naming the problem. `Sizing: Fixed` without `Width`, a `Button` with neither an `Action` nor an `Actions` entry, an empty string inside `Actions` or `HoverActions`, animation frames that don't match the source rectangle's size. All of these drop the element rather than the book.
 
 **It's an image with an `ItemId` that doesn't exist.** Check the qualified ID, including the prefix: `(O)24`, not `24`.
 
@@ -86,7 +86,7 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **A background or foreground element shows no tooltip.** It has neither a `DisplayName` nor a `Description`, so it's treated as decoration and the cursor passes through it. Give it one of the two. An `Image` with an `ItemId` gets both filled in for free.
 
-**A foreground element covers the buttons under it.** It's interactive, so it does claim the cursor over its whole rectangle. Either shrink it to the art or drop the `Action`, `HoverAction`, tooltip or `HoverTextureSourceRectangle` that made it interactive in the first place.
+**A foreground element covers the buttons under it.** It's interactive, so it does claim the cursor over its whole rectangle. Either shrink it to the art or drop the `Action`, `Actions`, `HoverAction`, `HoverActions`, tooltip or `HoverTextureSourceRectangle` that made it interactive in the first place.
 
 **A background tooltip appears over a foreground one.** It can't. Foreground wins, then the stacked elements, then background. If the wrong tooltip appears, two elements overlap and the one you didn't expect is higher in that order. `parchment_debug` will show both boxes.
 

@@ -18,7 +18,7 @@ A nine-sliced frame with a label, for running an [action](../../concepts/actions
 }
 ```
 
-`Action` is required. A button that does nothing is an authoring mistake, and Parchment will skip it with a warning.
+`Action` or [`Actions`](../../concepts/actions.md#running-more-than-one-action) is required. A button that does nothing is an authoring mistake, and Parchment will skip it with a warning.
 
 ## Button fields
 

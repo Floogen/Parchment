@@ -53,7 +53,7 @@ The cursor works through the three lists from the top down, so `Foreground` gets
 
 ### Decorative elements are transparent to the cursor
 
-A placed element only claims the cursor when it has something to offer: a `Description`, a `DisplayName`, an `Action`, a `HoverAction` or a `HoverTextureSourceRectangle`. An element with none of those is passed straight through as if it weren't there.
+A placed element only claims the cursor when it has something to offer: a `Description`, a `DisplayName`, an `Action` or `Actions`, a `HoverAction` or `HoverActions`, or a `HoverTextureSourceRectangle`. An element with none of those is passed straight through as if it weren't there.
 
 That rule exists because these two lists are usually art. A full-page border in `Foreground` would otherwise sit over every button on the page and swallow the lot.
 

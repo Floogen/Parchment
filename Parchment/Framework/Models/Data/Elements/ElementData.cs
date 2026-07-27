@@ -43,22 +43,79 @@ namespace Parchment.Framework.Models.Data.Elements
         /// </summary>
         public Point Position { get; set; } = Point.Zero;
 
-        /// <summary>A trigger action to run when this element is clicked. When null, the element is not interactive.</summary>
+        /// <summary>A trigger action to run when this element is clicked. Shorthand for a single-entry <see cref="Actions"/>, and when both are given this one runs first.
+        /// When neither is set, the element is not interactive.
+        /// </summary>
         public string? Action { get; set; }
+
+        /// <summary>The trigger actions to run, in order, when this element is clicked. Combined with <see cref="Action"/> rather than replacing it.</summary>
+        public List<string>? Actions { get; set; }
 
         /// <summary>A trigger action to run when the cursor moves onto this element. It runs once on entry rather than repeatedly while the cursor rests there, though moving away and back runs it again.
         /// Gate it with <see cref="Condition"/> when it should only happen once, since a hidden element can't be hovered.
+        /// Shorthand for a single-entry <see cref="HoverActions"/>, and when both are given this one runs first.
         /// </summary>
         public string? HoverAction { get; set; }
 
-        /// <summary>The sound to play when this element is clicked. Only used when <see cref="Action"/> is set.</summary>
+        /// <summary>The trigger actions to run, in order, when the cursor moves onto this element. Combined with <see cref="HoverAction"/> rather than replacing it.</summary>
+        public List<string>? HoverActions { get; set; }
+
+        /// <summary>The sound to play when this element is clicked. Only used when <see cref="Action"/> or <see cref="Actions"/> is set, and played once regardless of how many actions run.</summary>
         public string? Sound { get; set; } = "bigSelect";
 
         /// <summary>A game state query determining whether this element appears. When null, the element always appears. Checked periodically while the book is open.</summary>
         public string? Condition { get; set; }
 
+        /// <summary>Whether this element has at least one click action, from either <see cref="Action"/> or <see cref="Actions"/>.</summary>
+        internal bool HasActions => HasAny(Action, Actions);
+
+        /// <summary>Whether this element has at least one hover action, from either <see cref="HoverAction"/> or <see cref="HoverActions"/>.</summary>
+        internal bool HasHoverActions => HasAny(HoverAction, HoverActions);
+
+        /// <summary>Every click action on this element, <see cref="Action"/> first and then <see cref="Actions"/> in order, skipping empty entries.</summary>
+        public IEnumerable<string> GetActions() => Combine(Action, Actions);
+
+        /// <summary>Every hover action on this element, <see cref="HoverAction"/> first and then <see cref="HoverActions"/> in order, skipping empty entries.</summary>
+        public IEnumerable<string> GetHoverActions() => Combine(HoverAction, HoverActions);
+
+        private static bool HasAny(string? single, List<string>? many) => string.IsNullOrWhiteSpace(single) is false || (many is not null && many.Any(action => string.IsNullOrWhiteSpace(action) is false));
+
+        /// <summary>Yields the single field followed by the list, skipping empty entries.
+        /// This is composed on each call rather than merged into the list at load, as the deserialized instance is shared and merging would accumulate duplicates across asset reloads.
+        /// </summary>
+        private static IEnumerable<string> Combine(string? single, List<string>? many)
+        {
+            if (string.IsNullOrWhiteSpace(single) is false)
+            {
+                yield return single;
+            }
+
+            if (many is null)
+            {
+                yield break;
+            }
+
+            foreach (string action in many)
+            {
+                if (string.IsNullOrWhiteSpace(action) is false)
+                {
+                    yield return action;
+                }
+            }
+        }
+
         public override (bool Result, string Error) IsValid()
         {
+            if (Actions is not null && Actions.Any(string.IsNullOrWhiteSpace))
+            {
+                return (false, $"\"Actions\" contains an empty entry.");
+            }
+
+            if (HoverActions is not null && HoverActions.Any(string.IsNullOrWhiteSpace))
+            {
+                return (false, $"\"HoverActions\" contains an empty entry.");
+            }
+
             if (Scale <= 0f)
             {
                 return (false, $"\"Scale\" must be positive.");

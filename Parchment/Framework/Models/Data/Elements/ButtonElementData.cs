@@ -39,9 +39,9 @@ namespace Parchment.Framework.Models.Data
                 return (false, $"\"TexturePath\" is required.");
             }
 
-            if (string.IsNullOrWhiteSpace(Action))
+            if (HasActions is false)
             {
-                return (false, $"\"Action\" is required.");
+                return (false, $"\"Action\" or \"Actions\" is required.");
             }
 
             if (Sizing is SizingMode.Fixed && Width is null)

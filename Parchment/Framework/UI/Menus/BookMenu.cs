@@ -621,23 +621,48 @@ namespace Parchment.Framework.UI.Menus
             }
 
             _hoveredElement.IsHovered = true;
-            RunHoverAction(_hoveredElement);
+            RunHoverActions(_hoveredElement);
         }
 
-        private void RunHoverAction(Element element)
+        /// <summary>Runs an element's click actions in order, from <see cref="ElementData.Action"/> and then <see cref="ElementData.Actions"/>.
+        /// A failing action doesn't stop the ones after it, so an action that navigates or closes the book should be the last entry.
+        /// </summary>
+        private void RunClickActions(Element element)
         {
-            if (string.IsNullOrWhiteSpace(element.Data.HoverAction))
+            foreach (string action in element.Data.GetActions())
+            {
+                if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
+                {
+                    Parchment.monitor.Log($"Element action '{action}' failed: {error}", LogLevel.Warn);
+
+                    if (exception is not null)
+                    {
+                        Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Runs an element's hover actions in order, from <see cref="ElementData.HoverAction"/> and then <see cref="ElementData.HoverActions"/>.
+        /// A failing action doesn't stop the ones after it, so an action that navigates or closes the book should be the last entry.
+        /// </summary>
+        private void RunHoverActions(Element element)
+        {
+            if (element.Data.HasHoverActions is false)
             {
                 return;
             }
 
-            if (TriggerActionManager.TryRunAction(element.Data.HoverAction, out string error, out Exception exception) is false)
+            foreach (string action in element.Data.GetHoverActions())
             {
-                Parchment.monitor.Log($"Element hover action '{element.Data.HoverAction}' failed: {error}", LogLevel.Warn);
-
-                if (exception is not null)
+                if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
                 {
-                    Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
+                    Parchment.monitor.Log($"Element hover action '{action}' failed: {error}", LogLevel.Warn);
+
+                    if (exception is not null)
+                    {
+                        Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
+                    }
                 }
             }
 
@@ -846,19 +871,10 @@ namespace Parchment.Framework.UI.Menus
 
             // Check for any button element
             Element? clickedElement = GetElementAt(new Point(x, y));
-            if (clickedElement is not null && string.IsNullOrWhiteSpace(clickedElement.Data.Action) is false)
+            if (clickedElement is not null && clickedElement.Data.HasActions)
             {
                 PlaySound(clickedElement.Data.Sound);
-
-                if (TriggerActionManager.TryRunAction(clickedElement.Data.Action, out string error, out Exception exception) is false)
-                {
-                    Parchment.monitor.Log($"Element action '{clickedElement.Data.Action}' failed: {error}", LogLevel.Warn);
-
-                    if (exception is not null)
-                    {
-                        Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
-                    }
-                }
+                RunClickActions(clickedElement);
 
                 RefreshVisiblePages();
                 return;
