@@ -284,6 +284,10 @@
                   "Scale": 2,
                   "Alignment": "Center",
                   "Action": "RemoveMail Current PeacefulEnd.Parchment_ExampleMailIdTest All",
+                  "Actions": [
+                    "AddMoney 500",
+                    "AddItem (O)24 1"
+                  ],
                   "Sound": "bigSelect"
                 }
               ]
