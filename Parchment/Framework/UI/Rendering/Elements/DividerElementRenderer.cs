@@ -26,10 +26,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
         protected override Vector2 Measure(DividerElementData data, Element element, ElementRenderContext context)
         {
-            if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle)
-            {
-                return Vector2.Zero;
-            }
+            Rectangle? sourceRectangle = SpriteHelper.GetDrawSourceRectangle(data, element);
 
             float dividerHeight = sourceRectangle is Rectangle source ? source.Height * data.Scale : data.Thickness * data.Scale;
             float dividerWidth;
@@ -37,7 +34,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             switch (data.Sizing)
             {
                 case SizingMode.Fixed:
-                    dividerWidth = Math.Min(data.Width.Value * data.Scale, context.AvailableWidth);
+                    dividerWidth = Math.Min((data.Width ?? 0) * data.Scale, context.AvailableWidth);
                     break;
                 case SizingMode.ShrinkToFit:
                     dividerWidth = sourceRectangle is Rectangle naturalSource ? Math.Min(naturalSource.Width * data.Scale, context.AvailableWidth) : context.AvailableWidth;
