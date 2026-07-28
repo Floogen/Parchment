@@ -32,7 +32,7 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 | `Animation` <span class="opt">optional</span> | [`Animation`](#animation) | *see below* | Animation timings and sounds. |
 | `Layout` <span class="opt">optional</span> | [`Layout`](#layout) | *see below* | The page margins. |
 | `StartOnCover` <span class="opt">optional</span> | `boolean` | `false` | Whether the book arrives shut and holds on its cover until the reader clicks it open. See [Cover view](#cover-view). |
-| `AllowCoverView` <span class="opt">optional</span> | `boolean` | `false` | Whether closing the book shuts it in place first, leaving its cover on screen, rather than leaving the menu. See [Cover view](#cover-view). |
+| `ExitToCover` <span class="opt">optional</span> | `boolean` | `false` | Whether closing the book shuts it in place first, leaving its cover on screen, rather than leaving the menu. See [Cover view](#cover-view). |
 
 !!! note "Underlay and overlay elements always take the cursor"
     Unlike a page's [`Background` and `Foreground`](page.md#background-and-foreground), a decorative element here is hit-tested whether or not it has a tooltip or an action, and the overlay is tested before the pages. Keep overlay art to the area it actually covers rather than stretching a transparent sheet over the whole book.
@@ -49,20 +49,20 @@ A book normally opens itself as soon as it has slid into view, and leaves the me
 | Field | What it changes |
 | --- | --- |
 | `StartOnCover` | The book arrives shut and waits. Clicking it opens it. |
-| `AllowCoverView` | Closing shuts the book in place instead of leaving. Clicking it reopens at the spread the reader left off on, and closing again leaves. |
+| `ExitToCover` | Closing shuts the book in place instead of leaving. Clicking it reopens at the spread the reader left off on, and closing again leaves. |
 
 ```json title="content.json"
 {
   "Format": "1.4.0",
   "Id": "you.CampingGuide_Book",
   "StartOnCover": true,
-  "AllowCoverView": true
+  "ExitToCover": true
 }
 ```
 
 Set both and the book behaves like a physical one: it's handed to the reader shut, opens when they open it and shuts without being taken away. Set neither (the default) and it opens and closes on its own. Either alone is fine, since they don't depend on each other.
 
-It suits a book whose cover is worth looking at, and `AllowCoverView` gives a reader somewhere to pause without losing their place.
+It suits a book whose cover is worth looking at, and `ExitToCover` gives a reader somewhere to pause without losing their place.
 
 !!! note "Skipping the slide"
     Clicking while the book slides in still skips the slide, and then respects `StartOnCover`: it lands on the cover rather than jumping the book open. Clicking during the opening animation still goes straight to the pages, since the reader has already asked for it open.
@@ -87,7 +87,7 @@ The book is drawn shut, so there are no pages, no page curls and no page element
 An overlay element with an `Action` stays clickable on the cover, which is how you'd author a "Read" button. The click only falls through to reopening the book when it doesn't land on one.
 
 !!! note "Reaching the cover from an action"
-    [`PeacefulEnd.Parchment_ViewCover`](../concepts/actions.md#parchments-actions) shuts the book to its cover from a button, whatever these two flags are set to. They only control what the book does on its own.
+    [`PeacefulEnd.Parchment_ViewCover`](../concepts/actions.md#parchments-actions) shuts the book to its cover from a button. Neither flag gates the cover itself, they only decide whether the book goes there on its own.
 
 !!! warning "`OnView` and the cover"
     A page's [`OnView`](page.md#on-view) triggers run when it's actually on screen, so with `StartOnCover` the first page's triggers wait until the reader opens the book rather than firing as it arrives. Reopening from the cover re-runs them, the same as turning back to a page would, so gate anything that shouldn't repeat on `HasSeenPageId`.

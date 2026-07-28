@@ -390,7 +390,7 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            if (Book.Data.AllowCoverView is true && CurrentState is not MenuState.Cover)
+            if (Book.Data.ExitToCover is true && CurrentState is not MenuState.Cover)
             {
                 BeginCover();
                 return;

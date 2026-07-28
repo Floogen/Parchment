@@ -38,14 +38,15 @@ namespace Parchment.Framework.Models.Data
         public BookLayoutData Layout { get; set; } = new BookLayoutData();
 
         /// <summary>Whether the book arrives shut, holding on its cover until the reader clicks it open, rather than opening itself once it
-        /// has slid into place. Independent of <see cref="AllowCoverView"/>, which governs the other end of the reading.</summary>
+        /// has slid into place. Independent of <see cref="ExitToCover"/>, which governs the other end of the reading.</summary>
         public bool StartOnCover { get; set; } = false;
 
         /// <summary>Whether asking to close the book shuts it in place first, leaving its cover on screen, rather than leaving the menu.
         /// A second close request then leaves, and clicking the cover reopens to the page the reader left off on.
+        /// This governs only the reader's own close request. The cover stays reachable from the ViewCover action either way.
         /// Decorate the cover by giving <see cref="Overlay"/> or <see cref="Underlay"/> elements a condition on the Cover book state.
         /// </summary>
-        public bool AllowCoverView { get; set; } = false;
+        public bool ExitToCover { get; set; } = false;
 
         public override (bool Result, string Error) IsValid()
         {

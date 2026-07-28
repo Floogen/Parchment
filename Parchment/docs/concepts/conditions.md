@@ -163,7 +163,7 @@ Either route lets you mark something read without the player ever opening the bo
 | `Ready` | The book is open and settled. This is the normal state. |
 | `Turning` | A page turn is in progress. |
 | `Covering` | The book is shutting to its cover, without leaving the menu. |
-| `Cover` | The book is shut with its cover on screen, either before it's first opened or after it's closed. Only reachable on a book set up for [cover view](../reference/book.md#cover-view). |
+| `Cover` | The book is shut with its cover on screen, either before it's first opened or after it's closed. See [cover view](../reference/book.md#cover-view). |
 | `Closing` | The book is playing its close animation before leaving. |
 
 Every state is testable, including the brief ones, and conditions keep being re-evaluated throughout. Bear in mind what's actually on screen in each: pages aren't drawn until the book is open, so a condition on `Sliding` or `Opening` only means anything for the book's own [`Underlay` and `Overlay`](../reference/book.md#fields).

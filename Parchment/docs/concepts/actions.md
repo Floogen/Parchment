@@ -75,7 +75,7 @@ These only work while a book is open. Elsewhere they fail with a message in the 
 | `PeacefulEnd.Parchment_JumpToPage` | `<pageIndex>` | Jump to a page by index, crossing chapters if needed. Indexes start at 0. |
 | `PeacefulEnd.Parchment_JumpToChapter` | `<chapterId>` | Jump to a chapter's first page. |
 | `PeacefulEnd.Parchment_GoToStart` | — | Jump to the book's very first page, whatever chapter you're in. |
-| `PeacefulEnd.Parchment_ViewCover` | — | Shut the book to its cover without leaving the menu, whatever the book's `AllowCoverView` is. Fails when the book is already shut. See [Cover view](../reference/book.md#cover-view). |
+| `PeacefulEnd.Parchment_ViewCover` | — | Shut the book to its cover without leaving the menu. Works on any book, whatever its `ExitToCover` is set to. Fails when the book is already shut. See [Cover view](../reference/book.md#cover-view). |
 | `PeacefulEnd.Parchment_CloseBook` | — | Close the book. |
 
 ### Scope
