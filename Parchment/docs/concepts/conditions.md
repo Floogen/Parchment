@@ -162,9 +162,24 @@ Either route lets you mark something read without the player ever opening the bo
 | `Opening` | The book is playing its open animation. |
 | `Ready` | The book is open and settled. This is the normal state. |
 | `Turning` | A page turn is in progress. |
-| `Closing` | The book is playing its close animation. |
+| `Covering` | The book is shutting to its cover, without leaving the menu. |
+| `Cover` | The book is shut with its cover on screen, either before it's first opened or after it's closed. Only reachable on a book set up for [cover view](../reference/book.md#cover-view). |
+| `Closing` | The book is playing its close animation before leaving. |
 
-Only `Ready` and `Turning` are usefully testable: conditions aren't re-evaluated during the other three, so a condition can never see them. In practice `CurrentBookState` answers one question, "is a page being turned right now?", which is what you want it for.
+`Ready`, `Turning`, `Covering` and `Cover` are testable. Conditions aren't re-evaluated during `Sliding`, `Opening` or `Closing`, so a condition can never see those three.
+
+That leaves `CurrentBookState` answering two questions: "is a page being turned right now?" and "is the book shut in front of me?". `Cover` is how you decorate a closed book, since the pages aren't drawn there and the book's `Overlay` is all that's left:
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/coverTitle",
+  "Position": { "X": 44, "Y": 72 },
+  "Condition": "PeacefulEnd.Parchment_CurrentBookState Cover"
+}
+```
+
+Test `Covering` as well as `Cover` when the art should be there for the shutting animation rather than appearing once it finishes.
 
 Pair it with `IsPagingForward` to decorate a turn:
 

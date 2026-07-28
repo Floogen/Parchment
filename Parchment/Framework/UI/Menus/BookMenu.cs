@@ -25,7 +25,8 @@ namespace Parchment.Framework.UI.Menus
     {
         public Book Book { get; }
 
-        public enum MenuState { Sliding, Opening, Ready, Turning, Closing }
+        /// <summary>Covering shuts the book but stays in the menu, landing in Cover. Closing shuts it and leaves.</summary>
+        public enum MenuState { Sliding, Opening, Ready, Turning, Covering, Cover, Closing }
         public MenuState CurrentState { get; private set; } = MenuState.Sliding;
 
         private float _animationTimer = 0f;
@@ -380,15 +381,77 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
+        /// <summary>Closes the book. When the book allows it and is still open, this shuts it in place and leaves the menu up, so a
+        /// second call is what actually leaves.</summary>
         public void BeginClose()
         {
-            if (CurrentState is MenuState.Closing)
+            if (CurrentState is MenuState.Closing or MenuState.Covering)
             {
+                return;
+            }
+
+            if (Book.Data.AllowCoverView is true && CurrentState is not MenuState.Cover)
+            {
+                BeginCover();
+                return;
+            }
+
+            // The book is already shut in Cover, so replaying the close frames would shut it a second time
+            if (CurrentState is MenuState.Cover)
+            {
+                exitThisMenu(playSound: false);
                 return;
             }
 
             SetMenuState(MenuState.Closing);
             PlaySound(_animation.CloseSound);
+        }
+
+        /// <summary>Shuts the book but stays in the menu, leaving its cover on screen. Clicking the cover reopens at the same spread.</summary>
+        public bool TryViewCover(out string error)
+        {
+            if (CurrentState is MenuState.Covering or MenuState.Cover)
+            {
+                error = "the book is already closed";
+                return false;
+            }
+
+            if (CurrentState is MenuState.Closing)
+            {
+                error = "the book is closing";
+                return false;
+            }
+
+            BeginCover();
+            error = null;
+
+            return true;
+        }
+
+        private void BeginCover()
+        {
+            SetMenuState(MenuState.Covering);
+            PlaySound(_animation.CloseSound);
+        }
+
+        /// <summary>Reopens from the cover, at the spread the reader left off on.</summary>
+        private void BeginReopen()
+        {
+            SetMenuState(MenuState.Opening);
+            PlaySound(_animation.OpenSound);
+        }
+
+        /// <summary>Takes the book from the end of its slide, either opening it or holding on the cover until the reader clicks it.</summary>
+        private void SettleAfterSlide()
+        {
+            if (Book.Data.StartOnCover is true)
+            {
+                SetMenuState(MenuState.Cover);
+                return;
+            }
+
+            SetMenuState(MenuState.Opening);
+            PlaySound(_animation.OpenSound);
         }
 
         // Start of internal logic
@@ -570,7 +633,7 @@ namespace Parchment.Framework.UI.Menus
 
         private Element? GetElementAt(Point screenPosition)
         {
-            if (CurrentState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover)
             {
                 return null;
             }
@@ -578,8 +641,13 @@ namespace Parchment.Framework.UI.Menus
             Rectangle bookBounds = GetBookScreenBounds();
 
             Element? hitElement = Page.HitTest(Book.Overlay, bookBounds, screenPosition);
-            hitElement ??= HitTestPage(GetLeftPageIndex(), GetLeftPageBounds(), screenPosition);
-            hitElement ??= HitTestPage(GetRightPageIndex(), GetRightPageBounds(), screenPosition);
+
+            // There are no pages to hit while the book is shut, only the book's own layers
+            if (CurrentState is MenuState.Ready)
+            {
+                hitElement ??= HitTestPage(GetLeftPageIndex(), GetLeftPageBounds(), screenPosition);
+                hitElement ??= HitTestPage(GetRightPageIndex(), GetRightPageBounds(), screenPosition);
+            }
 
             return hitElement ?? Page.HitTest(Book.Underlay, bookBounds, screenPosition);
         }
@@ -681,6 +749,12 @@ namespace Parchment.Framework.UI.Menus
             {
                 RefreshVisiblePages();
                 HandleVisiblePages();
+            }
+            else if (menuState is MenuState.Covering or MenuState.Cover or MenuState.Opening)
+            {
+                // Cover decoration is authored as a condition on the book state, so it has to swap as the book shuts and again as it
+                // reopens. Waiting for the next refresh tick would leave the cover art a moment late, then hold it over the opening book.
+                RefreshVisiblePages();
             }
         }
 
@@ -820,6 +894,11 @@ namespace Parchment.Framework.UI.Menus
 
         public override bool readyToClose()
         {
+            if (CurrentState is MenuState.Covering)
+            {
+                return false;
+            }
+
             return CurrentState != MenuState.Closing || _animationTimer >= _animation.CloseDuration;
         }
 
@@ -853,9 +932,44 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            if (CurrentState == MenuState.Sliding || CurrentState == MenuState.Opening)
+            if (CurrentState == MenuState.Covering)
             {
-                // Skip intro
+                // Skip the shutting animation
+                SetMenuState(MenuState.Cover);
+                return;
+            }
+
+            if (CurrentState == MenuState.Cover)
+            {
+                // An overlay element gets first refusal, so a button authored onto the cover still works
+                Element? coverElement = GetElementAt(new Point(x, y));
+                if (coverElement is not null && coverElement.Data.HasActions)
+                {
+                    PlaySound(coverElement.Data.Sound);
+                    RunClickActions(coverElement);
+
+                    return;
+                }
+
+                if (GetBookScreenBounds().Contains(x, y) is true)
+                {
+                    BeginReopen();
+                }
+
+                return;
+            }
+
+            if (CurrentState == MenuState.Sliding)
+            {
+                // Skip the slide, landing wherever the slide would have left the book
+                _currentPosition = _targetPosition;
+                SettleAfterSlide();
+                return;
+            }
+
+            if (CurrentState == MenuState.Opening)
+            {
+                // Skip the rest of the opening animation. The reader has already asked for the book open, so this doesn't stop at the cover.
                 _currentPosition = _targetPosition;
                 SetMenuState(MenuState.Ready);
                 return;
@@ -900,6 +1014,14 @@ namespace Parchment.Framework.UI.Menus
 
         public override void performHoverAction(int x, int y)
         {
+            if (CurrentState is MenuState.Cover)
+            {
+                base.performHoverAction(x, y);
+                SetHoveredElement(GetElementAt(new Point(x, y)));
+
+                return;
+            }
+
             if (CurrentState != MenuState.Ready)
             {
                 return;
@@ -937,8 +1059,7 @@ namespace Parchment.Framework.UI.Menus
                 {
                     _currentPosition = _targetPosition;
 
-                    SetMenuState(MenuState.Opening);
-                    PlaySound(_animation.OpenSound);
+                    SettleAfterSlide();
                 }
             }
             else if (CurrentState is MenuState.Opening)
@@ -961,6 +1082,11 @@ namespace Parchment.Framework.UI.Menus
                 UpdateCornerAnimation(ref _nextCornerAnimationTimer, ref _nextCornerFrame, _isHoveringNextPage, elapsedMilliseconds);
                 UpdateCornerAnimation(ref _previousCornerAnimationTimer, ref _previousCornerFrame, _isHoveringPreviousPage, elapsedMilliseconds);
             }
+            else if (CurrentState is MenuState.Cover)
+            {
+                // Cover decoration is authored as book elements conditioned on this state, so conditions have to keep refreshing here
+                UpdateConditionTimer();
+            }
             else if (CurrentState is MenuState.Turning)
             {
                 UpdateConditionTimer();
@@ -973,6 +1099,20 @@ namespace Parchment.Framework.UI.Menus
                 {
                     CommitPageTurn();
                     SetMenuState(MenuState.Ready);
+                }
+            }
+            else if (CurrentState is MenuState.Covering)
+            {
+                UpdateConditionTimer();
+
+                _animationTimer += elapsedMilliseconds;
+
+                // Run the frames backwards
+                _animationFrame = Math.Min((int)(_animationTimer / _animation.CloseDuration * _closeFrames.Count), _closeFrames.Count - 1);
+
+                if (_animationTimer >= _animation.CloseDuration)
+                {
+                    SetMenuState(MenuState.Cover);
                 }
             }
             else if (CurrentState is MenuState.Closing)
@@ -1009,9 +1149,13 @@ namespace Parchment.Framework.UI.Menus
             {
                 textureBounds = _isTurningForward ? _pageTurnFrames[_animationFrame] : _pageTurnFramesReversed[_animationFrame];
             }
-            else if (CurrentState == MenuState.Closing)
+            else if (CurrentState == MenuState.Covering || CurrentState == MenuState.Closing)
             {
                 textureBounds = _closeFrames[_animationFrame];
+            }
+            else if (CurrentState == MenuState.Cover)
+            {
+                textureBounds = _openFrames[0];
             }
 
             Rectangle liveBookBounds = GetLiveBookScreenBounds();
@@ -1037,10 +1181,15 @@ namespace Parchment.Framework.UI.Menus
 
                 DrawElements(b, Book.Overlay, liveBookBounds, bookContext);
             }
+            else if (CurrentState is MenuState.Cover)
+            {
+                // The overlay is the only layer that lands in front of the shut book, so cover decoration has to come through here
+                DrawElements(b, Book.Overlay, liveBookBounds, bookContext);
+            }
 
             base.draw(b);
 
-            if (CurrentState is MenuState.Ready && _hoveredElement is not null && (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false || string.IsNullOrEmpty(_hoveredElement.Description) is false))
+            if (CurrentState is (MenuState.Ready or MenuState.Cover) && _hoveredElement is not null && (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false || string.IsNullOrEmpty(_hoveredElement.Description) is false))
             {
                 drawHoverText(b, _hoveredElement.Description, Game1.smallFont, boldTitleText: _hoveredElement.DisplayName);
             }
