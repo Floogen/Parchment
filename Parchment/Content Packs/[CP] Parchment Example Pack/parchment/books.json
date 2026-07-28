@@ -378,7 +378,7 @@
               },
               "Scale": 4,
               "Action": "PeacefulEnd.Parchment_FirstPage",
-              "Condition": "!PeacefulEnd.Parchment_CurrentPageIndex 0"
+              "Condition": "PeacefulEnd.Parchment_CurrentBookState Ready, !PeacefulEnd.Parchment_CurrentPageIndex 0"
             },
             {
               "Type": "Image",
@@ -402,7 +402,7 @@
               },
               "Scale": 4,
               "Action": "PeacefulEnd.Parchment_LastPage",
-              "Condition": "!PeacefulEnd.Parchment_IsLastPage"
+              "Condition": "PeacefulEnd.Parchment_CurrentBookState Ready, !PeacefulEnd.Parchment_IsLastPage"
             }
           ],
 

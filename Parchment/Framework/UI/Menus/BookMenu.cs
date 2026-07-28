@@ -1166,14 +1166,10 @@ namespace Parchment.Framework.UI.Menus
                 {
                     DrawCorners(b);
                 }
+            }
 
-                DrawElements(b, Book.Overlay, liveBookBounds, bookContext);
-            }
-            else if (CurrentState is MenuState.Cover)
-            {
-                // The overlay is the only layer that lands in front of the shut book, so cover decoration has to come through here
-                DrawElements(b, Book.Overlay, liveBookBounds, bookContext);
-            }
+            // Drawn in every state, the same as the underlay, so it rides in with the book and stays on the shut cover
+            DrawElements(b, Book.Overlay, liveBookBounds, bookContext);
 
             base.draw(b);
 

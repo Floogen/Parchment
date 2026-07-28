@@ -26,7 +26,7 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 | `SpritePath` <span class="opt">optional</span> | `string` | — | The sprite used for the book's item. |
 | `Pages` <span class="opt">optional</span> | list of [`pages`](page.md) | empty list | The book's pages, in order. Two consecutive pages make a spread. |
 | `Underlay` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **behind** the book sprite, positioned by their `Position` relative to the book's top-left. Negative coordinates place them outside the book's edges. This is how you make a bookmark that sticks out of the side, with the part that overlaps the book hidden behind it. Drawn during the open and close animations, so they ride in with the book. |
-| `Overlay` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **in front of** the book sprite and its pages, positioned by their `Position` relative to the book's top-left. Only drawn once the book is open, and on the shut cover during [cover view](#cover-view). |
+| `Overlay` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **in front of** the book sprite and its pages, positioned by their `Position` relative to the book's top-left. Drawn in every state, so they ride in with the book, sit over the open spread and stay on the shut cover during [cover view](#cover-view). Give an element a [condition](../concepts/conditions.md#book-states) to hold it back to one of those. |
 | `Appearance` <span class="opt">optional</span> | [`Appearance`](#appearance) | *the default book* | The book's sprite and animation frames. |
 | `PageCurl` <span class="opt">optional</span> | [`PageCurl`](#page-curl) | *the default corners* | The corner curl sprite and its clickable areas. |
 | `Animation` <span class="opt">optional</span> | [`Animation`](#animation) | *see below* | Animation timings and sounds. |
@@ -36,6 +36,9 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 
 !!! note "Underlay and overlay elements always take the cursor"
     Unlike a page's [`Background` and `Foreground`](page.md#background-and-foreground), a decorative element here is hit-tested whether or not it has a tooltip or an action, and the overlay is tested before the pages. Keep overlay art to the area it actually covers rather than stretching a transparent sheet over the whole book.
+
+!!! note "Both layers ride in with the book"
+    Neither layer waits for the book to open. They're drawn from the moment it starts sliding up, through the open and close animations and on the cover. An overlay laid out against the open spread will therefore appear over the closed cover on the way in, so give it a [book state](../concepts/conditions.md#book-states) condition such as `ANY "PeacefulEnd.Parchment_CurrentBookState Ready" "PeacefulEnd.Parchment_CurrentBookState Turning"` when it should only exist once the book is open.
 
 !!! note "The book's name and description live on the item"
     A book has no `Title` or `Description` of its own. What the player sees comes from the item that opens it, its `DisplayName` and `Description` in `Data/Objects`. That also means those are localisable through the usual `[LocalizedText ...]` tokens.

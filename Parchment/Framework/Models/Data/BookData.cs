@@ -32,7 +32,8 @@ namespace Parchment.Framework.Models.Data
         /// <summary>Elements drawn behind the book sprite, positioned via <see cref="ElementData.Position"/> relative to the book's top-left. Negative coordinates place content outside the book's edges.</summary>
         public List<ElementData>? Underlay { get; set; }
 
-        /// <summary>Elements drawn in front of the book sprite and its pages, positioned via <see cref="ElementData.Position"/> relative to the book's top-left.</summary>
+        /// <summary>Elements drawn in front of the book sprite and its pages, positioned via <see cref="ElementData.Position"/> relative to the book's top-left.
+        /// Drawn in every menu state, so they ride in with the book and remain on the shut cover.</summary>
         public List<ElementData>? Overlay { get; set; }
 
         public BookLayoutData Layout { get; set; } = new BookLayoutData();
