@@ -47,7 +47,7 @@ namespace Parchment.Framework.UI.Menus
 
         // Adjust this for GSQ refresh rate check
         private const int CONDITION_REFRESH_INTERVAL = 6;
-        private int _conditionRefreshTimer = 0;
+        private int _conditionRefreshTimer = CONDITION_REFRESH_INTERVAL;
 
         private readonly List<Rectangle> _openFrames = new List<Rectangle>();
         private readonly List<Rectangle> _closeFrames = new List<Rectangle>();
@@ -745,16 +745,12 @@ namespace Parchment.Framework.UI.Menus
 
             ClearHoverState();
 
+            // The book state is itself testable through CurrentBookState, so a transition can change what's visible. Refreshing here rather than waiting for the next tick keeps the swap in step with the animation it belongs to
+            RefreshVisiblePages();
+
             if (menuState is MenuState.Ready)
             {
-                RefreshVisiblePages();
                 HandleVisiblePages();
-            }
-            else if (menuState is MenuState.Covering or MenuState.Cover or MenuState.Opening)
-            {
-                // Cover decoration is authored as a condition on the book state, so it has to swap as the book shuts and again as it
-                // reopens. Waiting for the next refresh tick would leave the cover art a moment late, then hold it over the opening book.
-                RefreshVisiblePages();
             }
         }
 
@@ -1044,6 +1040,9 @@ namespace Parchment.Framework.UI.Menus
 
             float elapsedMilliseconds = (float)time.ElapsedGameTime.TotalMilliseconds;
 
+            // Conditions refresh in every state, so CurrentBookState works for all of them and there's no state where a condition goes stale
+            UpdateConditionTimer();
+
             if (CurrentState is MenuState.Sliding)
             {
                 _animationTimer += elapsedMilliseconds;
@@ -1077,20 +1076,11 @@ namespace Parchment.Framework.UI.Menus
             }
             else if (CurrentState is MenuState.Ready)
             {
-                UpdateConditionTimer();
-
                 UpdateCornerAnimation(ref _nextCornerAnimationTimer, ref _nextCornerFrame, _isHoveringNextPage, elapsedMilliseconds);
                 UpdateCornerAnimation(ref _previousCornerAnimationTimer, ref _previousCornerFrame, _isHoveringPreviousPage, elapsedMilliseconds);
             }
-            else if (CurrentState is MenuState.Cover)
-            {
-                // Cover decoration is authored as book elements conditioned on this state, so conditions have to keep refreshing here
-                UpdateConditionTimer();
-            }
             else if (CurrentState is MenuState.Turning)
             {
-                UpdateConditionTimer();
-
                 _animationTimer += elapsedMilliseconds;
 
                 _animationFrame = Math.Min((int)(_animationTimer / _animation.TurnDuration * _pageTurnFrames.Count), _pageTurnFrames.Count - 1);
@@ -1103,8 +1093,6 @@ namespace Parchment.Framework.UI.Menus
             }
             else if (CurrentState is MenuState.Covering)
             {
-                UpdateConditionTimer();
-
                 _animationTimer += elapsedMilliseconds;
 
                 // Run the frames backwards
