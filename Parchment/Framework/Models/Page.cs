@@ -118,8 +118,8 @@ namespace Parchment.Framework.Models
 
         // Start of public static methods
         /// <summary>Places each element at its own <see cref="ElementData.Position"/> rather than stacking it, used for a page's Background and Foreground and a book's Underlay and Overlay.
-        /// <see cref="ElementData.Alignment"/> anchors the element within the container's width first and <see cref="ElementData.Position"/> is then an offset from that anchor.
-        /// Left anchors at zero, so a left-aligned element's position still reads as a plain coordinate. Unlike <see cref="StackElements"/> this ignores the element's margins, as Position is already the way to inset a placed element.
+        /// <see cref="ElementData.Alignment"/> and <see cref="ElementData.VerticalAlignment"/> anchor the element within the container first and <see cref="ElementData.Position"/> is then an offset from that anchor.
+        /// Left and Top anchor at zero, so a default-aligned element's position still reads as a plain coordinate. Unlike <see cref="StackElements"/> this ignores the element's margins, as Position is already the way to inset a placed element.
         /// </summary>
         public static void PositionElements(IReadOnlyList<Element> elements, ElementRenderContext context)
         {
@@ -140,8 +140,9 @@ namespace Parchment.Framework.Models
                 }
 
                 int alignedX = (int)AlignmentHelper.GetAlignedX(availableWidth: context.AvailableWidth, contentWidth: elementSize.X, alignment: element.Data.Alignment);
+                int alignedY = (int)AlignmentHelper.GetAlignedY(availableHeight: context.AvailableHeight, contentHeight: elementSize.Y, alignment: element.Data.VerticalAlignment);
 
-                element.Bounds = new Rectangle(alignedX + element.Data.Position.X, element.Data.Position.Y, (int)elementSize.X, (int)elementSize.Y);
+                element.Bounds = new Rectangle(alignedX + element.Data.Position.X, alignedY + element.Data.Position.Y, (int)elementSize.X, (int)elementSize.Y);
             }
         }
 

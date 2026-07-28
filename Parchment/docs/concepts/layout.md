@@ -36,6 +36,8 @@ Both happen from the same field, which is almost always what you want. The excep
 
 An [`Image`](../reference/elements/image.md) with text on it separates them properly: `Alignment` places the picture, `TextAlignment` places the words on it.
 
+There's a `VerticalAlignment` too, but only for [placed elements](#placed-elements). A stacked element's vertical position is whatever the elements above it leave, so there's nothing for it to decide.
+
 ## Placed elements
 
 Not everything stacks. Elements in a page's `Background` and `Foreground`, or the book's `Underlay` and `Overlay`, are placed by their `Position` instead, a screen-pixel coordinate relative to the page's content area or the book's top-left.
@@ -48,29 +50,38 @@ Placed elements are still fully featured. One in a page's `Background` or `Foreg
 
 ### Alignment anchors, position offsets
 
-`Alignment` still applies to a placed element, and it decides where `Position` counts from. The element is anchored within the container's width first, then moved by `Position`:
+`Alignment` and `VerticalAlignment` both apply to a placed element, and they decide where `Position` counts from. The element is anchored within the container first, then moved by `Position`:
 
-| Alignment | Where `X: 0` lands | What a positive `X` does |
+| `Alignment` | Where `X: 0` lands | What a positive `X` does |
 | --- | --- | --- |
 | `Left` | The container's left edge. | Moves right. |
 | `Center` | Horizontally centred. | Moves right of centre. |
 | `Right` | Flush against the right edge. | Pushes past the right edge, so you'll usually want a negative value here. |
 
-The default is `Left` anchoring at zero, which is why `Position` reads as a plain coordinate until you set something else. Centring a flourish on a page therefore needs no arithmetic against the page width:
+| `VerticalAlignment` | Where `Y: 0` lands | What a positive `Y` does |
+| --- | --- | --- |
+| `Top` | The container's top edge. | Moves down. |
+| `Center` | Vertically centred. | Moves below centre. |
+| `Bottom` | Flush against the bottom edge. | Pushes past the bottom edge, so you'll usually want a negative value here. |
+
+The two are independent, so you can centre horizontally and pin to the bottom. The defaults are `Left` and `Top`, both anchoring at zero, which is why `Position` reads as a plain coordinate until you set something else. Centring a flourish on a page therefore needs no arithmetic against the page's size:
 
 ```json
 {
   "Type": "Image",
   "TexturePath": "{{ModId}}/flourish",
   "Alignment": "Center",
-  "Position": { "X": 0, "Y": 340 }
+  "VerticalAlignment": "Bottom",
+  "Position": { "X": 0, "Y": -24 }
 }
 ```
 
-The usual caveat applies: an element with no slack can't move. A default `Panel` or `Divider` fills the width, so aligning one does nothing until it has a `Width`. A `Paragraph` in a placed list wraps at the full container width, so its block only shifts by however much its longest line falls short.
+That sits the flourish along the bottom of the page, 24px up from the edge, wherever the page's content area happens to fall. The book's `Underlay` and `Overlay` anchor against the book sprite instead, so the same element there would sit against the bottom of the book rather than the bottom of a page.
+
+The usual caveat applies on both axes: an element with no slack can't move. A default `Panel` or `Divider` fills the width, so aligning one does nothing until it has a `Width`. A `Paragraph` in a placed list wraps at the full container width, so its block only shifts by however much its longest line falls short. Vertically there's almost always slack, since a placed element is rarely as tall as the page.
 
 !!! note "Margins don't apply to placed elements"
-    `MarginLeft` and `MarginRight` are ignored here, so alignment measures against the container's full width. Inset a placed element with `Position` instead, which is what it's for.
+    `MarginLeft` and `MarginRight` are ignored here, so alignment measures against the container's full width and height. Inset a placed element with `Position` instead, which is what it's for.
 
 ## When content doesn't fit
 

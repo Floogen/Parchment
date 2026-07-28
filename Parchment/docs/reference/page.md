@@ -33,7 +33,7 @@ A page is a stack of elements. Two consecutive pages make a spread. Page 0 and 1
 
 The cursor works through the three lists from the top down, so `Foreground` gets first refusal, then `Elements`, then `Background`. Within a list the first match wins and a container's children are tested before the container itself.
 
-`Alignment` works here as well, anchoring the element within the page's content area with `Position` measured from that anchor, so a centred flourish needs no arithmetic against the page width. See [Alignment anchors, position offsets](../concepts/layout.md#alignment-anchors-position-offsets).
+`Alignment` and `VerticalAlignment` work here as well, anchoring the element within the page's content area with `Position` measured from that anchor, so a centred image or a footer pinned to the bottom needs no eyeballing against the page's size. See [Alignment anchors, position offsets](../concepts/layout.md#alignment-anchors-position-offsets).
 
 ```json
 {

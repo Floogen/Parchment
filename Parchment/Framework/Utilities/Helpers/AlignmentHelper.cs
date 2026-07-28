@@ -28,5 +28,23 @@ namespace Parchment.Framework.Utilities.Helpers
         {
             return bounds.X + GetAlignedX(bounds.Width, contentWidth, alignment);
         }
+
+        public static float GetAlignedY(float availableHeight, float contentHeight, VerticalAlignmentType alignment)
+        {
+            switch (alignment)
+            {
+                case VerticalAlignmentType.Center:
+                    return (availableHeight - contentHeight) / 2f;
+                case VerticalAlignmentType.Bottom:
+                    return availableHeight - contentHeight;
+            }
+
+            return 0f;
+        }
+
+        public static float GetAlignedY(Rectangle bounds, float contentHeight, VerticalAlignmentType alignment)
+        {
+            return bounds.Y + GetAlignedY(bounds.Height, contentHeight, alignment);
+        }
     }
 }
