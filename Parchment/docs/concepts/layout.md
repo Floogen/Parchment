@@ -36,7 +36,7 @@ Both happen from the same field, which is almost always what you want. The excep
 
 An [`Image`](../reference/elements/image.md) with text on it separates them properly: `Alignment` places the picture, `TextAlignment` places the words on it.
 
-There's a `VerticalAlignment` too, but only for [placed elements](#placed-elements). A stacked element's vertical position is whatever the elements above it leave, so there's nothing for it to decide.
+There's a `VerticalAlignment` too, but only for [placed elements](#placed-elements). A stacked element's vertical position is whatever the elements above it leave, so there's nothing for it to decide. Setting it on a stacked element logs an error to SMAPI and changes nothing, rather than failing quietly.
 
 ## Placed elements
 
@@ -79,6 +79,9 @@ The two are independent, so you can centre horizontally and pin to the bottom. T
 That sits the flourish along the bottom of the page, 24px up from the edge, wherever the page's content area happens to fall. The book's `Underlay` and `Overlay` anchor against the book sprite instead, so the same element there would sit against the bottom of the book rather than the bottom of a page.
 
 The usual caveat applies on both axes: an element with no slack can't move. A default `Panel` or `Divider` fills the width, so aligning one does nothing until it has a `Width`. A `Paragraph` in a placed list wraps at the full container width, so its block only shifts by however much its longest line falls short. Vertically there's almost always slack, since a placed element is rarely as tall as the page.
+
+!!! warning "`VerticalAlignment` is for placed elements only"
+    On a stacked element it does nothing, because the elements above it already decide where it starts. Parchment logs an error naming the element so it doesn't look like the field silently broke. To push a whole page's content down, use the `SpacingAfter` of the element above it or the book's [`MarginTop`](../reference/book.md#layout).
 
 !!! note "Margins don't apply to placed elements"
     `MarginLeft` and `MarginRight` are ignored here, so alignment measures against the container's full width and height. Inset a placed element with `Position` instead, which is what it's for.

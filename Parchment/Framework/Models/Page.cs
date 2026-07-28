@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Rendering;
@@ -147,6 +148,9 @@ namespace Parchment.Framework.Models
         }
 
         // Keep this static so it can be called outside Page
+        /// <summary>Stacks each element top to bottom, returning the total height the stack came to.
+        /// <see cref="ElementData.VerticalAlignment"/> has no meaning here, as a stacked element's vertical position comes from the elements above it rather than from the space around it.
+        /// </summary>
         public static float StackElements(IReadOnlyList<Element> elements, ElementRenderContext context)
         {
             float currentY = 0f;
@@ -161,6 +165,8 @@ namespace Parchment.Framework.Models
                     element.Bounds = Rectangle.Empty;
                     continue;
                 }
+
+                WarnOnStackedVerticalAlignment(element);
 
                 // Only stop rendering if it is past the AvailableHeight AND at least one element has been laid out
                 float elementY = currentY + pendingSpacing;
@@ -193,6 +199,21 @@ namespace Parchment.Framework.Models
             }
 
             return currentY;
+        }
+
+        /// <summary>Reports a stacked element carrying a <see cref="ElementData.VerticalAlignment"/>, which is always an authoring mistake.
+        /// Logged once per element type and ID, as this runs on every layout pass.
+        /// </summary>
+        private static void WarnOnStackedVerticalAlignment(Element element)
+        {
+            if (element.Data.VerticalAlignment is VerticalAlignmentType.Top)
+            {
+                return;
+            }
+
+            string elementLabel = string.IsNullOrWhiteSpace(element.Data.Id) ? $"A {element.Data.Type} element" : $"The {element.Data.Type} element \"{element.Data.Id}\"";
+
+            Parchment.monitor.LogOnce($"{elementLabel} sets \"VerticalAlignment\" to {element.Data.VerticalAlignment} while stacked, where it is ignored. It only applies to placed elements, in a page's Background or Foreground or a book's Underlay or Overlay.", LogLevel.Error);
         }
 
         /// <param name="interactiveOnly">When true, elements that do nothing on hover or click are stepped over instead of claiming the cursor. Used for <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/>,
