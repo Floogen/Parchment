@@ -15,11 +15,15 @@ namespace Parchment.Framework.API
 
         IElementBuilder Text(string text);
 
-        /// <summary>How the element sits on the page: "Left", "Center" or "Right".</summary>
-        IElementBuilder Align(string alignment);
+        /// <summary>How the element sits across its container's width: "Left", "Center" or "Right".</summary>
+        IElementBuilder Alignment(string alignment);
+
+        /// <summary>How the element sits down its container's height: "Top", "Center" or "Bottom". Only used on a placed element, one added
+        /// through AddBackground, AddForeground, AddUnderlay or AddOverlay, as a stacked element takes its vertical position from the elements above it.</summary>
+        IElementBuilder VerticalAlignment(string alignment);
 
         /// <summary>How text sits inside the element, where the element type supports it.</summary>
-        IElementBuilder TextAlign(string alignment);
+        IElementBuilder TextAlignment(string alignment);
 
         /// <summary>The font to draw text with: "Dialogue", "Small", "Tiny" or "SpriteText".</summary>
         IElementBuilder Font(string fontType);

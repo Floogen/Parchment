@@ -37,8 +37,9 @@ namespace Parchment.Framework.API.Builders
 
         public IElementBuilder WithId(string id) { return Set("Id", id); }
         public IElementBuilder Text(string text) { return Set("Text", text); }
-        public IElementBuilder Align(string alignment) { return Set("Alignment", alignment); }
-        public IElementBuilder TextAlign(string alignment) { return Set("TextAlignment", alignment); }
+        public IElementBuilder Alignment(string alignment) { return Set("Alignment", alignment); }
+        public IElementBuilder VerticalAlignment(string alignment) { return Set("VerticalAlignment", alignment); }
+        public IElementBuilder TextAlignment(string alignment) { return Set("TextAlignment", alignment); }
         public IElementBuilder Font(string fontType) { return Set("FontType", fontType); }
         public IElementBuilder TextColor(string color) { return Set("TextColor", color); }
         public IElementBuilder TextScale(float scale) { return Set("TextScale", scale); }

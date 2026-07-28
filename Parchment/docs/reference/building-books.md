@@ -13,14 +13,14 @@ IBookBuilder book = parchment.CreateBook("you.CampingGuide");
 book.Sprite("you.CampingGuide/book");
 
 IPageBuilder cover = book.AddPage("cover");
-cover.AddTitle("Camping Guide").Align("Center");
-cover.AddImage("you.CampingGuide/cover").Align("Center").Scale(3);
-cover.AddButton("Begin", "PeacefulEnd.Parchment_NextPage").Align("Center");
+cover.AddTitle("Camping Guide").Alignment("Center");
+cover.AddImage("you.CampingGuide/cover").Alignment("Center").Scale(3);
+cover.AddButton("Begin", "PeacefulEnd.Parchment_NextPage").Alignment("Center");
 
 IPageBuilder tents = book.AddPage("tents", "chapter-tents");
 tents.AddHeading("Tents");
 tents.AddParagraph("A starter tent sleeps one, and packs down to nothing.");
-tents.AddItemImage("(O)24").Align("Center");
+tents.AddItemImage("(O)24").Alignment("Center");
 
 if (book.TryRegister(out string error) is false)
 {
@@ -89,13 +89,16 @@ You can only remove books your own mod registered. Books from content packs, and
 
 ## The element builder
 
+Most methods are named after the field they set, so anything you've written in a content pack carries over. The handful that aren't are the ones doing more than an assignment, such as `Margin`, `Spacing` and `AddFrame`.
+
 | Method | Sets |
 | --- | --- |
 | `Set(field, value)` | Any [element field](elements/index.md) by name. |
 | `WithId(id)` | `Id` |
 | `Text(text)` | `Text` |
-| `Align(alignment)` | `Alignment`, one of `"Left"`, `"Center"`, `"Right"` |
-| `TextAlign(alignment)` | `TextAlignment` |
+| `Alignment(alignment)` | `Alignment`, one of `"Left"`, `"Center"`, `"Right"` |
+| `VerticalAlignment(alignment)` | `VerticalAlignment`, one of `"Top"`, `"Center"`, `"Bottom"`. Only used on a placed element |
+| `TextAlignment(alignment)` | `TextAlignment`, one of `"Left"`, `"Center"`, `"Right"` |
 | `Font(fontType)` | `FontType`, one of `"Dialogue"`, `"Small"`, `"Tiny"`, `"SpriteText"` |
 | `TextColor(color)` | `TextColor` |
 | `TextScale(scale)` | `TextScale` |
@@ -178,7 +181,7 @@ The list runs to the end regardless of what happens partway, and there's no per-
 Frames are added to an Image after its source rectangle, which is what gives them their size:
 
 ```csharp
-IElementBuilder junimo = page.AddImage("Characters/Junimo").TextureSource(48, 0, 16, 16).Scale(4).Align("Center");
+IElementBuilder junimo = page.AddImage("Characters/Junimo").TextureSource(48, 0, 16, 16).Scale(4).Alignment("Center");
 
 junimo.AddFrame(48, 0, 400);
 junimo.AddFrame(64, 0, 400);
