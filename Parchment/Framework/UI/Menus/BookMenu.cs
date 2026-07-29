@@ -1175,7 +1175,14 @@ namespace Parchment.Framework.UI.Menus
 
             if (CurrentState is (MenuState.Ready or MenuState.Cover) && _hoveredElement is not null && (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false || string.IsNullOrEmpty(_hoveredElement.Description) is false))
             {
-                drawHoverText(b, _hoveredElement.Description, Game1.smallFont, boldTitleText: _hoveredElement.DisplayName);
+                if (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false && string.IsNullOrEmpty(_hoveredElement.Description) is true)
+                {
+                    drawHoverText(b, _hoveredElement.DisplayName, Game1.smallFont);
+                }
+                else
+                {
+                    drawHoverText(b, _hoveredElement.Description, Game1.smallFont, boldTitleText: _hoveredElement.DisplayName);
+                }
             }
 
             base.drawMouse(b, ignore_transparency: true);
