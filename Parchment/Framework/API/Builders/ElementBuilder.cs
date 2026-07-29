@@ -87,14 +87,28 @@ namespace Parchment.Framework.API.Builders
 
         public IElementBuilder AddFrame(int x, int y, float duration = 0f, float scale = 1f, string? condition = null)
         {
-            _frames.Add(new FrameRecipe(x, y, duration > 0f ? (float?)duration : null, scale, condition));
+            _frames.Add(new FrameRecipe(new Point(x, y), duration > 0f ? (float?)duration : null, scale, condition));
+
+            return this;
+        }
+
+        public IElementBuilder AddFrameInPlace(float duration = 0f, float scale = 1f, string? condition = null)
+        {
+            _frames.Add(new FrameRecipe(null, duration > 0f ? (float?)duration : null, scale, condition));
 
             return this;
         }
 
         public IElementBuilder AddHoverFrame(int x, int y, float duration = 0f, float scale = 1f, string? condition = null)
         {
-            _hoverFrames.Add(new FrameRecipe(x, y, duration > 0f ? (float?)duration : null, scale, condition));
+            _hoverFrames.Add(new FrameRecipe(new Point(x, y), duration > 0f ? (float?)duration : null, scale, condition));
+
+            return this;
+        }
+
+        public IElementBuilder AddHoverFrameInPlace(float duration = 0f, float scale = 1f, string? condition = null)
+        {
+            _hoverFrames.Add(new FrameRecipe(null, duration > 0f ? (float?)duration : null, scale, condition));
 
             return this;
         }
@@ -225,7 +239,7 @@ namespace Parchment.Framework.API.Builders
 
             foreach (FrameRecipe recipe in recipes)
             {
-                frames.Add(new AnimationFrameData() { SourcePoint = new Point(recipe.X, recipe.Y), Duration = recipe.Duration, Scale = recipe.Scale, Condition = recipe.Condition });
+                frames.Add(new AnimationFrameData() { SourcePoint = recipe.SourcePoint, Duration = recipe.Duration, Scale = recipe.Scale, Condition = recipe.Condition });
             }
 
             return frames;
@@ -233,16 +247,15 @@ namespace Parchment.Framework.API.Builders
 
         private class FrameRecipe
         {
-            public int X { get; }
-            public int Y { get; }
+            // Null when the frame keeps whatever the element already draws, which is how an item's icon is animated
+            public Point? SourcePoint { get; }
             public float? Duration { get; }
             public float Scale { get; }
             public string? Condition { get; }
 
-            public FrameRecipe(int x, int y, float? duration, float scale, string? condition)
+            public FrameRecipe(Point? sourcePoint, float? duration, float scale, string? condition)
             {
-                X = x;
-                Y = y;
+                SourcePoint = sourcePoint;
                 Duration = duration;
                 Scale = scale;
                 Condition = condition;

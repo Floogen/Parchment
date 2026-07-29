@@ -24,7 +24,9 @@ namespace Parchment.Framework.Models.Data
         public string? TintColor { get; set; }
         public SpriteEffects SpriteEffects { get; set; }
 
-        /// <summary>The animation frames. When null or empty, the element draws <see cref="TextureSourceRectangle"/> statically.</summary>
+        /// <summary>The animation frames. When null or empty, the element draws <see cref="TextureSourceRectangle"/> statically.
+        /// Frames take their size from <see cref="TextureSourceRectangle"/>, or from the item's own sprite when <see cref="ItemId"/> is used, in which case a frame is expected to leave <see cref="AnimationFrameData.SourcePoint"/> unset and vary only its duration, scale or condition.
+        /// </summary>
         public List<AnimationFrameData>? Frames { get; set; }
 
         /// <summary>The animation frames played while the cursor is over the element, replacing <see cref="Frames"/> for as long as it stays there. Frames take their size from <see cref="TextureSourceRectangle"/> the same way, so this changes what is drawn rather than the element's layout.
@@ -110,7 +112,7 @@ namespace Parchment.Framework.Models.Data
             return base.IsValid();
         }
 
-        /// <summary>Validates one frame list. Both <see cref="Frames"/> and <see cref="HoverFrames"/> are measured against <see cref="TextureSourceRectangle"/>, so they carry the same requirements.</summary>
+        /// <summary>Validates one frame list. Both <see cref="Frames"/> and <see cref="HoverFrames"/> are measured against <see cref="TextureSourceRectangle"/>, or against the item's sprite when <see cref="ItemId"/> is used, so they carry the same requirements.</summary>
         private (bool Result, string Error) ValidateFrames(List<AnimationFrameData>? frames, string fieldName)
         {
             if (frames is null || frames.Count is 0)
@@ -118,7 +120,8 @@ namespace Parchment.Framework.Models.Data
                 return (true, string.Empty);
             }
 
-            if (TextureSourceRectangle is not Rectangle)
+            // An item brings its own sprite rectangle from the item registry, so it stands in for TextureSourceRectangle as the layout size
+            if (TextureSourceRectangle is not Rectangle && string.IsNullOrWhiteSpace(ItemId))
             {
                 return (false, $"\"TextureSourceRectangle\" is required when \"{fieldName}\" is set, since it defines the layout size.");
             }

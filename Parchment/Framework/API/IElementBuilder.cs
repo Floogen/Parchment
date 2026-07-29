@@ -94,9 +94,19 @@ namespace Parchment.Framework.API
         /// falls back to drawing its source rectangle.</param>
         IElementBuilder AddFrame(int x, int y, float duration = 0f, float scale = 1f, string? condition = null);
 
+        /// <summary>Adds an animation frame that keeps whatever the element already draws, varying only its timing, scale or condition.
+        /// This is how an item's icon is animated, since Item draws a sprite whose place in the sheet isn't yours to know.</summary>
+        /// <param name="duration">How long the frame is shown, in milliseconds. 0 leaves it to the element's FrameDuration.</param>
+        /// <param name="scale">A multiplier on the element's scale while this frame draws.</param>
+        /// <param name="condition">A game state query deciding whether the frame plays.</param>
+        IElementBuilder AddFrameInPlace(float duration = 0f, float scale = 1f, string? condition = null);
+
         /// <summary>Adds a frame played while the cursor is over the element, replacing the idle frames for as long as it stays there.
         /// When the hover frames are empty or fully conditioned out, the idle animation carries on rather than the element going still.</summary>
         IElementBuilder AddHoverFrame(int x, int y, float duration = 0f, float scale = 1f, string? condition = null);
+
+        /// <summary>Adds a hover frame that keeps whatever the element already draws, varying only its timing, scale or condition.</summary>
+        IElementBuilder AddHoverFrameInPlace(float duration = 0f, float scale = 1f, string? condition = null);
 
         /// <summary>What a PageNumber counts from: "Book" or "Chapter".</summary>
         IElementBuilder Scope(string scope);

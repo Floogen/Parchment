@@ -34,7 +34,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
             if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle || sourceRectangle.Width <= 0 || sourceRectangle.Height <= 0)
             {
-                Parchment.monitor.Log($"Image element has an empty source rectangle for '{data.TexturePath}' and will not render!", LogLevel.Warn);
+                Parchment.monitor.Log($"Image element has an empty source rectangle for '{GetSpriteName(data)}' and will not render!", LogLevel.Warn);
                 return Vector2.Zero;
             }
 
@@ -63,9 +63,15 @@ namespace Parchment.Framework.UI.Rendering.Elements
             float fittedScale = availableWidth / sourceRectangle.Width;
             float snappedScale = (float)Math.Floor(fittedScale);
 
-            Parchment.monitor.LogOnce($"Image '{data.TexturePath}' is {(int)(sourceRectangle.Width * data.Scale)}px wide at {nameof(data.Scale)} {data.Scale}, but only {(int)availableWidth}px is available; it will be scaled down to fit.", LogLevel.Warn);
+            Parchment.monitor.LogOnce($"Image '{GetSpriteName(data)}' is {(int)(sourceRectangle.Width * data.Scale)}px wide at {nameof(data.Scale)} {data.Scale}, but only {(int)availableWidth}px is available; it will be scaled down to fit.", LogLevel.Warn);
 
             return snappedScale >= 1f ? snappedScale : fittedScale;
+        }
+
+        /// <summary>What the sprite is called in a log message, which is the item for an element drawing an item's icon and the texture path otherwise.</summary>
+        private static string GetSpriteName(ImageElementData data)
+        {
+            return string.IsNullOrWhiteSpace(data.ItemId) is false ? data.ItemId! : data.TexturePath ?? string.Empty;
         }
 
         private static Rectangle GetScaledTextArea(ImageElementData data, Rectangle sourceRectangle, float drawScale)

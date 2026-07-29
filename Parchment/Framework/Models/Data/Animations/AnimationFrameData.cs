@@ -9,8 +9,10 @@ namespace Parchment.Framework.Models.Data.Animations
 {
     public class AnimationFrameData
     {
-        /// <summary>The source point for this frame. Automatically matches the dimensions of the element's <see cref="ISprite.TextureSourceRectangle"/>.</summary>
-        public Point SourcePoint { get; set; }
+        /// <summary>The source point for this frame. Automatically matches the dimensions of the element's <see cref="ISprite.TextureSourceRectangle"/>, or of the item's sprite when <see cref="ImageElementData.ItemId"/> is used.
+        /// When null, the frame draws whatever the element already draws, which lets a frame vary only its <see cref="Duration"/>, <see cref="Scale"/> or <see cref="Condition"/>. This is the only usable form alongside <see cref="ImageElementData.ItemId"/>, where the sprite's place in the sheet isn't the author's to know.
+        /// </summary>
+        public Point? SourcePoint { get; set; }
 
         /// <summary>How long this frame is shown, in milliseconds. When null, the element's <see cref="ImageElementData.FrameDuration"/> is used.</summary>
         public float? Duration { get; set; }

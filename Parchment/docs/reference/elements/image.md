@@ -18,7 +18,7 @@ An image is sized by its sprite: `TextureSourceRectangle` × `Scale`. If that's 
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `ItemId` <span class="opt">optional</span> | `string` | — | A qualified item ID such as `(O)24`, whose icon is drawn. When set, `TexturePath` and `TextureSourceRectangle` are ignored. The item's name and description also fill in `DisplayName` and `Description` automatically, so `ItemId` alone gives you the sprite *and* a vanilla-style tooltip. |
+| `ItemId` <span class="opt">optional</span> | `string` | — | A qualified item ID such as `(O)24`, whose icon is drawn. When set, `TexturePath` and `TextureSourceRectangle` are ignored. The item's name and description also fill in `DisplayName` and `Description` automatically, so `ItemId` alone gives you the sprite *and* a vanilla-style tooltip. It can still be animated: see [Animating an item](#animating-an-item). |
 | `Frames` <span class="opt">optional</span> | list of [`frames`](#frames) | — | Animation frames. When omitted, the sprite is static. |
 | `HoverFrames` <span class="opt">optional</span> | list of [`frames`](#frames) | — | Animation frames played while the cursor is over the element, replacing `Frames` for as long as it stays there. See [Hover frames](#hover-frames). |
 | `FrameDuration` <span class="opt">optional</span> | `number` | `100` | How long a frame is shown when it doesn't specify its own `Duration`, in milliseconds. |
@@ -34,7 +34,7 @@ Each entry in `Frames`:
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `SourcePoint` <span class="req">required</span> | `Point` | — | The coordinate of the sprite for this frame. Automatically inherits the element's `TextureSourceRectangle` for height and width. |
+| `SourcePoint` <span class="opt">optional</span> | `Point` | *the element's own sprite* | The coordinate of the sprite for this frame. Automatically inherits the element's `TextureSourceRectangle` for height and width. Omit it and the frame draws whatever the element already draws, which is how you vary only `Duration`, `Scale` or `Condition`. |
 | `Duration` <span class="opt">optional</span> | `number` | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
 | `Scale` <span class="opt">optional</span> | `number` | `1` | A multiplier on the element's `Scale` while this frame draws. See [Frame scale](#frame-scale). |
 | `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../../concepts/conditions.md) deciding whether this frame plays. When omitted the frame always plays. |
@@ -46,7 +46,7 @@ A frame whose `Condition` fails is **skipped**, not paused on. The cycle gets sh
 When *every* frame's condition fails, the element falls back to drawing `TextureSourceRectangle` on its own. An animation that's entirely conditional therefore goes still rather than disappearing.
 
 !!! warning "`TextureSourceRectangle` is required when animating"
-    It's the measuring stick: it defines the element's size, while `Frames` defines what's drawn. Without it, the whole sprite sheet becomes the element.
+    It's the measuring stick: it defines the element's size, while `Frames` defines what's drawn. Without it, the whole sprite sheet becomes the element. The one exception is `ItemId`, which brings a measuring stick of its own.
 
 !!! tip "Point it at a frame you'd be happy to see"
     Because it's the fallback, `TextureSourceRectangle` should be a sprite that stands on its own. Aim it at a blank cell and a fully conditional animation renders as nothing.
@@ -87,7 +87,7 @@ A candle that only flickers after dark. Both frames drop out during the day, lea
 
 It grows from `Origin`, which defaults to the sprite's top-left corner, so a scaled frame spreads right and down unless you move the pivot. Put `Origin` in the middle of the source rectangle (`8, 8` for a 16×16 sprite) and the frame grows evenly in every direction instead. The pivot itself doesn't move as the frame scales, so a pulse stays put rather than creeping across the page.
 
-A pulse needs no extra art at all, just the same cell drawn bigger for a moment:
+A pulse needs no extra art at all, just the same cell drawn bigger for a moment. None of these frames moves anywhere in the sheet, so all three leave `SourcePoint` out:
 
 ```json
 {
@@ -98,18 +98,48 @@ A pulse needs no extra art at all, just the same cell drawn bigger for a moment:
   "Origin": { "X": 8, "Y": 8 },
   "SpacingAfter": 24,
   "Frames": [
-    { "Duration": 700, "SourcePoint": { "X": 0, "Y": 0 } },
-    { "Duration": 120, "SourcePoint": { "X": 0, "Y": 0 }, "Scale": 1.15 },
-    { "Duration": 200, "SourcePoint": { "X": 0, "Y": 0 } }
+    { "Duration": 700 },
+    { "Duration": 120, "Scale": 1.15 },
+    { "Duration": 200 }
   ]
 }
 ```
+
+### Animating an item
+
+`ItemId` animates the same way, with one difference: the item's own icon is the measuring stick that `TextureSourceRectangle` usually is, so you don't need one. Leave `SourcePoint` off every frame and the item's sprite is what each frame draws, leaving `Duration`, `Scale` and `Condition` to do the work.
+
+A parsnip that gives a little pulse, and a bigger one on hover:
+
+```json
+{
+  "Type": "Image",
+  "ItemId": "(O)24",
+  "Scale": 4,
+  "Origin": { "X": 8, "Y": 8 },
+  "Alignment": "Center",
+  "Frames": [
+    { "Duration": 900 },
+    { "Duration": 150, "Scale": 1.1 },
+    { "Duration": 250 }
+  ],
+  "HoverFrames": [
+    { "Duration": 150, "Scale": 1.2 },
+    { "Duration": 150, "Scale": 1.05 }
+  ]
+}
+```
+
+Set `Origin` to the middle of the item's sprite (`8, 8`, since item icons are 16×16) so it grows in every direction rather than down and to the right.
+
+!!! note "A `SourcePoint` on an item frame is measured in its sheet"
+    Nothing stops you giving one, and it's read as a coordinate in whichever sheet the item lives in, such as `Maps/springobjects`. Beware that an item can move within its sheet between game versions and a modded item's sheet isn't yours at all. Use `TexturePath` when you want to pick sprites yourself.
 
 ### Hover frames
 
 `HoverFrames` is a second frame list that takes over while the cursor is on the element. It's the animated counterpart to [`HoverTextureSourceRectangle`](#sprite-fields), which swaps a single still.
 
-Both lists are sized by `TextureSourceRectangle`, so this changes what's drawn and never the element's layout. Everything a frame understands works in either list: `Duration`, `Condition` and `Scale` all behave the same, and both lists share the element's `FrameDuration` as their default.
+Both lists are sized by `TextureSourceRectangle`, or by the item's icon when `ItemId` is used, so this changes what's drawn and never the element's layout. Everything a frame understands works in either list: `Duration`, `Condition` and `Scale` all behave the same, and both lists share the element's `FrameDuration` as their default.
 
 ```json
 {

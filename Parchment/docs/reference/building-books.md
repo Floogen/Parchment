@@ -124,7 +124,9 @@ Most methods are named after the field they set, so anything you've written in a
 | `Margin(left, right)` | `MarginLeft` and `MarginRight` |
 | `Tooltip(displayName, description)` | `DisplayName` and `Description` |
 | `AddFrame(x, y, duration, scale, condition)` | An [animation frame](elements/image.md#frames) on an Image. Every argument after `y` is optional. |
+| `AddFrameInPlace(duration, scale, condition)` | An animation frame that keeps whatever the element already draws. Every argument is optional. |
 | `AddHoverFrame(x, y, duration, scale, condition)` | A [hover frame](elements/image.md#hover-frames), played while the cursor is over the element. |
+| `AddHoverFrameInPlace(duration, scale, condition)` | A hover frame that keeps whatever the element already draws. |
 | `AddChild(type)` | A child element on a container such as a Panel |
 
 Not every method applies to every element type. `Padding` on a `Heading` isn't valid, and asking for it fails at registration with a message naming the fields that type does accept.
@@ -195,6 +197,16 @@ Every argument after `y` is optional, so `AddFrame(48, 0)` is a frame at the ele
 ```csharp
 junimo.AddHoverFrame(48, 0, 120, 1.15f);
 junimo.AddHoverFrame(64, 0, 120);
+```
+
+`AddFrameInPlace` and `AddHoverFrameInPlace` are the same thing without a coordinate, for a frame that keeps whatever the element already draws and varies only its timing, scale or condition. That's what animates an [item icon](elements/image.md#animating-an-item), which has no source rectangle of your own to point at:
+
+```csharp
+IElementBuilder parsnip = page.AddItemImage("(O)24").Scale(4).Origin(8f, 8f).Alignment("Center");
+
+parsnip.AddFrameInPlace(900);
+parsnip.AddFrameInPlace(150, 1.1f);
+parsnip.AddFrameInPlace(250);
 ```
 
 A `condition` on a frame is a [game state query](../concepts/conditions.md), skipped rather than paused on when it fails. Since you're building in code you can often decide in C# whether to add the frame at all, which is clearer than a query. Reserve the condition for state that changes while the book is open:
