@@ -70,6 +70,8 @@ namespace Parchment.Framework.API
         /// <summary>How the element sizes itself: "Fill", "ShrinkToFit" or "Fixed".</summary>
         IElementBuilder Sizing(string sizingMode);
 
+        /// <summary>Sets the element's width, in unscaled pixels multiplied by its scale. On a Panel, Divider or Banner this is only used when Sizing is "Fixed".
+        /// On a Paragraph it applies on its own, wrapping the text at that width and reserving it.</summary>
         IElementBuilder Width(int width);
         IElementBuilder Height(int height);
         IElementBuilder Padding(int padding);

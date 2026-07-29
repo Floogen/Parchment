@@ -24,6 +24,16 @@ namespace Parchment.Framework.UI.Rendering.Elements
             return data.Text ?? string.Empty;
         }
 
+        protected override float? GetExplicitWidth(ParagraphElementData data, ElementRenderContext context)
+        {
+            if (data.Width is not int width)
+            {
+                return null;
+            }
+
+            return Math.Min(width * data.Scale, context.AvailableWidth);
+        }
+
         protected override void Draw(SpriteBatch spriteBatch, ParagraphElementData data, Element element, Rectangle bounds, ElementRenderContext context)
         {
             if (this.TryGetWrappedText(element, out WrappedText wrappedText) is false || element.Font is null)

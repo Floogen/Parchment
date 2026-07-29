@@ -1,6 +1,6 @@
 # Heading
 
-Section heading text. Identical to [`Title`](title.md) and [`Paragraph`](paragraph.md) apart from its default font.
+Section heading text. Identical to [`Title`](title.md) and [`Paragraph`](paragraph.md) apart from its default font (and `Paragraph`'s optional `Width`).
 
 ```json
 {

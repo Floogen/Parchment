@@ -22,6 +22,15 @@ namespace Parchment.Framework.UI.Rendering.Elements
     {
         protected abstract string GetText(TElement data, ElementRenderContext context);
 
+        /// <summary>
+        /// The width this element reserves, in screen pixels. Text wraps at it and the measured element is exactly this wide, so alignment and hit testing use the whole box.
+        /// Returns null when the element has no width of its own, in which case text wraps at the width available and the element measures as wide as its longest line.
+        /// </summary>
+        protected virtual float? GetExplicitWidth(TElement data, ElementRenderContext context)
+        {
+            return null;
+        }
+
         protected override Vector2 Measure(TElement data, Element element, ElementRenderContext context)
         {
             if (element.Font is null)
@@ -31,10 +40,12 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return Vector2.Zero;
             }
 
-            WrappedText wrappedText = TextWrapper.Wrap(this.GetText(data, context), element.Font, context.AvailableWidth, element.Data.Scale);
+            float? explicitWidth = this.GetExplicitWidth(data, context);
+
+            WrappedText wrappedText = TextWrapper.Wrap(this.GetText(data, context), element.Font, explicitWidth ?? context.AvailableWidth, element.Data.Scale);
             element.LayoutState = wrappedText;
 
-            return wrappedText.Size;
+            return new Vector2(explicitWidth ?? wrappedText.Size.X, wrappedText.Size.Y);
         }
 
         protected bool TryGetWrappedText(Element element, out WrappedText wrappedText)
