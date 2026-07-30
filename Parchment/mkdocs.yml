@@ -107,6 +107,7 @@ nav:
   - Home: index.md
   - Getting started:
       - Your first book: getting-started/first-book.md
+      - The example pack: getting-started/example-pack.md
   - Concepts:
       - Units and scale: concepts/units.md
       - Preparing your art: concepts/art.md

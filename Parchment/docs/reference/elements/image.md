@@ -5,8 +5,8 @@ A sprite. It can be a static picture, an animation or an item's icon, and it can
 ```json
 {
   "Type": "Image",
-  "TexturePath": "Data/PeacefulEnd.Campgrounds/Campgrounds/Textures/StarterTent",
-  "TextureSourceRectangle": { "X": 0, "Y": 5, "Width": 48, "Height": 59 },
+  "TexturePath": "LooseSprites/Cursors_1_6",
+  "TextureSourceRectangle": { "X": 0, "Y": 192, "Width": 48, "Height": 64 },
   "Scale": 2,
   "Alignment": "Center"
 }

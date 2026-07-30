@@ -14,6 +14,10 @@ A Parchment book is JSON, along with some sprites (optional, if using default bo
 
     Write a book, load its art, register it and hand the player something that opens it.
 
+-   **[The example pack](getting-started/example-pack.md)**
+
+    View the example books that come with Parchment, page by page.
+
 -   **[Concepts](concepts/units.md)**
 
     Units, layout, art, conditions and actions.
