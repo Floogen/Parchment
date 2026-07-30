@@ -18,6 +18,8 @@ namespace Parchment.Framework.Managers
         public const string PREVIOUS_PAGE = "PeacefulEnd.Parchment_PreviousPage";
         public const string JUMP_TO_PAGE = "PeacefulEnd.Parchment_JumpToPage";
         public const string JUMP_TO_CHAPTER = "PeacefulEnd.Parchment_JumpToChapter";
+        public const string JUMP_TO_CHAPTER_PAGE = "PeacefulEnd.Parchment_JumpToChapterPage";
+        public const string JUMP_TO_PAGE_ID = "PeacefulEnd.Parchment_JumpToPageId";
         public const string FIRST_PAGE = "PeacefulEnd.Parchment_FirstPage";
         public const string LAST_PAGE = "PeacefulEnd.Parchment_LastPage";
         public const string CLOSE_BOOK = "PeacefulEnd.Parchment_CloseBook";
@@ -35,6 +37,8 @@ namespace Parchment.Framework.Managers
             TriggerActionManager.RegisterAction(PREVIOUS_PAGE, PreviousPage);
             TriggerActionManager.RegisterAction(JUMP_TO_PAGE, JumpToPage);
             TriggerActionManager.RegisterAction(JUMP_TO_CHAPTER, JumpToChapter);
+            TriggerActionManager.RegisterAction(JUMP_TO_CHAPTER_PAGE, JumpToChapterPage);
+            TriggerActionManager.RegisterAction(JUMP_TO_PAGE_ID, JumpToPageId);
             TriggerActionManager.RegisterAction(CLOSE_BOOK, CloseBook);
             TriggerActionManager.RegisterAction(VIEW_COVER, ViewCover);
             TriggerActionManager.RegisterAction(FIRST_PAGE, FirstPage);
@@ -99,6 +103,46 @@ namespace Parchment.Framework.Managers
             }
 
             return bookMenu.TryJumpToChapter(chapterId, out error);
+        }
+
+        public bool JumpToChapterPage(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string chapterId, out error, name: "string chapterId") is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGetInt(args, 2, out int pageInChapter, out error, name: "int pageInChapter") is false)
+            {
+                return false;
+            }
+
+            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            {
+                return false;
+            }
+
+            return bookMenu.TryJumpToChapterPage(chapterId, pageInChapter, out error);
+        }
+
+        public bool JumpToPageId(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string pageId, out error, name: "string pageId") is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGetOptional(args, 2, out string chapterId, out error, defaultValue: null, allowBlank: false, name: "string chapterId") is false)
+            {
+                return false;
+            }
+
+            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            {
+                return false;
+            }
+
+            return bookMenu.TryJumpToPageId(chapterId, pageId, out error);
         }
 
         public bool FirstPage(string[] args, TriggerActionContext context, out string error)

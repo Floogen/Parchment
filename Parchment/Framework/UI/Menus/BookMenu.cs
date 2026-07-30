@@ -240,6 +240,80 @@ namespace Parchment.Framework.UI.Menus
             return true;
         }
 
+        public bool TryJumpToChapterPage(string chapterId, int pageInChapter, out string error)
+        {
+            if (CurrentState is not MenuState.Ready)
+            {
+                error = "The book is not ready";
+                return false;
+            }
+
+            if (Book.TryGetChapterIndex(chapterId, out int chapterIndex) is false)
+            {
+                error = $"There is no chapter '{chapterId}'";
+                return false;
+            }
+
+            Chapter chapter = GetChapter(chapterIndex);
+            int pageIndex = chapter.FirstPageIndex + pageInChapter;
+
+            if (pageInChapter < 0 || pageIndex > chapter.LastPageIndex)
+            {
+                error = $"Chapter '{chapterId}' has no page {pageInChapter}";
+                return false;
+            }
+
+            int targetSpread = pageInChapter / 2;
+
+            if (chapterIndex != _currentChapterIndex || targetSpread != _currentSpread)
+            {
+                BeginPageTurn(chapterIndex, targetSpread);
+            }
+
+            error = null;
+
+            return true;
+        }
+
+        public bool TryJumpToPageId(string pageId, out string error)
+        {
+            return TryJumpToPageId(null, pageId, out error);
+        }
+
+        public bool TryJumpToPageId(string chapterId, string pageId, out string error)
+        {
+            if (CurrentState is not MenuState.Ready)
+            {
+                error = "The book is not ready";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(pageId))
+            {
+                error = "No page ID was provided";
+                return false;
+            }
+
+            int chapterFilter = -1;
+            if (chapterId is not null)
+            {
+                if (Book.TryGetChapterIndex(chapterId, out chapterFilter) is false)
+                {
+                    error = $"There is no chapter '{chapterId}'";
+                    return false;
+                }
+            }
+
+            int pageIndex = FindPageIndex(pageId, chapterFilter);
+            if (pageIndex < 0)
+            {
+                error = chapterFilter >= 0 ? $"Chapter '{chapterId}' has no page '{pageId}'" : $"There is no page '{pageId}'";
+                return false;
+            }
+
+            return TryJumpToPage(pageIndex, out error);
+        }
+
         public bool TryJumpToFirstPage(out string error)
         {
             return TryJumpToPage(GetChapter(_currentChapterIndex).FirstPageIndex, out error);

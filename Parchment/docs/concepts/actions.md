@@ -74,6 +74,8 @@ These only work while a book is open. Elsewhere they fail with a message in the 
 | `PeacefulEnd.Parchment_LastPage` | — | Jump to the **current chapter's** last page. |
 | `PeacefulEnd.Parchment_JumpToPage` | `<pageIndex>` | Jump to a page by index, crossing chapters if needed. Indexes start at 0. |
 | `PeacefulEnd.Parchment_JumpToChapter` | `<chapterId>` | Jump to a chapter's first page. |
+| `PeacefulEnd.Parchment_JumpToChapterPage` | `<chapterId> <pageInChapter>` | Jump to a page counted from the start of a chapter. Indexes start at 0, so `0` is the same as `JumpToChapter`. |
+| `PeacefulEnd.Parchment_JumpToPageId` | `<pageId> [chapterId]` | Jump to a page by its `Id`, crossing chapters if needed. Pass a `chapterId` to only search that chapter. |
 | `PeacefulEnd.Parchment_GoToStart` | — | Jump to the book's very first page, whatever chapter you're in. |
 | `PeacefulEnd.Parchment_ViewCover` | — | Shut the book to its cover without leaving the menu. Works on any book, whatever its `ExitToCover` is set to. Fails when the book is already shut. See [Cover view](../reference/book.md#cover-view). |
 | `PeacefulEnd.Parchment_CloseBook` | — | Close the book. |
@@ -85,7 +87,7 @@ The distinction matters once you're using [chapters](../reference/page.md#chapte
 | Scope | Actions |
 | --- | --- |
 | **Chapter**: stays where you are | `NextPage`, `PreviousPage`, `FirstPage`, `LastPage` |
-| **Book**: can cross chapters | `JumpToPage`, `JumpToChapter`, `GoToStart` |
+| **Book**: can cross chapters | `JumpToPage`, `JumpToChapter`, `JumpToChapterPage`, `JumpToPageId`, `GoToStart` |
 
 A chapter is navigation-isolated: page turning can't leave it, and neither can `NextPage`. The book-scoped actions are the only way out, which is why a chapter needs at least one of them somewhere in it.
 
@@ -93,6 +95,32 @@ A chapter is navigation-isolated: page turning can't leave it, and neither can `
 
 !!! tip "Name your way home"
     `JumpToChapter contents` says what it means and survives you reordering pages. `GoToStart` only works while your contents page happens to be first.
+
+### Addressing a page
+
+Three actions land on one specific page, differing only in how you name it:
+
+| Action | Counts from | Survives reordering |
+| --- | --- | --- |
+| `JumpToPage 12` | The start of the book | No |
+| `JumpToChapterPage rites 4` | The start of that chapter | Only across other chapters |
+| `JumpToPageId shrine` | Nothing, it's a name | Yes |
+
+`JumpToPageId` is the one to reach for in a table of contents. A page's [`Id`](../reference/page.md) is stable, so inserting a page ahead of the target doesn't quietly send readers somewhere else.
+
+A duplicate `Id` resolves to the first match in book order, which is why the optional `chapterId` exists:
+
+```json
+{
+  "Type": "Button",
+  "TexturePath": "{{ModId}}/button",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 18, "Height": 18 },
+  "Text": "The shrine",
+  "Action": "PeacefulEnd.Parchment_JumpToPageId shrine rites"
+}
+```
+
+Both of these land on a spread rather than a single page. Asking for the right-hand page of a spread shows that spread, so `JumpToChapterPage rites 1` and `JumpToChapterPage rites 0` look the same.
 
 ## Combining with conditions
 
@@ -153,6 +181,8 @@ A [`HoverAction`](../reference/elements/index.md) runs when the cursor moves ont
 An element's `Condition` gates hovering too: a hidden element can't be hovered, so a hover action whose own effect fails the condition removes itself.
 
 ## Gotchas
+
+**A missing page ID fails at click time.** `JumpToPageId` can't be checked when the book loads, so a renamed or deleted page shows up as a warning in the SMAPI log the moment a reader presses the button rather than when you author it.
 
 **Nothing validates the action name up front.** A typo'd action fails when the player clicks it, with a warning in the SMAPI log naming the string you wrote. Test your buttons.
 
