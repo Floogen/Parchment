@@ -218,10 +218,10 @@ namespace Parchment.Framework.API.Builders
 
             if (_onKeyPress.Count > 0)
             {
-                var keybinds = new List<PageKeybindData>();
+                var keybinds = new List<KeybindData>();
                 foreach (var keybind in _onKeyPress)
                 {
-                    keybinds.Add(new PageKeybindData() { Keybind = keybind.Keybind, Condition = keybind.Condition, Actions = new List<string>() { keybind.Action } });
+                    keybinds.Add(new KeybindData() { Keybind = keybind.Keybind, Condition = keybind.Condition, Actions = new List<string>() { keybind.Action } });
                 }
 
                 data.OnKeyPress = keybinds;

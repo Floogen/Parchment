@@ -123,7 +123,7 @@ Parchment records every spread the reader leaves, whether they got there by turn
 **It remembers the last 64 spreads.** Past that the oldest entry is dropped. A reader would have to cross-link their way through a very large book to notice.
 
 !!! tip "Pair it with a keybind"
-    `GoBack` on an [`OnKeyPress`](../reference/page.md#on-key-press) bound to `Escape` turns a chapter into something the reader backs out of a step at a time. Holding the key still leaves the book.
+    `GoBack` on an [`OnKeyPress`](../reference/page.md#on-key-press) bound to `Escape` turns a chapter into something the reader backs out of a step at a time. Put it on the [book](../reference/book.md#on-key-press) instead and it covers every page at once. Holding the key still leaves the book.
 
 ### Addressing a page
 

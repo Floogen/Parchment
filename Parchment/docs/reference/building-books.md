@@ -63,6 +63,8 @@ You can only remove books your own mod registered. Books from content packs, and
 | `AddPage(pageId, chapterId)` | Adds a page belonging to a chapter. Pages sharing a chapter must be added together. |
 | `AddUnderlay(type)` | Adds an element drawn behind the book sprite. |
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
+| `OnKeyPress(keybind, action)` | Runs a trigger action when the key is pressed on any page of the book. A page binding the same key takes it over. |
+| `OnKeyPress(keybind, action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
 | `TryRegister(out error)` | Validates and registers the book. |
 | `TryOpen(out error)` | Validates and opens the book without registering it. |
 
@@ -86,7 +88,7 @@ You can only remove books your own mod registered. Books from content packs, and
 | `AddButton(text, action)` | A button running a [trigger action](../concepts/actions.md) when clicked. |
 | `OnView(action)` | Runs a trigger action each time the page becomes visible. |
 | `OnView(action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
-| `OnKeyPress(keybind, action)` | Runs a trigger action when the key is pressed while the page is visible, taking the key over from the menu. |
+| `OnKeyPress(keybind, action)` | Runs a trigger action when the key is pressed while the page is visible, taking the key over from the menu and from the book's own binds. |
 | `OnKeyPress(keybind, action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
 
 ## The element builder

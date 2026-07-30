@@ -36,6 +36,12 @@ namespace Parchment.Framework.Models.Data
         /// Drawn in every menu state, so they ride in with the book and remain on the shut cover.</summary>
         public List<ElementData>? Overlay { get; set; }
 
+        /// <summary>
+        /// Key bindings active on every page of this book, each running its actions when pressed. A page's own <see cref="PageData.OnKeyPress"/> takes precedence:
+        /// when a page binds the same button, only the page's entries run and these are left alone.
+        /// </summary>
+        public List<KeybindData>? OnKeyPress { get; set; }
+
         public BookLayoutData Layout { get; set; } = new BookLayoutData();
 
         /// <summary>Whether the book arrives shut, holding on its cover until the reader clicks it open, rather than opening itself once it
@@ -95,6 +101,18 @@ namespace Parchment.Framework.Models.Data
                     if (isValidData.Result is false)
                     {
                         return (false, $"Element \"{element.Id}\" ({element.Type}): {isValidData.Error}");
+                    }
+                }
+            }
+
+            if (OnKeyPress is not null)
+            {
+                for (int i = 0; i < OnKeyPress.Count; i++)
+                {
+                    var keybindIsValidData = OnKeyPress[i].IsValid();
+                    if (keybindIsValidData.Result is false)
+                    {
+                        return (false, $"[OnKeyPress] Keybind at index {i}: {keybindIsValidData.Error}");
                     }
                 }
             }

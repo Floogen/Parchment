@@ -45,9 +45,10 @@ namespace Parchment.Framework.Models.Data
 
         /// <summary>
         /// Key bindings active while this page is on screen, each running its actions when pressed. Every matching entry runs, and a match can take the button over from the menu
-        /// through <see cref="PageKeybindData.SuppressDefault"/>, which is what lets a page redirect the exit button somewhere other than out of the book.
+        /// through <see cref="KeybindData.SuppressDefault"/>, which is what lets a page redirect the exit button somewhere other than out of the book.
+        /// A page's binds take a button off <see cref="BookData.OnKeyPress"/> for as long as the page is on screen.
         /// </summary>
-        public List<PageKeybindData>? OnKeyPress { get; set; }
+        public List<KeybindData>? OnKeyPress { get; set; }
 
         public override (bool Result, string Error) IsValid()
         {

@@ -965,10 +965,10 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
-        /// <summary>Runs every keybind on the visible spread the button matches, left page first, and reports whether any of them claimed the button.
-        /// A claimed button never reaches the menu's own handling, which is how a page takes over the exit button.
+        /// <summary>Runs every keybind the button matches, the visible spread's first and the book's own only when no page bind took it, and reports whether
+        /// any of them claimed the button. A claimed button never reaches the menu's own handling, which is how a page takes over the exit button.
         /// </summary>
-        private bool HandlePageKeybinds(SButton button)
+        private bool HandleKeybinds(SButton button)
         {
             if (CurrentState is not MenuState.Ready || button is SButton.None)
             {
@@ -982,6 +982,12 @@ namespace Parchment.Framework.UI.Menus
             if (CurrentState is MenuState.Ready)
             {
                 isSuppressed |= DispatchPageKeybinds(GetRightPageIndex(), button, ref hasRunAny);
+            }
+
+            // The book's own binds are a fallback rather than a second helping, so a page binding the same button takes it off the book while that page is being read
+            if (hasRunAny is false)
+            {
+                isSuppressed |= DispatchKeybinds(Book.Data.OnKeyPress, $"book '{Book.Data.Id}'", button, ref hasRunAny);
             }
 
             if (hasRunAny)
@@ -999,16 +1005,22 @@ namespace Parchment.Framework.UI.Menus
                 return false;
             }
 
-            List<PageKeybindData>? keybinds = _pages[pageIndex].Data.OnKeyPress;
+            return DispatchKeybinds(_pages[pageIndex].Data.OnKeyPress, $"page '{_pages[pageIndex].Data.Id}'", button, ref hasRunAny);
+        }
+
+        /// <summary>Runs each keybind in the list the button matches and whose condition passes, reporting whether any of them claimed it.
+        /// <paramref name="hasRunAny"/> is what decides the page over book precedence, so it is set by anything that actually runs rather than by anything that merely matched.
+        /// </summary>
+        private bool DispatchKeybinds(List<KeybindData>? keybinds, string source, SButton button, ref bool hasRunAny)
+        {
             if (keybinds is null)
             {
                 return false;
             }
 
-            string pageId = _pages[pageIndex].Data.Id;
             bool isSuppressed = false;
 
-            foreach (PageKeybindData keybind in keybinds)
+            foreach (KeybindData keybind in keybinds)
             {
                 if (keybind.Matches(button) is false)
                 {
@@ -1029,7 +1041,7 @@ namespace Parchment.Framework.UI.Menus
                 {
                     if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
                     {
-                        Parchment.monitor.Log($"OnKeyPress action '{action}' on page '{pageId}' failed: {error}", LogLevel.Warn);
+                        Parchment.monitor.Log($"OnKeyPress action '{action}' on {source} failed: {error}", LogLevel.Warn);
 
                         if (exception is not null)
                         {
@@ -1204,7 +1216,7 @@ namespace Parchment.Framework.UI.Menus
             bool isExitButton = Game1.options.doesInputListContain(Game1.options.menuButton, key);
 
             // The visible page gets first refusal, so it can take the button over before the menu acts on it
-            if (HandlePageKeybinds(key.ToSButton()) is true)
+            if (HandleKeybinds(key.ToSButton()) is true)
             {
                 if (isExitButton)
                 {
@@ -1230,7 +1242,7 @@ namespace Parchment.Framework.UI.Menus
 
         public override void receiveGamePadButton(Buttons button)
         {
-            if (HandlePageKeybinds(button.ToSButton()) is true)
+            if (HandleKeybinds(button.ToSButton()) is true)
             {
                 if (button is Buttons.B)
                 {

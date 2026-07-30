@@ -1,4 +1,4 @@
-namespace Parchment.Framework.API
+﻿namespace Parchment.Framework.API
 {
     /// <summary>Builds a book in code. Obtained from <see cref="IParchmentApi.CreateBook"/>, then registered or opened through its own methods.</summary>
     public interface IBookBuilder
@@ -24,6 +24,13 @@ namespace Parchment.Framework.API
 
         /// <summary>Adds an element drawn in front of the book sprite and its pages.</summary>
         IElementBuilder AddOverlay(string elementType);
+
+        /// <summary>Runs a trigger action when the given keybind is pressed on any page of this book, taking the button over from the menu.
+        /// A page binding the same button wins, and this is left alone while that page is on screen.</summary>
+        IBookBuilder OnKeyPress(string keybind, string action);
+
+        /// <summary>The same, gated by a game state query checked at the moment the button is pressed.</summary>
+        IBookBuilder OnKeyPress(string keybind, string action, string condition);
 
         /// <summary>Validates the book and registers it. Registered books are added to Data/PeacefulEnd.Parchment/Books before content
         /// packs are applied, so Content Patcher can still edit them. Registering the same book ID again replaces your earlier registration.</summary>

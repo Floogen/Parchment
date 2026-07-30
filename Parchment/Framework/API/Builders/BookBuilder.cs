@@ -19,6 +19,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<PageBuilder> _pages = new List<PageBuilder>();
         private readonly List<ElementBuilder> _underlay = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _overlay = new List<ElementBuilder>();
+        private readonly List<(string Keybind, string Action, string? Condition)> _onKeyPress = new List<(string Keybind, string Action, string? Condition)>();
 
         public string BookId { get { return _bookId; } }
 
@@ -38,6 +39,20 @@ namespace Parchment.Framework.API.Builders
         }
 
         public IBookBuilder Sprite(string spritePath) { return Set("SpritePath", spritePath); }
+
+        public IBookBuilder OnKeyPress(string keybind, string action)
+        {
+            _onKeyPress.Add((keybind, action, null));
+
+            return this;
+        }
+
+        public IBookBuilder OnKeyPress(string keybind, string action, string condition)
+        {
+            _onKeyPress.Add((keybind, action, condition));
+
+            return this;
+        }
 
         public IPageBuilder AddPage(string pageId)
         {
@@ -190,6 +205,17 @@ namespace Parchment.Framework.API.Builders
                 }
 
                 data.Overlay = overlay;
+            }
+
+            if (_onKeyPress.Count > 0)
+            {
+                var keybinds = new List<KeybindData>();
+                foreach (var keybind in _onKeyPress)
+                {
+                    keybinds.Add(new KeybindData() { Keybind = keybind.Keybind, Condition = keybind.Condition, Actions = new List<string>() { keybind.Action } });
+                }
+
+                data.OnKeyPress = keybinds;
             }
 
             book = data;

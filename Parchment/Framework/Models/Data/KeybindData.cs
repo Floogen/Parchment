@@ -4,11 +4,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Parchment.Framework.Models.Data.Pages
+namespace Parchment.Framework.Models.Data
 {
-    public class PageKeybindData : BaseModel
+    public class KeybindData : BaseModel
     {
-        /// <summary>The button or buttons running <see cref="Actions"/> while this page is visible, in SMAPI's keybind syntax such as "Escape", "LeftControl + S" or "Escape, Back".
+        /// <summary>The button or buttons running <see cref="Actions"/> while its page or book is on screen, in SMAPI's keybind syntax such as "Escape", "LeftControl + S" or "Escape, Back".
         /// A combination only matches when its other buttons are already held, and a comma-separated list matches when any one of its combinations does.
         /// </summary>
         public string Keybind { get; set; } = string.Empty;

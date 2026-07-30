@@ -31,6 +31,7 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 | `PageCurl` <span class="opt">optional</span> | [`PageCurl`](#page-curl) | *the default corners* | The corner curl sprite and its clickable areas. |
 | `Animation` <span class="opt">optional</span> | [`Animation`](#animation) | *see below* | Animation timings and sounds. |
 | `Layout` <span class="opt">optional</span> | [`Layout`](#layout) | *see below* | The page margins. |
+| `OnKeyPress` <span class="opt">optional</span> | list of [`keybinds`](#on-key-press) | empty list | Keys running actions on every page of the book. A page binding the same key takes it over. See [On key press](#on-key-press). |
 | `StartOnCover` <span class="opt">optional</span> | `boolean` | `false` | Whether the book arrives shut and holds on its cover until the reader clicks it open. See [Cover view](#cover-view). |
 | `ExitToCover` <span class="opt">optional</span> | `boolean` | `false` | Whether closing the book shuts it in place first, leaving its cover on screen, rather than leaving the menu. See [Cover view](#cover-view). |
 
@@ -162,3 +163,43 @@ Where the page content sits within the book art, in unscaled sprite pixels, so t
 | `MarginBottom` <span class="opt">optional</span> | `int` | `28` | The gap between the book frame's bottom edge and the page content. |
 
 Together these define each page's content area, which is what every element's width is measured against and what `Fill` fills.
+
+---
+
+## On key press
+
+`OnKeyPress` binds keys to [trigger actions](../concepts/actions.md) on every page of the book. It's the same schema a page uses, and it's where a bind goes when it should follow the reader through the whole book rather than belong to one spread.
+
+```json title="books.json"
+{
+  "Id": "you.CampingGuide_Book",
+  "Pages": [ ... ],
+  "OnKeyPress": [
+    {
+      "Keybind": "Escape",
+      "Actions": [ "PeacefulEnd.Parchment_GoBack" ]
+    }
+  ]
+}
+```
+
+--8<-- "keybind-common.md"
+
+### A page's binds win
+
+When the visible spread and the book both bind the same key, only the page's entries run. The book's are left alone rather than running after them, so a page can take a key off the book for as long as it's on screen and hand it back when the reader turns away.
+
+The test is what actually ran, not what merely matched. A page bind whose `Condition` fails hasn't run, so the book's bind still gets its turn. That's the way to author a book-wide default with a page-specific exception: give the page the special case behind a condition and let the book handle everything else.
+
+A page bind on **either** leaf of the spread takes the key, since both are being read.
+
+### Everything else matches a page's binds
+
+| Behaviour | |
+| --- | --- |
+| **When they fire** | Only while a spread is on screen. A book bind is dead through the opening, turning and closing animations and on a shut cover, the same as a page's. |
+| **How many run** | Every entry whose key matches and whose condition passes, in the order they're listed. |
+| **Getting out** | Holding the exit key for three seconds shuts the book and leaves the menu, whatever the book has bound it to. See [On key press](page.md#on-key-press). |
+
+!!! tip "A book-wide back button"
+    `Escape` bound to [`PeacefulEnd.Parchment_GoBack`](../concepts/actions.md#going-back) turns the whole book into something the reader unwinds a step at a time, with the hold still there for leaving outright. A page that needs `Escape` for something else simply binds it and the book's entry stands aside.
