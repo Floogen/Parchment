@@ -95,6 +95,11 @@ namespace Parchment.Framework.API.Builders
             return this;
         }
 
+        public float GetAvailableWidth()
+        {
+            return GetPageContentSize().X;
+        }
+
         public float GetAvailableHeight()
         {
             return GetPageContentSize().Y;

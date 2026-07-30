@@ -1,3 +1,4 @@
+﻿using Microsoft.Xna.Framework;
 using Parchment.Framework.API.Builders;
 using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
@@ -110,6 +111,36 @@ namespace Parchment.Framework.API
             }
 
             return TryOpenBookAtPageId(bookId, chapterId, pageId);
+        }
+
+        public bool TryGetBookBounds(out Rectangle bounds)
+        {
+            return TryGetBounds(menu => menu.GetBookScreenBounds(), out bounds);
+        }
+
+        public bool TryGetLeftPageBounds(out Rectangle bounds)
+        {
+            return TryGetBounds(menu => menu.GetLeftPageBounds(), out bounds);
+        }
+
+        public bool TryGetRightPageBounds(out Rectangle bounds)
+        {
+            return TryGetBounds(menu => menu.GetRightPageBounds(), out bounds);
+        }
+
+        /// <summary>Reads a rectangle off whichever book is open, or reports that none is.</summary>
+        private static bool TryGetBounds(Func<BookMenu, Rectangle> getBounds, out Rectangle bounds)
+        {
+            bounds = Rectangle.Empty;
+
+            if (Game1.activeClickableMenu is not BookMenu menu)
+            {
+                return false;
+            }
+
+            bounds = getBounds(menu);
+
+            return true;
         }
 
         private static bool TryCreateMenu(string bookId, out BookMenu menu)

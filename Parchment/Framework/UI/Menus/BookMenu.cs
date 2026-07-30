@@ -541,7 +541,9 @@ namespace Parchment.Framework.UI.Menus
             _currentPosition = _startPosition;
         }
 
-        private Rectangle GetBookScreenBounds()
+        /// <summary>The whole book frame's bounds on screen.</summary>
+        /// <remarks>Taken from the book's resting position, so this stays put while the open and close animations play rather than tracking the book as it slides.</remarks>
+        public Rectangle GetBookScreenBounds()
         {
             Rectangle bookFrame = _openFrames[0];
 
@@ -604,7 +606,8 @@ namespace Parchment.Framework.UI.Menus
             return _pages[pageIndex].Data.Id;
         }
 
-        private Rectangle GetLeftPageBounds()
+        /// <summary>The left page's content area on screen, inside the book's margins.</summary>
+        public Rectangle GetLeftPageBounds()
         {
             Rectangle bookBounds = GetBookScreenBounds();
 
@@ -617,7 +620,8 @@ namespace Parchment.Framework.UI.Menus
             return new Rectangle(bookBounds.X + marginOuter, bookBounds.Y + marginTop, pageSize.X, pageSize.Y);
         }
 
-        private Rectangle GetRightPageBounds()
+        /// <summary>The right page's content area on screen, inside the book's margins.</summary>
+        public Rectangle GetRightPageBounds()
         {
             Rectangle bookBounds = GetBookScreenBounds();
             int spineX = bookBounds.X + bookBounds.Width / 2;

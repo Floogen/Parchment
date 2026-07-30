@@ -1,3 +1,4 @@
+﻿using Microsoft.Xna.Framework;
 using System;
 
 namespace Parchment.Framework.API
@@ -35,6 +36,22 @@ namespace Parchment.Framework.API
 
         /// <summary>Gets whether a book with the given ID is loaded, whether it came from a content pack or the C# API.</summary>
         bool HasBook(string bookId);
+
+        /// <summary>Gets the whole book frame's bounds on screen, for drawing alongside an open book.</summary>
+        /// <param name="bounds">The book's bounds, when this returns true.</param>
+        /// <returns>False when no Parchment book is open.</returns>
+        /// <remarks>Taken from the book's resting position, so it stays put while the open and close animations play.</remarks>
+        bool TryGetBookBounds(out Rectangle bounds);
+
+        /// <summary>Gets the left page's content area on screen, being the region a page's stacked elements are laid out in.</summary>
+        /// <param name="bounds">The page's bounds, when this returns true.</param>
+        /// <returns>False when no Parchment book is open.</returns>
+        bool TryGetLeftPageBounds(out Rectangle bounds);
+
+        /// <summary>Gets the right page's content area on screen, being the region a page's stacked elements are laid out in.</summary>
+        /// <param name="bounds">The page's bounds, when this returns true.</param>
+        /// <returns>False when no Parchment book is open.</returns>
+        bool TryGetRightPageBounds(out Rectangle bounds);
 
         /// <summary>Opens a book in the book menu at a page number.</summary>
         [Obsolete("Use TryOpenBookAtPage instead. This overload is kept so mods built against Parchment 1.1.0 keep working.")]

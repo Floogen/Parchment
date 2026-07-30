@@ -48,6 +48,10 @@
         /// Does nothing when the page has no stacked content. Background and foreground elements are left alone.</summary>
         IPageBuilder RemoveLast();
 
+        /// <summary>The width in pixels this page has for stacked content, being what text wraps to.</summary>
+        /// <remarks>This is a size rather than a position, since a page has no place on screen until its book is open. Use <c>TryGetLeftPageBounds</c> on the API for that.</remarks>
+        float GetAvailableWidth();
+
         /// <summary>The height in pixels this page has for stacked content, from the book's appearance and layout.</summary>
         /// <remarks>Returns 0 before Parchment has finished starting up, since the page size isn't known until then.</remarks>
         float GetAvailableHeight();
