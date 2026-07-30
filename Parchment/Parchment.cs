@@ -6,6 +6,7 @@ using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Enums;
+using Parchment.Framework.Patches;
 using Parchment.Framework.Patches.Objects;
 using Parchment.Framework.UI.Menus;
 using Parchment.Framework.UI.Rendering;
@@ -65,6 +66,7 @@ namespace Parchment
 
                 // Apply patches
                 new ObjectPatch(monitor, modHelper).Apply(harmony);
+                new GamePatch(monitor, modHelper).Apply(harmony);
             }
             catch (Exception e)
             {

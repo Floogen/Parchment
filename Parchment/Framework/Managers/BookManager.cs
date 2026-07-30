@@ -44,6 +44,9 @@ namespace Parchment.Framework.Managers
         // Whether the books asset has been loaded at least once, so registrations made before then don't need to invalidate it
         private bool _hasLoadedBooks = false;
 
+        // A requested book to be opened (if this fails, the book request is discarded)
+        private string? _requestedBookId = null;
+
         private Dictionary<string, List<string>> _playerToSeenPages { get; set; } = new Dictionary<string, List<string>>();
         private Dictionary<string, List<string>> _playerToSeenChapters { get; set; } = new Dictionary<string, List<string>>();
 
@@ -57,6 +60,7 @@ namespace Parchment.Framework.Managers
             FontResolver = new FontResolver();
 
             helper.Events.GameLoop.GameLaunched += OnGameLaunched;
+            helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
             helper.Events.Content.AssetRequested += OnAssetRequested;
             helper.Events.Content.AssetsInvalidated += OnAssetInvalidated;
         }
@@ -108,6 +112,73 @@ namespace Parchment.Framework.Managers
             {
                 bookMenu.Book.RefreshTextures(e.NamesWithoutLocale);
             }
+        }
+
+        private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
+        {
+            if (_requestedBookId is null)
+            {
+                return;
+            }
+
+            // Taken and cleared up front, so a request that can't open now is spent either way
+            string bookId = _requestedBookId;
+            _requestedBookId = null;
+
+            if (CanOpenRequestedBook() is false)
+            {
+                return;
+            }
+
+            if (CreateBook(bookId) is not Book book)
+            {
+                return;
+            }
+
+            Game1.activeClickableMenu = new BookMenu(book);
+        }
+
+        public void RequestOpenBook(string bookId)
+        {
+            if (string.IsNullOrWhiteSpace(bookId) is true)
+            {
+                return;
+            }
+
+            _requestedBookId = bookId;
+        }
+
+        public void CancelRequestedBook()
+        {
+            _requestedBookId = null;
+        }
+
+        private static bool CanOpenRequestedBook()
+        {
+            if (Context.IsWorldReady is false || Game1.currentLocation is null)
+            {
+                return false;
+            }
+
+            // Check if a menu is currently open (bail if so)
+            if (Game1.activeClickableMenu is not null)
+            {
+                return false;
+            }
+
+            // Check if currently warping (bail if so)
+            if (Game1.locationRequest is not null || Game1.fadeToBlack is true)
+            {
+                return false;
+            }
+
+            // Check if event or anything else is going on (...bail if so)
+            if (Game1.eventUp is true || Game1.currentMinigame is not null || Game1.farmEvent is not null)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private void FilterBookData(List<BookData> bookData)
