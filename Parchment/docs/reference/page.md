@@ -24,6 +24,7 @@ A page is a stack of elements. Two consecutive pages make a spread. Page 0 and 1
 | `Background` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **behind** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. They can carry a tooltip or an action, see [Background and foreground](#background-and-foreground). |
 | `Foreground` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **over** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. They can carry a tooltip or an action, see [Background and foreground](#background-and-foreground). |
 | `OnView` <span class="opt">optional</span> | list of [`triggers`](#on-view) | empty list | Actions run each time the page becomes visible, without the reader clicking anything. See [On view](#on-view). |
+| `OnKeyPress` <span class="opt">optional</span> | list of [`keybinds`](#on-key-press) | empty list | Keys running actions while the page is on screen, which can take a key over from the menu. See [On key press](#on-key-press). |
 
 ---
 
@@ -116,3 +117,64 @@ Entries are independent. Each condition is checked and each list runs on its own
 **Both pages of a spread trigger, with left first.** A left page's triggers run before the right page's. If a left-page action changes which pages are visible, using `NextPage`, `JumpToChapter` or `CloseBook`, the right page's triggers don't run at all: they belonged to a spread that's no longer on screen. Put navigation last, or on the right page, when the rest of the spread still needs to fire.
 
 **Pages outside a chapter use a different query.** `HasSeenPageId` needs a chapter to name. A page with no `ChapterId` is addressed by [`PeacefulEnd.Parchment_HasSeenChapterlessPageId`](../concepts/conditions.md#reading-history) instead, which takes just the book and page ID.
+
+---
+
+## On key press
+
+`OnKeyPress` binds keys to [trigger actions](../concepts/actions.md) for as long as the page is on screen. A bind takes the key over from the menu, so a page can send the exit key somewhere other than out of the book.
+
+```json title="books.json"
+{
+  "Id": "riddle",
+  "ChapterId": "riddles",
+  "Elements": [ ... ],
+  "OnKeyPress": [
+    {
+      "Keybind": "Escape",
+      "Actions": [ "PeacefulEnd.Parchment_JumpToPageId riddles contents" ]
+    }
+  ]
+}
+```
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `Keybind` <span class="req">required</span> | `string` | — | The key running the actions. See [Writing a keybind](#writing-a-keybind). |
+| `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../concepts/conditions.md) deciding whether the actions run. When omitted, they always run. Checked at the moment the key is pressed rather than polled. |
+| `Action` <span class="opt">optional</span> | `string` | — | A single [trigger action](../concepts/actions.md), the shorthand for a one-entry `Actions`. |
+| `Actions` <span class="opt">optional</span> | list of `string` | — | [Trigger actions](../concepts/actions.md), run in order. Combined with `Action` rather than replacing it. |
+| `Sound` <span class="opt">optional</span> | `string` | — | A cue played once when the bind fires. Unlike an element's `Sound` this defaults to silence, since a key press has no click to answer. |
+| `SuppressDefault` <span class="opt">optional</span> | `bool` | `true` | Whether a match stops the key reaching the menu's own handling. Leave it on to override a key, turn it off to run alongside whatever the key already does. |
+
+At least one of `Action` or `Actions` is required.
+
+### Writing a keybind
+
+`Keybind` uses SMAPI's keybind syntax, the same as a mod's config file:
+
+| Form | Meaning |
+| --- | --- |
+| `Escape` | A single key. |
+| `LeftControl + S` | A combination, matching only while the other keys are held. |
+| `Escape, Back` | Alternatives, matching when any one of them does. |
+
+Controller buttons work by name in the same field, so `"Escape, ControllerB"` covers both inputs. The button names are on the wiki:
+
+> **[Modding: Player guide - Key bindings](https://stardewvalleywiki.com/Modding:Player_Guide/Key_Bindings)**
+
+!!! warning "Mouse buttons aren't supported here"
+    A book already spends its clicks on elements and page corners. Put a `MouseRight` in a `Keybind` and it never fires. Use an element's `Action` for anything the reader points at.
+
+### How binds behave
+
+**They only fire while the page is being read.** A bind is dead through the opening, turning and closing animations and on a shut cover, matching where the page itself is legible.
+
+**Every match runs.** All entries whose key matches and whose condition passes fire, in the order they're listed. That differs from an element, where the cursor can only be on one thing at a time.
+
+**Both pages of a spread are live, with left first.** If a left-page action changes which pages are visible, the right page's binds don't run at all: they belonged to a spread that's no longer on screen.
+
+**The reader can always get out.** Holding the exit key down for three seconds shuts the book and leaves the menu, whatever the page has bound it to, and regardless of [`ExitToCover`](book.md). Nothing needs authoring for this and there's no way to switch it off, so a page that takes the exit key can't strand anyone.
+
+!!! tip "Overriding the exit key"
+    Pair a bind on `Escape` with `PeacefulEnd.Parchment_JumpToPageId` and a chapter behaves like a menu the reader backs out of rather than closes. Give the destination page no bind of its own and the second press leaves the book as usual.

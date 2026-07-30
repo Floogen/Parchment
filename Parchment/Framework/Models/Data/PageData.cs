@@ -43,6 +43,12 @@ namespace Parchment.Framework.Models.Data
         /// </summary>
         public List<PageTriggerData>? OnView { get; set; }
 
+        /// <summary>
+        /// Key bindings active while this page is on screen, each running its actions when pressed. Every matching entry runs, and a match can take the button over from the menu
+        /// through <see cref="PageKeybindData.SuppressDefault"/>, which is what lets a page redirect the exit button somewhere other than out of the book.
+        /// </summary>
+        public List<PageKeybindData>? OnKeyPress { get; set; }
+
         public override (bool Result, string Error) IsValid()
         {
             if (string.IsNullOrWhiteSpace(Id))
@@ -82,6 +88,18 @@ namespace Parchment.Framework.Models.Data
                     if (triggerIsValidData.Result is false)
                     {
                         return (false, $"[OnView] Trigger at index {i}: {triggerIsValidData.Error}");
+                    }
+                }
+            }
+
+            if (OnKeyPress is not null)
+            {
+                for (int i = 0; i < OnKeyPress.Count; i++)
+                {
+                    var keybindIsValidData = OnKeyPress[i].IsValid();
+                    if (keybindIsValidData.Result is false)
+                    {
+                        return (false, $"[OnKeyPress] Keybind at index {i}: {keybindIsValidData.Error}");
                     }
                 }
             }

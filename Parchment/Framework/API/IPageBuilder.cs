@@ -44,6 +44,13 @@
         /// <summary>Runs a trigger action each time this page becomes visible and the game state query passes.</summary>
         IPageBuilder OnView(string action, string condition);
 
+        /// <summary>Runs a trigger action when the given keybind is pressed while this page is visible, taking the button over from the menu.
+        /// The keybind uses SMAPI's syntax, such as "Escape", "LeftControl + S" or "Escape, Back".</summary>
+        IPageBuilder OnKeyPress(string keybind, string action);
+
+        /// <summary>The same, gated by a game state query checked at the moment the button is pressed.</summary>
+        IPageBuilder OnKeyPress(string keybind, string action, string condition);
+
         /// <summary>Removes the last element added to the page's stacked content, for undoing a speculative add that turned out not to fit.
         /// Does nothing when the page has no stacked content. Background and foreground elements are left alone.</summary>
         IPageBuilder RemoveLast();

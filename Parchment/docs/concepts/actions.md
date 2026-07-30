@@ -160,6 +160,23 @@ The distinction to hold onto: an element's `Action` runs when the reader chooses
 
 Its `Condition` also behaves differently from every other one in Parchment, in that it is checked once per view. [On view](../reference/page.md#on-view) covers that and the spread ordering rules.
 
+A page can also bind actions to a key through [`OnKeyPress`](../reference/page.md#on-key-press), which fires while the page is on screen and takes the key over from the menu:
+
+```json
+{
+  "Id": "riddle",
+  "ChapterId": "riddles",
+  "OnKeyPress": [
+    {
+      "Keybind": "Escape",
+      "Actions": [ "PeacefulEnd.Parchment_JumpToPageId riddles contents" ]
+    }
+  ]
+}
+```
+
+That example turns the exit key into a back button for one chapter. The reader can still leave by holding it for three seconds, which Parchment handles for you.
+
 
 A [`HoverAction`](../reference/elements/index.md) runs when the cursor moves onto an element, once per entry rather than continuously. Moving away and back runs it again, and `Sound` doesn't apply. `HoverActions` takes a list for more than one:
 
@@ -193,3 +210,5 @@ An element's `Condition` gates hovering too: a hidden element can't be hovered, 
 **An empty entry drops the element.** `Actions` or `HoverActions` containing `""` fails validation and the element is skipped with a warning, matching how a page's [`OnView`](../reference/page.md#on-view) treats one.
 
 **A long `HoverActions` list is easy to trip over repeatedly.** A reader crosses elements just by moving the mouse, and every entry runs each time. Keep the whole list harmless to repeat, not just its first action.
+
+**Every matching keybind fires, not just the first.** Two [`OnKeyPress`](../reference/page.md#on-key-press) entries bound to the same key both run, and so does a matching entry on the other page of the spread. An element's `Action` doesn't behave this way because the cursor can only be on one element.

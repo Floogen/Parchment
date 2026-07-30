@@ -18,6 +18,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<ElementBuilder> _background = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _foreground = new List<ElementBuilder>();
         private readonly List<(string Action, string? Condition)> _onView = new List<(string Action, string? Condition)>();
+        private readonly List<(string Keybind, string Action, string? Condition)> _onKeyPress = new List<(string Keybind, string Action, string? Condition)>();
         private readonly BookBuilder? _owner;
 
         public string PageId { get { return _pageId; } }
@@ -81,6 +82,20 @@ namespace Parchment.Framework.API.Builders
         public IPageBuilder OnView(string action, string condition)
         {
             _onView.Add((action, condition));
+
+            return this;
+        }
+
+        public IPageBuilder OnKeyPress(string keybind, string action)
+        {
+            _onKeyPress.Add((keybind, action, null));
+
+            return this;
+        }
+
+        public IPageBuilder OnKeyPress(string keybind, string action, string condition)
+        {
+            _onKeyPress.Add((keybind, action, condition));
 
             return this;
         }
@@ -199,6 +214,17 @@ namespace Parchment.Framework.API.Builders
                 }
 
                 data.OnView = triggers;
+            }
+
+            if (_onKeyPress.Count > 0)
+            {
+                var keybinds = new List<PageKeybindData>();
+                foreach (var keybind in _onKeyPress)
+                {
+                    keybinds.Add(new PageKeybindData() { Keybind = keybind.Keybind, Condition = keybind.Condition, Actions = new List<string>() { keybind.Action } });
+                }
+
+                data.OnKeyPress = keybinds;
             }
 
             page = data;

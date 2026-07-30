@@ -49,6 +49,11 @@ namespace Parchment.Framework.UI.Menus
         private const int CONDITION_REFRESH_INTERVAL = 6;
         private int _conditionRefreshTimer = CONDITION_REFRESH_INTERVAL;
 
+        // How long the exit button has to be held to leave a page that has taken the button over
+        private const float FORCE_CLOSE_HOLD_DURATION = 3000f;
+        private float _forceCloseHoldTimer = 0f;
+        private bool _isExitButtonSuppressed = false;
+
         private readonly List<Rectangle> _openFrames = new List<Rectangle>();
         private readonly List<Rectangle> _closeFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageCurlFrames = new List<Rectangle>();
@@ -890,6 +895,147 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
+        /// <summary>Runs every keybind on the visible spread the button matches, left page first, and reports whether any of them claimed the button.
+        /// A claimed button never reaches the menu's own handling, which is how a page takes over the exit button.
+        /// </summary>
+        private bool HandlePageKeybinds(SButton button)
+        {
+            if (CurrentState is not MenuState.Ready || button is SButton.None)
+            {
+                return false;
+            }
+
+            bool hasRunAny = false;
+            bool isSuppressed = DispatchPageKeybinds(GetLeftPageIndex(), button, ref hasRunAny);
+
+            // A left page action may have turned the page, closed the book or jumped elsewhere, in which case the right page is no longer the one being read
+            if (CurrentState is MenuState.Ready)
+            {
+                isSuppressed |= DispatchPageKeybinds(GetRightPageIndex(), button, ref hasRunAny);
+            }
+
+            if (hasRunAny)
+            {
+                RefreshVisiblePages();
+            }
+
+            return isSuppressed;
+        }
+
+        private bool DispatchPageKeybinds(int pageIndex, SButton button, ref bool hasRunAny)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return false;
+            }
+
+            List<PageKeybindData>? keybinds = _pages[pageIndex].Data.OnKeyPress;
+            if (keybinds is null)
+            {
+                return false;
+            }
+
+            string pageId = _pages[pageIndex].Data.Id;
+            bool isSuppressed = false;
+
+            foreach (PageKeybindData keybind in keybinds)
+            {
+                if (keybind.Matches(button) is false)
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(keybind.Condition) is false && GameStateQuery.CheckConditions(keybind.Condition) is false)
+                {
+                    continue;
+                }
+
+                isSuppressed |= keybind.SuppressDefault;
+                hasRunAny = true;
+
+                PlaySound(keybind.Sound);
+
+                foreach (string action in keybind.GetActions())
+                {
+                    if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
+                    {
+                        Parchment.monitor.Log($"OnKeyPress action '{action}' on page '{pageId}' failed: {error}", LogLevel.Warn);
+
+                        if (exception is not null)
+                        {
+                            Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
+                        }
+                    }
+                }
+            }
+
+            return isSuppressed;
+        }
+
+        /// <summary>Starts counting the exit button's hold, after a page claimed the press.</summary>
+        private void BeginForceCloseHold()
+        {
+            _isExitButtonSuppressed = true;
+            _forceCloseHoldTimer = 0f;
+        }
+
+        /// <summary>Counts how long the exit button stays down after a page took it over, forcing the book shut once the hold is long enough.
+        /// This is the reader's guaranteed way out, so a page that redirects the exit button can never strand them.
+        /// </summary>
+        private void UpdateForceCloseHold(float elapsedMilliseconds)
+        {
+            if (_isExitButtonSuppressed is false)
+            {
+                return;
+            }
+
+            if (IsExitButtonHeld() is false)
+            {
+                _isExitButtonSuppressed = false;
+                _forceCloseHoldTimer = 0f;
+
+                return;
+            }
+
+            _forceCloseHoldTimer += elapsedMilliseconds;
+            if (_forceCloseHoldTimer < FORCE_CLOSE_HOLD_DURATION)
+            {
+                return;
+            }
+
+            _isExitButtonSuppressed = false;
+            _forceCloseHoldTimer = 0f;
+
+            ForceClose();
+        }
+
+        /// <summary>Whether anything bound to the menu's exit is currently down, covering the keyboard binding and the controller's B button.</summary>
+        private static bool IsExitButtonHeld()
+        {
+            KeyboardState keyboardState = Game1.input.GetKeyboardState();
+            foreach (InputButton inputButton in Game1.options.menuButton)
+            {
+                if (inputButton.key != Keys.None && keyboardState.IsKeyDown(inputButton.key))
+                {
+                    return true;
+                }
+            }
+
+            return Game1.options.gamepadControls && Game1.input.GetGamePadState().IsButtonDown(Buttons.B);
+        }
+
+        /// <summary>Shuts the book and leaves the menu, ignoring ExitToCover. The reader held the exit button to get here, so landing on the cover isn't what they asked for.</summary>
+        private void ForceClose()
+        {
+            if (CurrentState is MenuState.Closing)
+            {
+                return;
+            }
+
+            SetMenuState(MenuState.Closing);
+            PlaySound(_animation.CloseSound);
+        }
+
         private void MarkVisibleSeen(Chapter chapter, int leftPageIndex, int rightPageIndex)
         {
             var who = Game1.player;
@@ -985,7 +1131,20 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            if (Game1.options.doesInputListContain(Game1.options.menuButton, key))
+            bool isExitButton = Game1.options.doesInputListContain(Game1.options.menuButton, key);
+
+            // The visible page gets first refusal, so it can take the button over before the menu acts on it
+            if (HandlePageKeybinds(key.ToSButton()) is true)
+            {
+                if (isExitButton)
+                {
+                    BeginForceCloseHold();
+                }
+
+                return;
+            }
+
+            if (isExitButton)
             {
                 BeginClose();
                 return;
@@ -997,6 +1156,21 @@ namespace Parchment.Framework.UI.Menus
             }
 
             base.receiveKeyPress(key);
+        }
+
+        public override void receiveGamePadButton(Buttons button)
+        {
+            if (HandlePageKeybinds(button.ToSButton()) is true)
+            {
+                if (button is Buttons.B)
+                {
+                    BeginForceCloseHold();
+                }
+
+                return;
+            }
+
+            base.receiveGamePadButton(button);
         }
 
         public override void receiveLeftClick(int x, int y, bool playSound = true)
@@ -1121,6 +1295,9 @@ namespace Parchment.Framework.UI.Menus
 
             // Conditions refresh in every state, so CurrentBookState works for all of them and there's no state where a condition goes stale
             UpdateConditionTimer();
+
+            // Tracked in every state, since an action a keybind ran may have started an animation the reader is now holding the button through
+            UpdateForceCloseHold(elapsedMilliseconds);
 
             if (CurrentState is MenuState.Sliding)
             {
