@@ -1,4 +1,4 @@
-using Parchment.Framework.Models;
+﻿using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.UI.Menus;
@@ -51,10 +51,24 @@ namespace Parchment.Framework.API.Builders
 
         private IPageBuilder CreatePage(string pageId, string? chapterId)
         {
-            var page = new PageBuilder(pageId, chapterId);
+            var page = new PageBuilder(pageId, chapterId, this);
             _pages.Add(page);
 
             return page;
+        }
+
+        /// <summary>Builds just the book's own fields, with no pages, so a page can be measured against the appearance and layout it will be drawn with.</summary>
+        /// <remarks>Field errors are ignored here, as they are reported properly by <see cref="TryBuildValidated"/> at registration. A field that fails to bind simply leaves its default in place.</remarks>
+        internal BookData GetLayoutData()
+        {
+            var data = new BookData() { Id = _bookId };
+
+            foreach (var field in _fields)
+            {
+                ModelBinder.TrySet(data, field.Field, field.Value, out _);
+            }
+
+            return data;
         }
 
         public IElementBuilder AddUnderlay(string elementType)

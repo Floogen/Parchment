@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Parchment.Framework.Models;
@@ -610,10 +610,11 @@ namespace Parchment.Framework.UI.Menus
 
             int marginOuter = (int)(Book.Data.Layout.MarginOuter * _appearance.Scale);
             int marginTop = (int)(Book.Data.Layout.MarginTop * _appearance.Scale);
-            int marginBottom = (int)(Book.Data.Layout.MarginBottom * _appearance.Scale);
-            int marginSpine = (int)(Book.Data.Layout.MarginSpine * _appearance.Scale);
 
-            return new Rectangle(bookBounds.X + marginOuter, bookBounds.Y + marginTop, bookBounds.Width / 2 - marginOuter - marginSpine, bookBounds.Height - marginTop - marginBottom);
+            // Shared with the builder's measurement, so a page can't be measured against a size it won't be drawn at
+            Point pageSize = PageLayoutHelper.GetPageContentSize(bookBounds.Width, bookBounds.Height, Book.Data.Layout, _appearance.Scale);
+
+            return new Rectangle(bookBounds.X + marginOuter, bookBounds.Y + marginTop, pageSize.X, pageSize.Y);
         }
 
         private Rectangle GetRightPageBounds()
@@ -621,12 +622,12 @@ namespace Parchment.Framework.UI.Menus
             Rectangle bookBounds = GetBookScreenBounds();
             int spineX = bookBounds.X + bookBounds.Width / 2;
 
-            int marginOuter = (int)(Book.Data.Layout.MarginOuter * _appearance.Scale);
             int marginTop = (int)(Book.Data.Layout.MarginTop * _appearance.Scale);
-            int marginBottom = (int)(Book.Data.Layout.MarginBottom * _appearance.Scale);
             int marginSpine = (int)(Book.Data.Layout.MarginSpine * _appearance.Scale);
 
-            return new Rectangle(spineX + marginSpine, bookBounds.Y + marginTop, bookBounds.Width / 2 - marginOuter - marginSpine, bookBounds.Height - marginTop - marginBottom);
+            Point pageSize = PageLayoutHelper.GetPageContentSize(bookBounds.Width, bookBounds.Height, Book.Data.Layout, _appearance.Scale);
+
+            return new Rectangle(spineX + marginSpine, bookBounds.Y + marginTop, pageSize.X, pageSize.Y);
         }
 
         private void UpdateCornerAnimation(ref float animationTimer, ref int currentFrame, bool isHovering, float elapsedMilliseconds)

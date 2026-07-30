@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
@@ -21,6 +21,9 @@ namespace Parchment.Framework.Models
 {
     public class Page
     {
+        /// <summary>A height no page will ever reach, used to stop <see cref="MeasureStack"/> clipping. Kept well short of <see cref="float.MaxValue"/> so the subtraction a container does for its children can't overflow.</summary>
+        private const float UNBOUNDED_MEASURE_HEIGHT = 1000000f;
+
         public PageData Data { get; }
 
         /// <summary>This page's 0-based position within the book, which is what a <see cref="Enums.ElementType.PageNumber"/> element renders (as a 1-based number).</summary>
@@ -144,6 +147,16 @@ namespace Parchment.Framework.Models
 
                 element.Bounds = new Rectangle(alignedX + element.Data.Position.X, alignedY + element.Data.Position.Y, (int)elementSize.X, (int)elementSize.Y);
             }
+        }
+
+        /// <summary>Measures how tall a stack of elements comes to, without the clipping <see cref="StackElements"/> applies once content runs past the bottom of the page.
+        /// Use this to ask whether content fits, since the clipped height stops growing at the page edge and so can't answer that.
+        /// </summary>
+        /// <param name="elements">The elements that would be stacked.</param>
+        /// <param name="availableWidth">The width the content wraps to, being the page's content width.</param>
+        public static float MeasureStack(IReadOnlyList<Element> elements, float availableWidth)
+        {
+            return StackElements(elements, new ElementRenderContext(availableWidth, UNBOUNDED_MEASURE_HEIGHT));
         }
 
         // Keep this static so it can be called outside Page

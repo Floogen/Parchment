@@ -1,6 +1,9 @@
+﻿using Microsoft.Xna.Framework;
+using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Data.Pages;
+using Parchment.Framework.Utilities.Helpers;
 using System.Collections.Generic;
 
 namespace Parchment.Framework.API.Builders
@@ -15,13 +18,15 @@ namespace Parchment.Framework.API.Builders
         private readonly List<ElementBuilder> _background = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _foreground = new List<ElementBuilder>();
         private readonly List<(string Action, string? Condition)> _onView = new List<(string Action, string? Condition)>();
+        private readonly BookBuilder? _owner;
 
         public string PageId { get { return _pageId; } }
 
-        internal PageBuilder(string pageId, string? chapterId)
+        internal PageBuilder(string pageId, string? chapterId, BookBuilder? owner = null)
         {
             _pageId = pageId ?? string.Empty;
             _chapterId = chapterId;
+            _owner = owner;
         }
 
         public IPageBuilder Set(string field, object? value)
@@ -78,6 +83,64 @@ namespace Parchment.Framework.API.Builders
             _onView.Add((action, condition));
 
             return this;
+        }
+
+        public IPageBuilder RemoveLast()
+        {
+            if (_elements.Count > 0)
+            {
+                _elements.RemoveAt(_elements.Count - 1);
+            }
+
+            return this;
+        }
+
+        public float GetAvailableHeight()
+        {
+            return GetPageContentSize().Y;
+        }
+
+        public float GetContentHeight()
+        {
+            Point pageSize = GetPageContentSize();
+            if (pageSize.X <= 0)
+            {
+                return 0f;
+            }
+
+            // Built fresh each call, since the point of measuring is to see the effect of whatever was just added
+            if (TryBuild(out PageData pageData, out _) is false)
+            {
+                return 0f;
+            }
+
+            var page = new Page(pageData, 0, Parchment.bookManager.ElementRegistry, Parchment.bookManager.FontResolver);
+
+            return Page.MeasureStack(page.Elements, pageSize.X);
+        }
+
+        public float GetRemainingHeight()
+        {
+            return GetAvailableHeight() - GetContentHeight();
+        }
+
+        public bool WouldOverflow()
+        {
+            float availableHeight = GetAvailableHeight();
+
+            // A page whose size can't be worked out yet is never reported as overflowing, so callers degrade to a single page rather than to none
+            return availableHeight > 0f && GetContentHeight() > availableHeight;
+        }
+
+        /// <summary>Get the page's content area, or an empty size when there is nothing to measure against yet.</summary>
+        private Point GetPageContentSize()
+        {
+            if (_owner is null || Parchment.bookManager is null)
+            {
+                return Point.Zero;
+            }
+
+            return PageLayoutHelper.GetPageContentSize(_owner.GetLayoutData());
         }
 
         /// <summary>Creates a fresh data object from the recorded fields.</summary>

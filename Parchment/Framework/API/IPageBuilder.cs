@@ -1,4 +1,4 @@
-namespace Parchment.Framework.API
+﻿namespace Parchment.Framework.API
 {
     /// <summary>Builds one page of a book. Obtained from <see cref="IBookBuilder.AddPage(string)"/>.</summary>
     public interface IPageBuilder
@@ -43,5 +43,28 @@ namespace Parchment.Framework.API
 
         /// <summary>Runs a trigger action each time this page becomes visible and the game state query passes.</summary>
         IPageBuilder OnView(string action, string condition);
+
+        /// <summary>Removes the last element added to the page's stacked content, for undoing a speculative add that turned out not to fit.
+        /// Does nothing when the page has no stacked content. Background and foreground elements are left alone.</summary>
+        IPageBuilder RemoveLast();
+
+        /// <summary>The height in pixels this page has for stacked content, from the book's appearance and layout.</summary>
+        /// <remarks>Returns 0 before Parchment has finished starting up, since the page size isn't known until then.</remarks>
+        float GetAvailableHeight();
+
+        /// <summary>How tall the stacked elements added so far come to in pixels, measured with the fonts, wrapping and spacing they will actually be drawn with.
+        /// Content past the bottom of the page still counts, so this keeps growing rather than stopping at the page edge.</summary>
+        /// <remarks>Each call rebuilds and measures the page, so prefer calling it once per element added rather than in a tight loop.</remarks>
+        float GetContentHeight();
+
+        /// <summary>How much room is left on the page in pixels, which goes negative once the content overflows.</summary>
+        float GetRemainingHeight();
+
+        /// <summary>Whether the elements added so far run past the bottom of the page.</summary>
+        /// <remarks>
+        /// Pair this with <see cref="RemoveLast"/> to fill pages greedily: add an element, and if the page now overflows,
+        /// take it back off and start a new page with it instead.
+        /// </remarks>
+        bool WouldOverflow();
     }
 }
