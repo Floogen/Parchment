@@ -51,6 +51,12 @@ namespace Parchment.Framework.Models
 
         public IReadOnlyList<Element> Children { get; init; } = Array.Empty<Element>();
 
+        /// <summary>Placed elements drawn behind <see cref="Children"/>, from <see cref="Interfaces.ILayeredContainer.Background"/>. Empty on anything that isn't a layered container.</summary>
+        public IReadOnlyList<Element> Background { get; init; } = Array.Empty<Element>();
+
+        /// <summary>Placed elements drawn over <see cref="Children"/>, from <see cref="Interfaces.ILayeredContainer.Foreground"/>. Empty on anything that isn't a layered container.</summary>
+        public IReadOnlyList<Element> Foreground { get; init; } = Array.Empty<Element>();
+
         public Element(ElementData data, IElementRenderer renderer)
         {
             this.Data = data;

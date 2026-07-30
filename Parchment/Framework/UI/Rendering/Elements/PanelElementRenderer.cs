@@ -67,7 +67,24 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 contentHeight = childHeight;
             }
 
+            // The placed layers are measured against the content area the panel actually settled on, so they can't feed back into the size that produced it
+            PlaceLayers(element, childContext.WithSize(childWidth, contentHeight));
+
             return new Vector2(Math.Max(panelWidth, borderThickness * 2f), Math.Max(contentHeight + inset * 2f, borderThickness * 2f));
+        }
+
+        /// <summary>Positions the panel's Background and Foreground within its content area. These are placed rather than stacked, so they never contribute to the panel's measured size.</summary>
+        private static void PlaceLayers(Element element, ElementRenderContext placedContext)
+        {
+            if (element.LayoutState is not PanelLayout panelLayout)
+            {
+                return;
+            }
+
+            panelLayout.PlacedContext = placedContext;
+
+            Page.PositionElements(element.Background, placedContext);
+            Page.PositionElements(element.Foreground, placedContext);
         }
 
         private static int GetBorderThickness(PanelElementData data, Element element)
@@ -92,6 +109,20 @@ namespace Parchment.Framework.UI.Rendering.Elements
             return naturalChildWidth;
         }
 
+        private static void DrawLayer(SpriteBatch spriteBatch, IReadOnlyList<Element> layer, Rectangle contentBounds, ElementRenderContext placedContext)
+        {
+            foreach (Element placedElement in layer)
+            {
+                if (placedElement.Bounds == Rectangle.Empty)
+                {
+                    continue;
+                }
+
+                Rectangle placedBounds = new Rectangle(contentBounds.X + placedElement.Bounds.X, contentBounds.Y + placedElement.Bounds.Y, placedElement.Bounds.Width, placedElement.Bounds.Height);
+                placedElement.Renderer.Draw(spriteBatch, placedElement, placedBounds, placedContext);
+            }
+        }
+
         protected override void Draw(SpriteBatch spriteBatch, PanelElementData data, Element element, Rectangle bounds, ElementRenderContext context)
         {
             if (element.LayoutState is not PanelLayout panelLayout)
@@ -106,11 +137,15 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
             Rectangle contentBounds = GetContentBounds(element, bounds);
 
+            DrawLayer(spriteBatch, element.Background, contentBounds, panelLayout.PlacedContext);
+
             foreach (Element child in element.Children)
             {
                 Rectangle childBounds = new Rectangle(contentBounds.X + child.Bounds.X, contentBounds.Y + child.Bounds.Y, child.Bounds.Width, child.Bounds.Height);
                 child.Renderer.Draw(spriteBatch, child, childBounds, panelLayout.ChildContext);
             }
+
+            DrawLayer(spriteBatch, element.Foreground, contentBounds, panelLayout.PlacedContext);
         }
     }
 }

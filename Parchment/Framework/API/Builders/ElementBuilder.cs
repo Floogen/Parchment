@@ -16,6 +16,8 @@ namespace Parchment.Framework.API.Builders
         private readonly string _elementType;
         private readonly List<(string Field, object? Value)> _fields = new List<(string Field, object? Value)>();
         private readonly List<ElementBuilder> _children = new List<ElementBuilder>();
+        private readonly List<ElementBuilder> _background = new List<ElementBuilder>();
+        private readonly List<ElementBuilder> _foreground = new List<ElementBuilder>();
         private readonly List<FrameRecipe> _frames = new List<FrameRecipe>();
         private readonly List<FrameRecipe> _hoverFrames = new List<FrameRecipe>();
         private readonly List<string> _actions = new List<string>();
@@ -119,6 +121,22 @@ namespace Parchment.Framework.API.Builders
             _children.Add(child);
 
             return child;
+        }
+
+        public IElementBuilder AddBackground(string elementType)
+        {
+            var placedElement = new ElementBuilder(elementType);
+            _background.Add(placedElement);
+
+            return placedElement;
+        }
+
+        public IElementBuilder AddForeground(string elementType)
+        {
+            var placedElement = new ElementBuilder(elementType);
+            _foreground.Add(placedElement);
+
+            return placedElement;
         }
 
         /// <summary>Creates a fresh data object from the recorded fields.</summary>
@@ -227,7 +245,55 @@ namespace Parchment.Framework.API.Builders
                 container.Children = children;
             }
 
+            if (_background.Count > 0 || _foreground.Count > 0)
+            {
+                if (data is not ILayeredContainer layeredContainer)
+                {
+                    error = $"[{_elementType}] a background or foreground can only be added to a layered container such as a Panel";
+                    return false;
+                }
+
+                if (_background.Count > 0)
+                {
+                    if (TryBuildList(_background, out List<ElementData> background, out error) is false)
+                    {
+                        return false;
+                    }
+
+                    layeredContainer.Background = background;
+                }
+
+                if (_foreground.Count > 0)
+                {
+                    if (TryBuildList(_foreground, out List<ElementData> foreground, out error) is false)
+                    {
+                        return false;
+                    }
+
+                    layeredContainer.Foreground = foreground;
+                }
+            }
+
             element = data;
+            error = string.Empty;
+
+            return true;
+        }
+
+        private static bool TryBuildList(List<ElementBuilder> builders, out List<ElementData> elements, out string error)
+        {
+            elements = new List<ElementData>();
+
+            foreach (ElementBuilder builder in builders)
+            {
+                if (builder.TryBuild(out ElementData builtElement, out error) is false)
+                {
+                    return false;
+                }
+
+                elements.Add(builtElement);
+            }
+
             error = string.Empty;
 
             return true;

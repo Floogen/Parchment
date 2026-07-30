@@ -109,16 +109,15 @@ namespace Parchment.Framework.Models
             // Frame conditions don't affect layout, since the element is sized by its source rectangle rather than the active frame, so this deliberately doesn't feed into hasChanged and trigger a relayout
             AnimationHelper.RefreshActiveFrames(element);
 
-            foreach (Element child in element.Children)
-            {
-                hasChanged |= RefreshCondition(child);
-            }
+            hasChanged |= RefreshConditionsFor(element.Children);
+            hasChanged |= RefreshConditionsFor(element.Background);
+            hasChanged |= RefreshConditionsFor(element.Foreground);
 
             return hasChanged;
         }
 
         // Start of public static methods
-        /// <summary>Places each element at its own <see cref="ElementData.Position"/> rather than stacking it, used for a page's Background and Foreground and a book's Underlay and Overlay.
+        /// <summary>Places each element at its own <see cref="ElementData.Position"/> rather than stacking it, used for a page's Background and Foreground, a book's Underlay and Overlay and a container's own layers.
         /// <see cref="ElementData.Alignment"/> and <see cref="ElementData.VerticalAlignment"/> anchor the element within the container first and <see cref="ElementData.Position"/> is then an offset from that anchor.
         /// Left and Top anchor at zero, so a default-aligned element's position still reads as a plain coordinate. Unlike <see cref="StackElements"/> this ignores the element's margins, as Position is already the way to inset a placed element.
         /// </summary>
@@ -235,10 +234,25 @@ namespace Parchment.Framework.Models
                 }
 
                 Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
+
+                // A container's own layers are anchored to its content area, so they are tested against the same rectangle its children are
+                // Both are always interactiveOnly, whatever the outer list is, so decorative art inside a panel doesn't swallow the cursor
+                Element? hitLayer = HitTest(element.Foreground, contentBounds, screenPosition, interactiveOnly: true);
+                if (hitLayer is not null)
+                {
+                    return hitLayer;
+                }
+
                 Element? hitChild = HitTest(element.Children, contentBounds, screenPosition, interactiveOnly);
                 if (hitChild is not null)
                 {
                     return hitChild;
+                }
+
+                hitLayer = HitTest(element.Background, contentBounds, screenPosition, interactiveOnly: true);
+                if (hitLayer is not null)
+                {
+                    return hitLayer;
                 }
 
                 if (interactiveOnly && element.IsInteractive is false)

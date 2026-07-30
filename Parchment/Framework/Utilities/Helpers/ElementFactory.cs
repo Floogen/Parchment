@@ -111,7 +111,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 TextureAssetName = textureAssetName,
                 SourceRectangle = sourceRectangle,
                 Texture = texture,
-                Children = CreateChildren(data, registry, fontResolver)
+                Children = CreateChildren(data, registry, fontResolver),
+                Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver),
+                Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver)
             };
 
             // Prep the active frames, so a conditional animation is correct on the first draw rather than after the first condition refresh
@@ -124,6 +126,16 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return element;
+        }
+
+        private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver)
+        {
+            if (layerData is null || layerData.Count is 0)
+            {
+                return Array.Empty<Element>();
+            }
+
+            return CreateList(layerData, registry, fontResolver);
         }
 
         private static IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver)
@@ -215,31 +227,40 @@ namespace Parchment.Framework.Utilities.Helpers
             element.LayoutState = null;
         }
 
-        public static bool RefreshTextures(List<Element> elements, IReadOnlyCollection<IAssetName> invalidatedAssetNames)
+        /// <summary>Reloads any texture belonging to an invalidated asset, walking nested elements as well as the list given, since a container's children and layers hold their own textures.</summary>
+        public static bool RefreshTextures(IReadOnlyList<Element> elements, IReadOnlyCollection<IAssetName> invalidatedAssetNames)
         {
             bool wasAnyTextureRefreshed = false;
+
             foreach (Element element in elements)
             {
-                if (element.TextureAssetName is null)
-                {
-                    continue;
-                }
+                wasAnyTextureRefreshed |= RefreshTextures(element, invalidatedAssetNames);
+            }
 
-                if (invalidatedAssetNames.Any(assetName => assetName.IsEquivalentTo(element.TextureAssetName)) is false)
-                {
-                    continue;
-                }
+            return wasAnyTextureRefreshed;
+        }
 
+        private static bool RefreshTextures(Element element, IReadOnlyCollection<IAssetName> invalidatedAssetNames)
+        {
+            bool wasAnyTextureRefreshed = false;
+
+            if (element.TextureAssetName is not null && invalidatedAssetNames.Any(assetName => assetName.IsEquivalentTo(element.TextureAssetName)))
+            {
                 RefreshTexture(element);
                 wasAnyTextureRefreshed = true;
             }
 
+            wasAnyTextureRefreshed |= RefreshTextures(element.Children, invalidatedAssetNames);
+            wasAnyTextureRefreshed |= RefreshTextures(element.Background, invalidatedAssetNames);
+            wasAnyTextureRefreshed |= RefreshTextures(element.Foreground, invalidatedAssetNames);
+
+            // A nested texture swap can change a container's measured size, so drop the cached layout even when this element owns no texture itself
             if (wasAnyTextureRefreshed)
             {
-                return true;
+                element.LayoutState = null;
             }
 
-            return false;
+            return wasAnyTextureRefreshed;
         }
     }
 }

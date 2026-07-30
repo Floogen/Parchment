@@ -116,5 +116,11 @@ namespace Parchment.Framework.API
 
         /// <summary>Adds a child element, on a container such as a Panel.</summary>
         IElementBuilder AddChild(string elementType);
+
+        /// <summary>Adds an element drawn behind a container's children, placed at its own Position within the container's content area rather than stacked. Available on a Panel.</summary>
+        IElementBuilder AddBackground(string elementType);
+
+        /// <summary>Adds an element drawn over a container's children, placed at its own Position within the container's content area rather than stacked. Available on a Panel.</summary>
+        IElementBuilder AddForeground(string elementType);
     }
 }

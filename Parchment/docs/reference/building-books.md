@@ -128,6 +128,8 @@ Most methods are named after the field they set, so anything you've written in a
 | `AddHoverFrame(x, y, duration, scale, condition)` | A [hover frame](elements/image.md#hover-frames), played while the cursor is over the element. |
 | `AddHoverFrameInPlace(duration, scale, condition)` | A hover frame that keeps whatever the element already draws. |
 | `AddChild(type)` | A child element on a container such as a Panel |
+| `AddBackground(type)` | An element behind a container's children, placed by `Position` within its content area |
+| `AddForeground(type)` | An element over a container's children, placed the same way |
 
 Not every method applies to every element type. `Padding` on a `Heading` isn't valid, and asking for it fails at registration with a message naming the fields that type does accept.
 

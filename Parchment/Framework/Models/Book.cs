@@ -176,9 +176,21 @@ namespace Parchment.Framework.Models
 
         public void RefreshTextures(IReadOnlyCollection<IAssetName> invalidatedAssetNames)
         {
+            bool wasBookLayerRefreshed = ElementFactory.RefreshTextures(Underlay, invalidatedAssetNames);
+            wasBookLayerRefreshed |= ElementFactory.RefreshTextures(Overlay, invalidatedAssetNames);
+
+            if (wasBookLayerRefreshed)
+            {
+                LastLayoutContext = null;
+            }
+
             foreach (Page page in Pages)
             {
-                if (ElementFactory.RefreshTextures(page.Elements, invalidatedAssetNames) is true)
+                bool wasPageRefreshed = ElementFactory.RefreshTextures(page.Elements, invalidatedAssetNames);
+                wasPageRefreshed |= ElementFactory.RefreshTextures(page.Background, invalidatedAssetNames);
+                wasPageRefreshed |= ElementFactory.RefreshTextures(page.Foreground, invalidatedAssetNames);
+
+                if (wasPageRefreshed)
                 {
                     page.LastLayoutContext = null;
                 }

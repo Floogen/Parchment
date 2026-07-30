@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Data.Pages;
 using Parchment.Framework.Models.Enums;
+using Parchment.Framework.Utilities.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -49,7 +50,7 @@ namespace Parchment.Framework.Models.Data
                 return (false, $"\"Id\" is required.");
             }
 
-            var elementsIsValidData = ValidateElements(Elements);
+            var elementsIsValidData = ElementValidationHelper.ValidateElements(Elements);
             if (elementsIsValidData.Result is false)
             {
                 return (false, $"[Elements] {elementsIsValidData.Error}");
@@ -57,7 +58,7 @@ namespace Parchment.Framework.Models.Data
 
             if (Background is not null)
             {
-                var backgroundIsValidData = ValidateElements(Background);
+                var backgroundIsValidData = ElementValidationHelper.ValidateElements(Background);
                 if (backgroundIsValidData.Result is false)
                 {
                     return (false, $"[Background] {backgroundIsValidData.Error}");
@@ -66,7 +67,7 @@ namespace Parchment.Framework.Models.Data
 
             if (Foreground is not null)
             {
-                var foregroundIsValidData = ValidateElements(Foreground);
+                var foregroundIsValidData = ElementValidationHelper.ValidateElements(Foreground);
                 if (foregroundIsValidData.Result is false)
                 {
                     return (false, $"[Foreground] {foregroundIsValidData.Error}");
@@ -82,20 +83,6 @@ namespace Parchment.Framework.Models.Data
                     {
                         return (false, $"[OnView] Trigger at index {i}: {triggerIsValidData.Error}");
                     }
-                }
-            }
-
-            return (true, string.Empty);
-        }
-
-        private (bool Result, string Error) ValidateElements(List<ElementData> elements)
-        {
-            foreach (ElementData element in elements)
-            {
-                var isValidData = element.IsValid();
-                if (isValidData.Result is false)
-                {
-                    return (false, $"Element \"{element.Id}\" ({element.Type}): {isValidData.Error}");
                 }
             }
 
