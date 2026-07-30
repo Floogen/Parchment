@@ -26,7 +26,16 @@ namespace Parchment.Framework.Models.Data.Elements
         public string? Description { get; set; }
         public abstract ElementType Type { get; }
 
+        /// <summary>Where the element sits within the width available to it, and where each line of its text sits within the element.
+        /// Only has an effect when the element is narrower than the space available. In a placed list (a page's Background or Foreground, a book's Underlay or Overlay) this anchors the element
+        /// and <see cref="Position"/> is then an offset from that anchor.
+        /// </summary>
         public AlignmentType Alignment { get; set; } = AlignmentType.Left;
+
+        /// <summary>Where the element sits within the height available to it, anchoring it before <see cref="Position"/> offsets it from there.
+        /// Only used in a placed list (a page's Background or Foreground, a book's Underlay or Overlay), as a stacked element takes its vertical position from the elements above it.
+        /// </summary>
+        public VerticalAlignmentType VerticalAlignment { get; set; } = VerticalAlignmentType.Top;
 
         /// <summary>
         /// Optional. If given, increases buffer between elements.
@@ -40,6 +49,7 @@ namespace Parchment.Framework.Models.Data.Elements
         /// <summary>
         /// The page-local position in screen pixels, relative to the page's content area. Unlike <see cref="SpacingAfter"/> and other spacing fields, this is not multiplied by <see cref="Scale"/>.
         /// Changing an element's scale resizes it in place rather than moving it.
+        /// Measured from wherever <see cref="Alignment"/> and <see cref="VerticalAlignment"/> anchor the element, so it is an absolute coordinate under the default Left and Top and an offset from the anchor otherwise.
         /// </summary>
         public Point Position { get; set; } = Point.Zero;
 

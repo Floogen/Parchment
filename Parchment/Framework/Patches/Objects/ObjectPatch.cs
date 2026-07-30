@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
 using Parchment.Framework.UI.Menus;
@@ -31,14 +31,15 @@ namespace Parchment.Framework.Patches.Objects
                 return;
             }
 
-            var book = Parchment.bookManager.CreateBook(bookId);
-            if (book is null)
+            if (Parchment.bookManager.HasBook(bookId) is false)
             {
                 return;
             }
-            __result = false;
 
-            Game1.activeClickableMenu = new BookMenu(book);
+            // Request that the book be opened, though give priority to world first (i.e. TV, doors, NPCs, etc.)
+            Parchment.bookManager.RequestOpenBook(bookId);
+
+            __result = false;
         }
     }
 }

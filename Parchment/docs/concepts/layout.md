@@ -28,13 +28,15 @@ Containers narrow the space for their contents. A panel's children measure again
 
 `Alignment` does two things, and they compose.
 
-It places the **element** within its container, which only has an effect when the element is narrower than the space available. A `Fill` panel has no slack, so its `Alignment` does nothing. Give the same panel a `Width` and it starts mattering, which is why alignment often seems to "start working" the moment you set a width.
+It places the **element** within its container, which only has an effect when the element is narrower than the space available. A `Fill` panel has no slack, so its `Alignment` does nothing. Give the same panel a `Width` and it starts mattering, which is why alignment often seems to "start working" the moment you set a width. This holds for [placed elements](#placed-elements) too, where the container is the page's content area or the book itself.
 
 It also aligns each **line of text** within the element. A centred three-line paragraph gets its block placed on the page *and* each line centred within the block, so the ragged edges fall where you'd expect.
 
 Both happen from the same field, which is almost always what you want. The exception is [`Banner`](../reference/elements/banner.md), whose text is always centred in the scroll regardless of where the banner itself sits. A right-aligned banner with left-shoved text would just look broken.
 
 An [`Image`](../reference/elements/image.md) with text on it separates them properly: `Alignment` places the picture, `TextAlignment` places the words on it.
+
+There's a `VerticalAlignment` too, but only for [placed elements](#placed-elements). A stacked element's vertical position is whatever the elements above it leave, so there's nothing for it to decide. Setting it on a stacked element logs an error to SMAPI and changes nothing, rather than failing quietly.
 
 ## Placed elements
 
@@ -45,6 +47,44 @@ Placed elements don't participate in the layout at all. They can't push anything
 Because `Position` is a coordinate rather than a measurement, it's the one field that **doesn't** scale (see [Units and scale](units.md)). Changing a placed element's `Scale` grows it from its top-left rather than moving it.
 
 Placed elements are still fully featured. One in a page's `Background` or `Foreground` can carry a tooltip, an `Action` or a `HoverAction`, and it's tested against the cursor in drawing order from the top down: foreground, then the stacked elements, then background. An element in those two lists with nothing to offer is [skipped entirely](../reference/page.md#background-and-foreground) so decorative art can overlap a button without stealing its clicks.
+
+### Alignment anchors, position offsets
+
+`Alignment` and `VerticalAlignment` both apply to a placed element, and they decide where `Position` counts from. The element is anchored within the container first, then moved by `Position`:
+
+| `Alignment` | Where `X: 0` lands | What a positive `X` does |
+| --- | --- | --- |
+| `Left` | The container's left edge. | Moves right. |
+| `Center` | Horizontally centred. | Moves right of centre. |
+| `Right` | Flush against the right edge. | Pushes past the right edge, so you'll usually want a negative value here. |
+
+| `VerticalAlignment` | Where `Y: 0` lands | What a positive `Y` does |
+| --- | --- | --- |
+| `Top` | The container's top edge. | Moves down. |
+| `Center` | Vertically centred. | Moves below centre. |
+| `Bottom` | Flush against the bottom edge. | Pushes past the bottom edge, so you'll usually want a negative value here. |
+
+The two are independent, so you can centre horizontally and pin to the bottom. The defaults are `Left` and `Top`, both anchoring at zero, which is why `Position` reads as a plain coordinate until you set something else. Centring a flourish on a page therefore needs no arithmetic against the page's size:
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/flourish",
+  "Alignment": "Center",
+  "VerticalAlignment": "Bottom",
+  "Position": { "X": 0, "Y": -24 }
+}
+```
+
+That sits the flourish along the bottom of the page, 24px up from the edge, wherever the page's content area happens to fall. The book's `Underlay` and `Overlay` anchor against the book sprite instead, so the same element there would sit against the bottom of the book rather than the bottom of a page.
+
+The usual caveat applies on both axes: an element with no slack can't move. A default `Panel` or `Divider` fills the width, so aligning one does nothing until it has a `Width`. A `Paragraph` in a placed list wraps at the full container width unless you give it a `Width`, so its block only shifts by however much its longest line falls short. Vertically there's almost always slack, since a placed element is rarely as tall as the page.
+
+!!! warning "`VerticalAlignment` is for placed elements only"
+    On a stacked element it does nothing, because the elements above it already decide where it starts. Parchment logs an error naming the element so it doesn't look like the field silently broke. To push a whole page's content down, use the `SpacingAfter` of the element above it or the book's [`MarginTop`](../reference/book.md#layout).
+
+!!! note "Margins don't apply to placed elements"
+    `MarginLeft` and `MarginRight` are ignored here, so alignment measures against the container's full width and height. Inset a placed element with `Position` instead, which is what it's for.
 
 ## When content doesn't fit
 

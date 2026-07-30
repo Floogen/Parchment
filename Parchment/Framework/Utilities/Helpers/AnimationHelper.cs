@@ -155,15 +155,15 @@ namespace Parchment.Framework.Utilities.Helpers
             return frames[frames.Count - 1];
         }
 
-        /// <summary>Gets the source rectangle for a frame, which takes its size from the element's own source rectangle so every frame measures the same. A null frame draws that rectangle unchanged.</summary>
+        /// <summary>Gets the source rectangle for a frame, which takes its size from the element's own source rectangle so every frame measures the same. A null frame, or one without a source point, draws that rectangle unchanged.</summary>
         public static Rectangle GetFrameRectangle(Rectangle sourceRectangle, AnimationFrameData? frame)
         {
-            if (frame is null)
+            if (frame is null || frame.SourcePoint is not Point sourcePoint)
             {
                 return sourceRectangle;
             }
 
-            return new Rectangle(frame.SourcePoint.X, frame.SourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
+            return new Rectangle(sourcePoint.X, sourcePoint.Y, sourceRectangle.Width, sourceRectangle.Height);
         }
 
         /// <summary>Gets the multiplier a frame applies on top of the element's own scale. A null frame draws at the element's scale.</summary>

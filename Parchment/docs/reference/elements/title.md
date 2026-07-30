@@ -1,6 +1,6 @@
 # Title
 
-Large heading text. Identical to [`Heading`](heading.md) and [`Paragraph`](paragraph.md) apart from its default font. The three exist to give you a consistent vocabulary rather than to behave differently.
+Large heading text. Identical to [`Heading`](heading.md) and [`Paragraph`](paragraph.md) apart from its default font (and `Paragraph`'s optional `Width`). The three exist to give you a consistent vocabulary rather than to behave differently.
 
 ```json
 {

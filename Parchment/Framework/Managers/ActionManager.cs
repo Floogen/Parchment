@@ -1,4 +1,4 @@
-﻿using Parchment.Framework.UI.Menus;
+using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Delegates;
@@ -21,6 +21,7 @@ namespace Parchment.Framework.Managers
         public const string FIRST_PAGE = "PeacefulEnd.Parchment_FirstPage";
         public const string LAST_PAGE = "PeacefulEnd.Parchment_LastPage";
         public const string CLOSE_BOOK = "PeacefulEnd.Parchment_CloseBook";
+        public const string VIEW_COVER = "PeacefulEnd.Parchment_ViewCover";
 
         public ActionManager(IMonitor monitor, IModHelper helper) : base(monitor, helper)
         {
@@ -35,6 +36,7 @@ namespace Parchment.Framework.Managers
             TriggerActionManager.RegisterAction(JUMP_TO_PAGE, JumpToPage);
             TriggerActionManager.RegisterAction(JUMP_TO_CHAPTER, JumpToChapter);
             TriggerActionManager.RegisterAction(CLOSE_BOOK, CloseBook);
+            TriggerActionManager.RegisterAction(VIEW_COVER, ViewCover);
             TriggerActionManager.RegisterAction(FIRST_PAGE, FirstPage);
             TriggerActionManager.RegisterAction(LAST_PAGE, LastPage);
         }
@@ -130,6 +132,16 @@ namespace Parchment.Framework.Managers
             error = null;
 
             return true;
+        }
+
+        public bool ViewCover(string[] args, TriggerActionContext context, out string error)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            {
+                return false;
+            }
+
+            return bookMenu.TryViewCover(out error);
         }
 
         private bool TryGetBookMenu(out BookMenu bookMenu, out string error)

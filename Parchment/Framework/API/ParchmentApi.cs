@@ -1,3 +1,4 @@
+using Parchment.Framework.API.Builders;
 using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
 using StardewValley;
@@ -7,6 +8,34 @@ namespace Parchment.Framework.API
 {
     public class ParchmentApi : IParchmentApi
     {
+        private readonly string _modId;
+
+        public ParchmentApi(IModInfo mod)
+        {
+            _modId = mod?.Manifest?.UniqueID ?? "an unknown mod";
+        }
+
+        public IBookBuilder CreateBook(string bookId)
+        {
+            return new BookBuilder(_modId, bookId);
+        }
+
+        public bool TryUnregisterBook(string bookId, out string error)
+        {
+            if (Parchment.bookManager.TryUnregisterBook(_modId, bookId, out error) is false)
+            {
+                Parchment.monitor.Log($"{_modId} failed to unregister a book, because {error}.", LogLevel.Warn);
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool HasBook(string bookId)
+        {
+            return Parchment.bookManager.HasBook(bookId);
+        }
+
         public bool TryOpenBook(string bookId, string? chapterId = null)
         {
             if (TryCreateMenu(bookId, out BookMenu menu) is false)

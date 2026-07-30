@@ -212,6 +212,7 @@ parchment_debug
 
 ## Where to go next
 
+- [The example pack](example-pack.md): example books to read, copy and edit.
 - [Units and scale](../concepts/units.md): short, and it'll save you an afternoon.
 - [Elements](../reference/elements/index.md): everything you can put on a page.
 - [Conditions](../concepts/conditions.md) and [trigger actions](../concepts/actions.md): making pages react and buttons work.

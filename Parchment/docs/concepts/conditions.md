@@ -162,9 +162,24 @@ Either route lets you mark something read without the player ever opening the bo
 | `Opening` | The book is playing its open animation. |
 | `Ready` | The book is open and settled. This is the normal state. |
 | `Turning` | A page turn is in progress. |
-| `Closing` | The book is playing its close animation. |
+| `Covering` | The book is shutting to its cover, without leaving the menu. |
+| `Cover` | The book is shut with its cover on screen, either before it's first opened or after it's closed. See [cover view](../reference/book.md#cover-view). |
+| `Closing` | The book is playing its close animation before leaving. |
 
-Only `Ready` and `Turning` are usefully testable: conditions aren't re-evaluated during the other three, so a condition can never see them. In practice `CurrentBookState` answers one question, "is a page being turned right now?", which is what you want it for.
+Every state is testable, including the brief ones, and conditions keep being re-evaluated throughout. Bear in mind what's actually on screen in each: pages aren't drawn until the book is open, so a condition on `Sliding` or `Opening` only means anything for the book's own [`Underlay` and `Overlay`](../reference/book.md#fields).
+
+`Cover` is how you decorate a closed book, since the pages aren't drawn there and the book's `Overlay` is all that's left:
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/coverTitle",
+  "Position": { "X": 44, "Y": 72 },
+  "Condition": "PeacefulEnd.Parchment_CurrentBookState Cover"
+}
+```
+
+Test `Covering` as well as `Cover` when the art should be there for the shutting animation rather than appearing once it finishes. The same pairing works at the other end: `Sliding` and `Opening` cover the book's arrival.
 
 Pair it with `IsPagingForward` to decorate a turn:
 
@@ -204,7 +219,7 @@ Frame conditions are checked on the same schedule as element conditions and they
 
 ## When conditions are checked
 
-Several times a second while the book is open or turning, and immediately whenever something might have changed the answer: when a page turn lands, when an element's action runs and when the book finishes opening.
+Several times a second for as long as the menu is up, from the moment the book starts sliding in through to it leaving. On top of that they're re-checked immediately whenever something might have changed the answer: on every change of book state, and when an element's action runs.
 
 That means a condition can react to the player gaining an item from a button on the facing page. It also means a condition is a *live* question, not a one-time filter. Don't write one that's expensive to answer.
 
