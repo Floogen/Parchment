@@ -608,13 +608,13 @@
                 },
                 {
                   "Type": "Image",
-                  "TexturePath": "Data/PeacefulEnd.Campgrounds/Campgrounds/Textures/StarterTent",
+                  "TexturePath": "LooseSprites/Cursors_1_6",
                   "TintColor": "0 0 0 89",
                   "TextureSourceRectangle": {
                     "X": 0,
-                    "Y": 5,
+                    "Y": 192,
                     "Width": 48,
-                    "Height": 59
+                    "Height": 64
                   },
                   "Scale": 2,
                   "Alignment": "Center"
@@ -644,7 +644,7 @@
                   "Sizing": "ShrinkToFit",
                   "Alignment": "Center",
                   "Scale": 2,
-                  "SpacingAfter": 20
+                  "SpacingAfter": 4
                 },
                 {
                   "Type": "Paragraph",
@@ -686,12 +686,12 @@
                   "Children": [
                     {
                       "Type": "Image",
-                      "TexturePath": "Data/PeacefulEnd.Campgrounds/Campgrounds/Textures/StarterTent",
+                      "TexturePath": "LooseSprites/Cursors_1_6",
                       "TextureSourceRectangle": {
                         "X": 0,
-                        "Y": 5,
+                        "Y": 192,
                         "Width": 48,
-                        "Height": 59
+                        "Height": 64
                       },
                       "Scale": 2,
                       "Alignment": "Center"
