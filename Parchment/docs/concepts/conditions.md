@@ -217,6 +217,8 @@ When every frame fails, the element draws `TextureSourceRectangle` by itself and
 
 Frame conditions are checked on the same schedule as element conditions and they never affect layout: an image is sized by its source rectangle, not by whichever frame is showing.
 
+Because a changed frame list is a changed animation, the cycle restarts from its first frame whenever one of these conditions flips. Gate *every* frame on `PeacefulEnd.Parchment_CurrentPageId <your page>` and you get an animation that plays from the top each time the reader turns to that page.
+
 ## When conditions are checked
 
 Several times a second for as long as the menu is up, from the moment the book starts sliding in through to it leaving. On top of that they're re-checked immediately whenever something might have changed the answer: on every change of book state, and when an element's action runs.

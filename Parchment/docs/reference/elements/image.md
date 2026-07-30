@@ -39,9 +39,14 @@ Each entry in `Frames`:
 | `Scale` <span class="opt">optional</span> | `number` | `1` | A multiplier on the element's `Scale` while this frame draws. See [Frame scale](#frame-scale). |
 | `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../../concepts/conditions.md) deciding whether this frame plays. When omitted the frame always plays. |
 
-Frames loop, and the cycle runs off game time, so two identical animations on a page play in lockstep.
+Frames loop, and the cycle is timed from the moment the animation starts, so the first frame is the one that draws when it does.
 
 A frame whose `Condition` fails is **skipped**, not paused on. The cycle gets shorter and the remaining frames close the gap, the same way a hidden element lets the ones below it close up. Conditions are re-checked while the book is open, so an animation can gain and lose frames as the game state changes.
+
+**Gaining or losing a frame starts the animation over.** A cycle whose frame list changed isn't the cycle that was playing, so it restarts rather than resuming partway. That's what lets an animation gated behind a condition play properly: gate every frame on `PeacefulEnd.Parchment_CurrentPageId <your page>` and the whole thing plays from the top when the reader arrives, instead of catching it mid-cycle.
+
+!!! tip "Timing a pause into a loop"
+    Since the animation restarts when it becomes active, a long final frame reads as a delay before the next repeat. A ten-frame flourish followed by a frame of `60000` plays once on arrival then holds still for a minute, over and over, without needing anything to trigger it.
 
 When *every* frame's condition fails, the element falls back to drawing `TextureSourceRectangle` on its own. An animation that's entirely conditional therefore goes still rather than disappearing.
 
@@ -165,8 +170,10 @@ Leaving `HoverFrames` out means the normal animation simply keeps playing under 
 
 **`HoverFrames` alone makes an element hoverable.** In a page's `Background` or `Foreground`, an element with nothing else to offer is [transparent to the cursor](../page.md#background-and-foreground). A hover animation counts as something to offer, the same way a `HoverTextureSourceRectangle` does, so it will be reachable without needing a tooltip or an action.
 
-!!! warning "Hover frames don't restart on hover"
-    Frame cycles run off absolute game time so that identical animations stay in lockstep, and `HoverFrames` is no exception. The hover animation joins at whatever point in its cycle the clock is at, rather than starting from its first frame. That's invisible for a loop, such as a flicker or a jiggle, and noticeable for a one-shot reveal. Write hover animations as loops.
+**Both animations restart on the swap.** The hover animation plays from its first frame when the cursor arrives, and the normal animation plays from its first frame when the cursor leaves. Each is a fresh cycle rather than one picked up wherever the other left it, so a one-shot reveal on hover works as written.
+
+!!! note "Elements without `HoverFrames` are untouched"
+    The restart only happens when a hover animation actually took over. An element whose `Frames` keep playing under the cursor never stops, so it never jumps back to its first frame when the cursor moves away.
 
 ## Text fields
 

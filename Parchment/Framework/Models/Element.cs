@@ -4,6 +4,7 @@ using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Interfaces;
+using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using StardewValley;
 using System;
@@ -41,8 +42,47 @@ namespace Parchment.Framework.Models
         // The same for ImageElementData.HoverFrames, cached separately so hovering picks between two ready lists rather than re-running frame conditions every time the cursor moves.
         public List<AnimationFrameData>? ActiveHoverFrames { get; set; }
 
+        // When the element's normal animation last started, on the same clock as Game1.currentGameTime. Cycles are measured from here rather than from absolute game time, so a frame set that only just became active plays from its first frame instead of joining a cycle already in progress.
+        public double AnimationStartedAt { get; set; }
+
+        // The same for the hover animation, stamped when the cursor arrives
+        public double HoverAnimationStartedAt { get; set; }
+
         internal object? LayoutState { get; set; }
-        public bool IsHovered { get; set; }
+
+        private bool _isHovered;
+
+        /// <summary>Whether the cursor is currently over this element. Arriving restarts the hover animation and leaving restarts the normal one, so each plays from its own first frame rather than picking up where the other left off.</summary>
+        public bool IsHovered
+        {
+            get => _isHovered;
+            set
+            {
+                if (_isHovered == value)
+                {
+                    return;
+                }
+
+                // Only a hover animation that actually replaced the normal frames needs either side restarted. Without this an element with no hover frames would visibly hitch on exit, having never stopped playing its normal animation
+                bool hasHoverAnimation = this.ActiveHoverFrames is not null && this.ActiveHoverFrames.Count is not 0;
+
+                _isHovered = value;
+
+                if (hasHoverAnimation is false)
+                {
+                    return;
+                }
+
+                if (value is true)
+                {
+                    this.HoverAnimationStartedAt = AnimationHelper.GetAnimationTime();
+                }
+                else
+                {
+                    this.AnimationStartedAt = AnimationHelper.GetAnimationTime();
+                }
+            }
+        }
 
         /// <summary>Whether this element does anything when the cursor reaches it, whether that is a tooltip, an action or a swap to hover art.
         /// Absolutely positioned layers such as <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/> use this so purely decorative art passes the cursor through to whatever sits under it.
