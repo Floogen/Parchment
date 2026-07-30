@@ -16,6 +16,7 @@ namespace Parchment.Framework.Managers
         public const string GO_TO_START = "PeacefulEnd.Parchment_GoToStart";
         public const string NEXT_PAGE = "PeacefulEnd.Parchment_NextPage";
         public const string PREVIOUS_PAGE = "PeacefulEnd.Parchment_PreviousPage";
+        public const string GO_BACK = "PeacefulEnd.Parchment_GoBack";
         public const string JUMP_TO_PAGE = "PeacefulEnd.Parchment_JumpToPage";
         public const string JUMP_TO_CHAPTER = "PeacefulEnd.Parchment_JumpToChapter";
         public const string JUMP_TO_CHAPTER_PAGE = "PeacefulEnd.Parchment_JumpToChapterPage";
@@ -35,6 +36,7 @@ namespace Parchment.Framework.Managers
             TriggerActionManager.RegisterAction(GO_TO_START, GoToStart);
             TriggerActionManager.RegisterAction(NEXT_PAGE, NextPage);
             TriggerActionManager.RegisterAction(PREVIOUS_PAGE, PreviousPage);
+            TriggerActionManager.RegisterAction(GO_BACK, GoBack);
             TriggerActionManager.RegisterAction(JUMP_TO_PAGE, JumpToPage);
             TriggerActionManager.RegisterAction(JUMP_TO_CHAPTER, JumpToChapter);
             TriggerActionManager.RegisterAction(JUMP_TO_CHAPTER_PAGE, JumpToChapterPage);
@@ -73,6 +75,17 @@ namespace Parchment.Framework.Managers
             }
 
             return bookMenu.TryTurnPage(forward: false, out error);
+        }
+
+        /// <summary>Returns to wherever the reader came from, rather than to the spread before this one. Calling it again goes back a further step.</summary>
+        public bool GoBack(string[] args, TriggerActionContext context, out string error)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            {
+                return false;
+            }
+
+            return bookMenu.TryGoBack(out error);
         }
 
         public bool JumpToPage(string[] args, TriggerActionContext context, out string error)

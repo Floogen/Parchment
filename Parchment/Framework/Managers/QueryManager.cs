@@ -23,6 +23,7 @@ namespace Parchment.Framework.Managers
         public const string IS_FIRST_PAGE = "PeacefulEnd.Parchment_IsFirstPage";
         public const string IS_LAST_PAGE = "PeacefulEnd.Parchment_IsLastPage";
         public const string IS_GOING_FORWARD = "PeacefulEnd.Parchment_IsPagingForward";
+        public const string CAN_GO_BACK = "PeacefulEnd.Parchment_CanGoBack";
 
         public const string HAS_SEEN_PAGE_ID = "PeacefulEnd.Parchment_HasSeenPageId";
         public const string HAS_SEEN_CHAPTERLESS_PAGE_ID = "PeacefulEnd.Parchment_HasSeenChapterlessPageId";
@@ -49,6 +50,7 @@ namespace Parchment.Framework.Managers
             GameStateQuery.Register(IS_FIRST_PAGE, IsFirstPage);
             GameStateQuery.Register(IS_LAST_PAGE, IsLastPage);
             GameStateQuery.Register(IS_GOING_FORWARD, IsPagingForward);
+            GameStateQuery.Register(CAN_GO_BACK, CanGoBack);
 
             GameStateQuery.Register(HAS_SEEN_PAGE_ID, HasSeenPageId);
             GameStateQuery.Register(HAS_SEEN_CHAPTERLESS_PAGE_ID, HasSeenChapterlessPageId);
@@ -124,6 +126,16 @@ namespace Parchment.Framework.Managers
             }
 
             return bookMenu.IsOnPage(bookMenu.Book.Pages.Count - 1);
+        }
+
+        private bool CanGoBack(string[] query, GameStateQueryContext context)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu) is false)
+            {
+                return false;
+            }
+
+            return bookMenu.CanGoBack();
         }
 
         private bool IsPagingForward(string[] query, GameStateQueryContext context)

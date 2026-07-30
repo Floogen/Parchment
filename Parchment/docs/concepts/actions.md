@@ -70,6 +70,7 @@ These only work while a book is open. Elsewhere they fail with a message in the 
 | --- | --- | --- |
 | `PeacefulEnd.Parchment_NextPage` | — | Turn forward one spread. |
 | `PeacefulEnd.Parchment_PreviousPage` | — | Turn back one spread. |
+| `PeacefulEnd.Parchment_GoBack` | — | Return to wherever the reader came from, crossing chapters if that's where they were. Calling it again goes back a further step. See [Going back](#going-back). |
 | `PeacefulEnd.Parchment_FirstPage` | — | Jump to the **current chapter's** first page. |
 | `PeacefulEnd.Parchment_LastPage` | — | Jump to the **current chapter's** last page. |
 | `PeacefulEnd.Parchment_JumpToPage` | `<pageIndex>` | Jump to a page by index, crossing chapters if needed. Indexes start at 0. |
@@ -87,7 +88,7 @@ The distinction matters once you're using [chapters](../reference/page.md#chapte
 | Scope | Actions |
 | --- | --- |
 | **Chapter**: stays where you are | `NextPage`, `PreviousPage`, `FirstPage`, `LastPage` |
-| **Book**: can cross chapters | `JumpToPage`, `JumpToChapter`, `JumpToChapterPage`, `JumpToPageId`, `GoToStart` |
+| **Book**: can cross chapters | `JumpToPage`, `JumpToChapter`, `JumpToChapterPage`, `JumpToPageId`, `GoToStart`, `GoBack` |
 
 A chapter is navigation-isolated: page turning can't leave it, and neither can `NextPage`. The book-scoped actions are the only way out, which is why a chapter needs at least one of them somewhere in it.
 
@@ -95,6 +96,34 @@ A chapter is navigation-isolated: page turning can't leave it, and neither can `
 
 !!! tip "Name your way home"
     `JumpToChapter contents` says what it means and survives you reordering pages. `GoToStart` only works while your contents page happens to be first.
+
+### Going back
+
+`GoBack` is not `PreviousPage`. `PreviousPage` turns one spread towards the front of the chapter. `GoBack` returns to wherever the reader actually came from, which after a jump is a different place entirely.
+
+Parchment records every spread the reader leaves, whether they got there by turning a page, clicking a corner or following a jump. `GoBack` pops the most recent entry and returns there, so calling it again goes back a further step and a chain of jumps unwinds in the order it was made.
+
+```json
+{
+  "Type": "Button",
+  "TexturePath": "{{ModId}}/button",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 18, "Height": 18 },
+  "Text": "Back",
+  "Action": "PeacefulEnd.Parchment_GoBack",
+  "Condition": "PeacefulEnd.Parchment_CanGoBack"
+}
+```
+
+[`PeacefulEnd.Parchment_CanGoBack`](conditions.md#the-page) is true while there is anywhere to return to, so a back button can take itself off the first page the reader lands on.
+
+**Going back doesn't record a step of its own.** Backing out of a jump doesn't leave a way to jump forward into it again, which is what stops a pair of pages trapping the reader bouncing between them. There is no matching "forward".
+
+**The history is a reading session, not a save.** It starts empty each time the book is opened and is forgotten when the reader leaves. Shutting the book to its [cover](../reference/book.md#cover-view) keeps it, since the reader hasn't gone anywhere.
+
+**It remembers the last 64 spreads.** Past that the oldest entry is dropped. A reader would have to cross-link their way through a very large book to notice.
+
+!!! tip "Pair it with a keybind"
+    `GoBack` on an [`OnKeyPress`](../reference/page.md#on-key-press) bound to `Escape` turns a chapter into something the reader backs out of a step at a time. Holding the key still leaves the book.
 
 ### Addressing a page
 

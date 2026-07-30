@@ -57,6 +57,7 @@ Most describe the open book, so they only work while a book is open (otherwise t
 | `PeacefulEnd.Parchment_IsFirstPage` | — | The book's very first page is visible, not the current chapter's. |
 | `PeacefulEnd.Parchment_IsLastPage` | — | The book's very last page is visible, not the current chapter's. |
 | `PeacefulEnd.Parchment_IsPagingForward` | — | A page turn is in progress and it's going forward. Only meaningful while the book is `Turning`. |
+| `PeacefulEnd.Parchment_CanGoBack` | — | The reader has somewhere to return to, so [`GoBack`](actions.md#going-back) would do something. |
 
 ### The cursor
 

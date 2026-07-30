@@ -77,6 +77,10 @@ namespace Parchment.Framework.UI.Menus
         private int _pendingSpread;
         private bool _isTurningForward;
 
+        // Where the reader has been this session, most recent last, so GoBack can retrace its way out of a chain of jumps
+        private const int HISTORY_LIMIT = 64;
+        private readonly List<(int ChapterIndex, int Spread)> _history = new List<(int ChapterIndex, int Spread)>();
+
         private Element? _hoveredElement;
 
         private bool _isHoveringLeftPage;
@@ -160,6 +164,12 @@ namespace Parchment.Framework.UI.Menus
             return string.Equals(GetPageId(GetLeftPageIndex()), pageId, StringComparison.OrdinalIgnoreCase) || string.Equals(GetPageId(GetRightPageIndex()), pageId, StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>Whether there is anywhere for <see cref="TryGoBack"/> to return to, which is what a back button hides itself on.</summary>
+        public bool CanGoBack()
+        {
+            return _history.Any(IsWithinBook);
+        }
+
         public bool IsInChapter(string chapterId)
         {
             var chapter = GetChapter(_currentChapterIndex);
@@ -192,6 +202,38 @@ namespace Parchment.Framework.UI.Menus
             error = null;
 
             return true;
+        }
+
+        /// <summary>Returns to the spread the reader came from, dropping it from the history so a second call goes back a step further.
+        /// Going back doesn't record a step of its own, so a book can't trap the reader bouncing between two spreads.
+        /// </summary>
+        public bool TryGoBack(out string error)
+        {
+            if (CurrentState is not MenuState.Ready)
+            {
+                error = "The book is not ready";
+                return false;
+            }
+
+            while (_history.Count > 0)
+            {
+                (int ChapterIndex, int Spread) previous = _history[_history.Count - 1];
+                _history.RemoveAt(_history.Count - 1);
+
+                // An entry that no longer addresses anything, or that points at where the reader already is, is dropped and the one beneath it tried instead
+                if (IsWithinBook(previous) is false || (previous.ChapterIndex == _currentChapterIndex && previous.Spread == _currentSpread))
+                {
+                    continue;
+                }
+
+                BeginPageTurn(previous.ChapterIndex, previous.Spread, recordHistory: false);
+                error = null;
+
+                return true;
+            }
+
+            error = "there is nowhere to go back to";
+            return false;
         }
 
         public bool TryJumpToChapter(string chapterId, out string error)
@@ -668,8 +710,13 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
-        private void BeginPageTurn(int targetChapterIndex, int targetSpread)
+        private void BeginPageTurn(int targetChapterIndex, int targetSpread, bool recordHistory = true)
         {
+            if (recordHistory)
+            {
+                PushHistory();
+            }
+
             _isTurningForward = targetChapterIndex != _currentChapterIndex ? targetChapterIndex > _currentChapterIndex : targetSpread > _currentSpread;
             _pendingChapterIndex = targetChapterIndex;
             _pendingSpread = targetSpread;
@@ -693,6 +740,29 @@ namespace Parchment.Framework.UI.Menus
         {
             _currentChapterIndex = _pendingChapterIndex;
             _currentSpread = _pendingSpread;
+        }
+
+        /// <summary>Records where the reader is standing, before a turn takes them somewhere else.</summary>
+        private void PushHistory()
+        {
+            _history.Add((_currentChapterIndex, _currentSpread));
+
+            // A book with a lot of cross-linking would otherwise grow this for as long as it stays open
+            if (_history.Count > HISTORY_LIMIT)
+            {
+                _history.RemoveAt(0);
+            }
+        }
+
+        /// <summary>Whether a recorded spread still addresses somewhere in this book.</summary>
+        private bool IsWithinBook((int ChapterIndex, int Spread) entry)
+        {
+            if (entry.ChapterIndex < 0 || entry.ChapterIndex >= Book.Chapters.Count)
+            {
+                return false;
+            }
+
+            return entry.Spread >= 0 && entry.Spread < GetChapter(entry.ChapterIndex).SpreadCount;
         }
 
         private void RefreshVisiblePages()
