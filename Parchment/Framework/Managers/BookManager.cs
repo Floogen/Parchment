@@ -48,6 +48,7 @@ namespace Parchment.Framework.Managers
 
         // Whether the books asset has been loaded at least once, so registrations made before then don't need to invalidate it
         private bool _hasLoadedBooks = false;
+        private bool _hasPendingBookReload = false;
 
         // A requested book to be opened (if this fails, the book request is discarded)
         private string? _requestedBookId = null;
@@ -99,12 +100,33 @@ namespace Parchment.Framework.Managers
             var books = e.NamesWithoutLocale.FirstOrDefault(a => a.IsEquivalentTo(BOOKS_DATA_PATH));
             if (books is not null)
             {
-                Books = helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
+                // Reloading under a reader would throw away their page, their scroll and anything typed into an input.
+                // Single player can't hit this, as an open menu pauses the clock Content Patcher updates on, but multiplayer keeps ticking.
+                if (Game1.activeClickableMenu is BookMenu)
+                {
+                    _hasPendingBookReload = true;
+                }
+                else
+                {
+                    Books = helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
+                }
             }
             if (Game1.activeClickableMenu is BookMenu bookMenu)
             {
                 bookMenu.Book.RefreshTextures(e.NamesWithoutLocale);
             }
+        }
+
+        /// <summary>Takes up a reload that was held back while a book was open. Called when the menu closes, since that is when the reader has nothing left to lose.</summary>
+        public void ApplyPendingBookReload()
+        {
+            if (_hasPendingBookReload is false)
+            {
+                return;
+            }
+
+            _hasPendingBookReload = false;
+            Books = helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
         }
 
         private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)

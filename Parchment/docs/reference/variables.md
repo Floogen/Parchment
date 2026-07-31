@@ -108,6 +108,35 @@ Naming the book also means nothing has to be open. A `DayStarted` trigger can se
 
 That last point is the limit worth knowing before you plan around it: a variable governs **what the book shows**. It can't change a map edit, a shop's stock or an NPC's schedule, because Content Patcher never sees it. For settings that have to reach the rest of a content pack, use Content Patcher's own [`ConfigSchema`](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/config.md) instead.
 
+## Reading one from Content Patcher
+
+Parchment registers a `{{PeacefulEnd.Parchment/Variables}}` token holding every declared variable as a `bookId/variableId=value` entry, so a pack's other patches can respond to what a reader chose:
+
+```json title="content.json"
+{
+  "Action": "EditData",
+  "Target": "Data/Shops",
+  "When": { "PeacefulEnd.Parchment/Variables": "{{ModId}}_Almanac/hardMode=true" },
+  "Entries": { ... }
+}
+```
+
+To use it, list Parchment as a dependency in your pack's `manifest.json`, the same as any mod-provided token.
+
+**Interpolating a value.** The token holds the whole list, so dropping it straight into a patch body gives you every variable rather than one. Bridge it with a [dynamic token](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/tokens.md#dynamic-tokens), one entry per value:
+
+```json title="content.json"
+"DynamicTokens": [
+  { "Name": "Units", "Value": "metric", "When": { "PeacefulEnd.Parchment/Variables": "{{ModId}}_Almanac/units=metric" } },
+  { "Name": "Units", "Value": "imperial", "When": { "PeacefulEnd.Parchment/Variables": "{{ModId}}_Almanac/units=imperial" } }
+]
+```
+
+`{{Units}}` then works anywhere in the pack. This suits a variable with `AllowedValues`, since you need one entry per possible value, and doesn't suit a `Number` variable holding anything at all.
+
+!!! warning "Content Patcher sees a change later than the book does"
+    `%Variable:id%` and `HasVariable` see a new value the moment it's set. The token doesn't: Content Patcher reads it on its own context updates, which happen on day start, on the ten-minute clock and on warping. In single player an open book pauses that clock, so a setting toggled in a book reaches your patches once the book is closed and time moves again.
+
 ## Reading one from C#
 
 A SMAPI mod can read and write a book's variables through the [API](api.md), which is how a mod backs a book's settings page with its own config file.

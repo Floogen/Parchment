@@ -1651,6 +1651,9 @@ namespace Parchment.Framework.UI.Menus
             // Variables do survive, so the global ones are written out here rather than waiting for the next save
             Parchment.variableManager.Save();
 
+            // A book edited while it was being read is reloaded now rather than under the reader
+            Parchment.bookManager.ApplyPendingBookReload();
+
             base.cleanupBeforeExit();
         }
 
@@ -1662,6 +1665,7 @@ namespace Parchment.Framework.UI.Menus
             Parchment.inputManager.ClearAll();
             Parchment.flagManager.ClearAll();
             Parchment.variableManager.Save();
+            Parchment.bookManager.ApplyPendingBookReload();
 
             base.emergencyShutDown();
         }

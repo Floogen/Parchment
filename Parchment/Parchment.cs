@@ -38,6 +38,7 @@ namespace Parchment
         public static bool isDebugMode = false;
 
         // Shared static helpers
+        internal static IManifest manifest;
         internal static IMonitor monitor;
         internal static IModHelper modHelper;
         internal static Multiplayer multiplayer;
@@ -45,6 +46,7 @@ namespace Parchment
         // Managers
         internal static ActionManager actionManager;
         internal static BookManager bookManager;
+        internal static ContentPatcherManager contentPatcherManager;
         internal static FlagManager flagManager;
         internal static InputManager inputManager;
         internal static QueryManager queryManager;
@@ -54,6 +56,7 @@ namespace Parchment
         public override void Entry(IModHelper helper)
         {
             // Set up the monitor, helper and multiplayer
+            manifest = ModManifest;
             monitor = Monitor;
             modHelper = helper;
             multiplayer = helper.Reflection.GetField<Multiplayer>(typeof(Game1), "multiplayer").GetValue();
@@ -61,6 +64,7 @@ namespace Parchment
             // Create managers
             actionManager = new ActionManager(monitor, helper);
             bookManager = new BookManager(monitor, helper);
+            contentPatcherManager = new ContentPatcherManager(monitor, helper);
             flagManager = new FlagManager(monitor, helper);
             inputManager = new InputManager(monitor, helper);
             queryManager = new QueryManager(monitor, helper);

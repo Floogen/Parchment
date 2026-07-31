@@ -230,6 +230,29 @@ namespace Parchment.Framework.Managers
             return current.EqualsIgnoreCase(value);
         }
 
+        /// <summary>Every declared variable across every loaded book, as "bookId/variableId=value" entries. This is what the Content Patcher token publishes.</summary>
+        /// <param name="who">The player whose Save-scoped values are read, or null before a save is loaded, which reads their defaults instead.</param>
+        public IEnumerable<string> GetAllValues(Farmer who)
+        {
+            var values = new List<string>();
+
+            foreach (BookData bookData in Parchment.bookManager.Books)
+            {
+                if (bookData.Variables is null)
+                {
+                    continue;
+                }
+
+                foreach (VariableData declaration in bookData.Variables)
+                {
+                    values.Add($"{GetKey(bookData.Id, declaration.Id)}={Get(who, bookData.Id, declaration)}");
+                }
+            }
+
+            // Ordered so a pack's valueAt index doesn't shift when a book is added or reloaded
+            return values.OrderBy(value => value, StringComparer.OrdinalIgnoreCase);
+        }
+
         /// <summary>Writes the global values out, if any have moved since the last time. Save-scoped ones need no flush, as the game saves modData itself.
         /// Called once a second as well as at the obvious moments, so a global set outside a book is never more than a second from disk. The dirty check makes the quiet case free.
         /// </summary>
