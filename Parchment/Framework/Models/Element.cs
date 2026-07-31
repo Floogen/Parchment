@@ -43,7 +43,7 @@ namespace Parchment.Framework.Models
         /// <summary>An instance of <see cref="AssignedItemId"/>, built once when the cell is assigned. Only the properties that can't be answered without one need it, such as category name and price.</summary>
         public Item? AssignedItem { get; set; }
 
-        /// <summary>The candidates and filter behind a Grid's cells. Only set on a Grid carrying a Results block.</summary>
+        /// <summary>The candidates and filter behind a Grid's cells. Only set on a Grid carrying a Source block.</summary>
         public ResultSet? Results { get; set; }
 
         public IFont? Font { get; set; }

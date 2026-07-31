@@ -44,7 +44,7 @@ namespace Parchment.Framework.Models
         /// <summary>Every element on the book's own layers whose text carries a token.</summary>
         public List<Element> TokenTextElements { get; }
 
-        /// <summary>Every Grid on the book's own layers whose cells come from a Results block.</summary>
+        /// <summary>Every Grid on the book's own layers whose cells come from a Source block.</summary>
         public List<Element> ResultElements { get; }
 
         /// <summary>Every Input element on the book's own layers carrying a text changed action. A search box usually lives here rather than on a page, so this is the list that matters most.</summary>

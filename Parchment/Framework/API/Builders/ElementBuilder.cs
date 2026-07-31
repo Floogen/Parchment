@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
-using Parchment.Framework.Models.Data.Results;
+using Parchment.Framework.Models.Data.Sources;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Rendering;
@@ -31,13 +31,13 @@ namespace Parchment.Framework.API.Builders
         private readonly List<string> _submitActions = new List<string>();
         private readonly List<string> _textChangedActions = new List<string>();
 
-        // A grid's results, kept as parts rather than as a built block so the recipe survives an asset reload the way every other field does
-        private string? _resultSource;
-        private string? _resultInputId;
-        private string? _resultCondition;
-        private string? _resultOrder;
-        private int? _resultCount;
-        private ElementBuilder? _resultTemplate;
+        // A grid's source, kept as parts rather than as a built block so the recipe survives an asset reload the way every other field does
+        private string? _sourceItemQuery;
+        private string? _sourceInputId;
+        private string? _sourceCondition;
+        private string? _sourceOrder;
+        private int? _sourceCount;
+        private ElementBuilder? _sourceTemplate;
 
         public string ElementType { get { return _elementType; } }
 
@@ -125,46 +125,46 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder CellHeight(int cellHeight) { return Set("CellHeight", cellHeight); }
         public IElementBuilder CellSpacing(int columnSpacing, int rowSpacing) { return Set("ColumnSpacing", columnSpacing).Set("RowSpacing", rowSpacing); }
 
-        public IElementBuilder Results(string source)
+        public IElementBuilder Source(string itemQuery)
         {
-            _resultSource = source;
+            _sourceItemQuery = itemQuery;
 
             return this;
         }
 
-        public IElementBuilder ResultFilter(string inputId)
+        public IElementBuilder SourceFilter(string inputId)
         {
-            _resultInputId = inputId;
+            _sourceInputId = inputId;
 
             return this;
         }
 
-        public IElementBuilder ResultCondition(string perItemCondition)
+        public IElementBuilder SourceCondition(string perItemCondition)
         {
-            _resultCondition = perItemCondition;
+            _sourceCondition = perItemCondition;
 
             return this;
         }
 
-        public IElementBuilder ResultOrder(string order)
+        public IElementBuilder SourceOrder(string order)
         {
-            _resultOrder = order;
+            _sourceOrder = order;
 
             return this;
         }
 
-        public IElementBuilder ResultCount(int count)
+        public IElementBuilder SourceCount(int count)
         {
-            _resultCount = count;
+            _sourceCount = count;
 
             return this;
         }
 
-        public IElementBuilder AddResultTemplate(string elementType)
+        public IElementBuilder AddSourceTemplate(string elementType)
         {
-            _resultTemplate = new ElementBuilder(elementType);
+            _sourceTemplate = new ElementBuilder(elementType);
 
-            return _resultTemplate;
+            return _sourceTemplate;
         }
         public IElementBuilder Spacing(int spacingAfter) { return Set("SpacingAfter", spacingAfter); }
         public IElementBuilder Margin(int left, int right) { return Set("MarginLeft", left).Set("MarginRight", right); }
@@ -371,38 +371,38 @@ namespace Parchment.Framework.API.Builders
                 }
             }
 
-            if (_resultSource is not null || _resultTemplate is not null)
+            if (_sourceItemQuery is not null || _sourceTemplate is not null)
             {
                 if (data is not GridElementData gridData)
                 {
-                    error = $"[{_elementType}] results can only be added to a Grid";
+                    error = $"[{_elementType}] a source can only be added to a Grid";
                     return false;
                 }
 
-                if (_resultTemplate is null)
+                if (_sourceTemplate is null)
                 {
-                    error = $"[{_elementType}] results need a template, added through AddResultTemplate";
+                    error = $"[{_elementType}] a source needs a template, added through AddSourceTemplate";
                     return false;
                 }
 
-                if (_resultTemplate.TryBuild(out ElementData templateElement, out error) is false)
+                if (_sourceTemplate.TryBuild(out ElementData templateElement, out error) is false)
                 {
                     return false;
                 }
 
-                var results = new ResultsData() { Source = _resultSource ?? "ALL_ITEMS (O)", InputId = _resultInputId, PerItemCondition = _resultCondition, Count = _resultCount, Template = templateElement };
-                if (_resultOrder is not null)
+                var source = new SourceData() { ItemQuery = _sourceItemQuery ?? "ALL_ITEMS (O)", InputId = _sourceInputId, PerItemCondition = _sourceCondition, Count = _sourceCount, Template = templateElement };
+                if (_sourceOrder is not null)
                 {
-                    if (Enum.TryParse(_resultOrder, ignoreCase: true, out ResultOrder order) is false)
+                    if (Enum.TryParse(_sourceOrder, ignoreCase: true, out ResultOrder order) is false)
                     {
-                        error = $"[{_elementType}] '{_resultOrder}' is not a valid result order";
+                        error = $"[{_elementType}] '{_sourceOrder}' is not a valid result order";
                         return false;
                     }
 
-                    results.OrderBy = order;
+                    source.OrderBy = order;
                 }
 
-                gridData.Results = results;
+                gridData.Source = source;
             }
 
             if (_children.Count > 0)

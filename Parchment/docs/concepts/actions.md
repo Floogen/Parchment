@@ -208,7 +208,7 @@ A token is a placeholder replaced with something the book knows at the moment it
 | --- | --- |
 | `%Input%` | This element's own typed text. Only valid on an [`Input`](../reference/elements/input.md). |
 | `%Input:someId%` | The text in the input with that `InputId`, from any element. |
-| `%Item%` | The qualified item ID the element is showing. Only valid inside a [`Grid`](../reference/elements/grid.md#results) result cell. |
+| `%Item%` | The qualified item ID the element is showing. Only valid inside a [`Grid`](../reference/elements/grid.md#source) result cell. |
 | `%Item.Something%` | A property of that item. See [Item properties](#item-properties). |
 | `%GridDisplayed:someId%` | How many cells a grid is currently showing. |
 | `%GridMatched:someId%` | How many candidates matched, which is larger than the above once the matches outnumber the cells. |

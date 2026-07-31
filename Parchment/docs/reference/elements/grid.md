@@ -28,8 +28,8 @@ Arranges its children into cells of a fixed size, left to right and then top to 
 | `ColumnSpacing` <span class="opt">optional</span> | `int` | `0` | Space between columns, in unscaled sprite pixels × `Scale`. Not applied outside the outermost columns. |
 | `RowSpacing` <span class="opt">optional</span> | `int` | `0` | Space between rows, in unscaled sprite pixels × `Scale`. |
 | `Padding` <span class="opt">optional</span> | `int` | `0` | Space between the cells and the grid's border. |
-| `Children` <span class="opt">optional</span> | list of [`elements`](index.md) | empty list | The elements filling the cells, in order. Ignored when `Results` is given. |
-| `Results` <span class="opt">optional</span> | [`results`](#results) | — | Fills the cells from an item query instead of from `Children`, narrowed by what the reader types. See [Results](#results). |
+| `Children` <span class="opt">optional</span> | list of [`elements`](index.md) | empty list | The elements filling the cells, in order. Ignored when `Source` is given. |
+| `Source` <span class="opt">optional</span> | [`source`](#source) | — | Fills the cells from an item query instead of from `Children`, narrowed by what the reader types. See [Source](#source). |
 | `Background` <span class="opt">optional</span> | list of [`elements`](index.md) | empty list | Elements drawn behind the cells, placed by `Position` within the grid's content area. They don't affect its size. |
 | `Foreground` <span class="opt">optional</span> | list of [`elements`](index.md) | empty list | Elements drawn over the cells, placed by `Position`. |
 
@@ -74,20 +74,20 @@ That's what makes a grid filter cleanly: condition each cell and the remaining o
 
 Without `Rows`, the grid is exactly as tall as its children need and grows a row at a time. A grid inside a page's `Elements` is stacked like anything else, so an uncapped grid that outgrows the page triggers the usual [overflow warning](../../concepts/layout.md#when-content-doesnt-fit).
 
-## Results
+## Source
 
-`Results` fills the cells from an item query rather than from authored children, and narrows them by an [`Input`](input.md)'s text. It's how a search grid works, and the reason it works without reflowing anything is that **the number of cells never changes**. Only what each cell shows does.
+`Source` fills the cells from an item query rather than from authored children, and narrows them by an [`Input`](input.md)'s text. It's how a search grid works, and the reason it works without reflowing anything is that **the number of cells never changes**. Only what each cell shows does.
 
 ```json
 {
   "Type": "Grid",
+  "Id": "fish",
   "Columns": 6,
   "Rows": 5,
   "CellWidth": 20,
   "CellHeight": 20,
-  "Results": {
-    "Id": "fish",
-    "Source": "ALL_ITEMS (O)",
+  "Source": {
+    "ItemQuery": "ALL_ITEMS (O)",
     "PerItemCondition": "ITEM_CATEGORY Target -4",
     "InputId": "search",
     "OrderBy": "DisplayName",
@@ -105,12 +105,11 @@ Without `Rows`, the grid is exactly as tall as its children need and grows a row
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `Template` <span class="req">required</span> | [`element`](index.md) | — | What each cell is built from. One template makes every cell. |
-| `Source` <span class="opt">optional</span> | `string` | `ALL_ITEMS (O)` | The item query supplying the candidates. Resolved once and cached, so this is paid on load rather than per keystroke. |
+| `ItemQuery` <span class="opt">optional</span> | `string` | `ALL_ITEMS (O)` | The item query supplying the candidates. Resolved once and cached, so this is paid on load rather than per keystroke. |
 | `PerItemCondition` <span class="opt">optional</span> | `string` | — | A game state query each candidate must pass, evaluated with that item in context. Category filters belong here. |
 | `InputId` <span class="opt">optional</span> | `string` | — | The input whose text narrows the candidates. Without one the grid is an unfiltered list. |
 | `OrderBy` <span class="opt">optional</span> | `DisplayName` \| `ItemId` \| `None` | `DisplayName` | How the candidates are sorted before they reach the cells. `None` is the registry's own order. |
-| `Count` <span class="opt">optional</span> | `int?` | `Columns × Rows` | How many cells the results fill. Needed only when the grid has no `Rows`. |
-| `Id` <span class="opt">optional</span> | `string` | — | A name for the result set, for anything that reports on it. |
+| `Count` <span class="opt">optional</span> | `int?` | `Columns × Rows` | How many cells the candidates fill. Needed only when the grid has no `Rows`. |
 
 ### How a cell gets its item
 
@@ -137,7 +136,7 @@ Typing narrows the candidates by display name **and** by qualified item ID, igno
 !!! warning "You see the first `Count` matches, not all of them"
     A filter matching 112 items across 30 cells shows 30. That's the trade a fixed cell count buys: nothing reflows and the page count never changes.
 
-Say so with [tokens](../../concepts/actions.md#tokens), which read the grid by its `Id`:
+Say so with [tokens](../../concepts/actions.md#tokens). They read the **grid's** own `Id`, the one alongside `Type` rather than anything inside `Source`, so a grid you want to report on needs one:
 
 ```json
 {
@@ -149,7 +148,7 @@ Say so with [tokens](../../concepts/actions.md#tokens), which read the grid by i
 Inside the template, [`%Item.Name%`](../../concepts/actions.md#item-properties) and its siblings let a cell label itself with the item it landed on.
 
 !!! note "`Children` is ignored"
-    A grid with `Results` builds its cells from `Template` alone. Anything in `Children` is not drawn, rather than being appended after the results.
+    A grid with `Source` builds its cells from `Template` alone. Anything in `Children` is not drawn, rather than being appended after the results.
 
 ## Common fields
 

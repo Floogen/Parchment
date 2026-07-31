@@ -1,4 +1,4 @@
-using Parchment.Framework.Models.Data.Results;
+using Parchment.Framework.Models.Data.Sources;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
@@ -10,18 +10,18 @@ using System.Linq;
 
 namespace Parchment.Framework.Models
 {
-    /// <summary>The runtime half of a Grid's <see cref="ResultsData"/>: the candidates its source resolved to, and the last filter applied to them.
+    /// <summary>The runtime half of a Grid's <see cref="SourceData"/>: the candidates its item query resolved to, and the last filter applied to them.
     /// Candidates are resolved once and reused, so narrowing them as the reader types costs a substring pass over cached strings rather than another item query.
     /// </summary>
     public class ResultSet
     {
-        private readonly ResultsData _data;
+        private readonly SourceData _data;
 
         private List<ResultCandidate>? _candidates;
         private string? _appliedFilter;
         private bool _hasApplied;
 
-        /// <summary>How many candidates the source returned in total, before any filtering.</summary>
+        /// <summary>How many candidates the item query returned in total, before any filtering.</summary>
         public int TotalCount => _candidates?.Count ?? 0;
 
         /// <summary>How many cells are currently showing an item.</summary>
@@ -30,12 +30,12 @@ namespace Parchment.Framework.Models
         /// <summary>How many candidates matched the filter, which is larger than <see cref="DisplayedCount"/> once the matches outnumber the cells.</summary>
         public int MatchedCount { get; private set; }
 
-        public ResultSet(ResultsData data)
+        public ResultSet(SourceData data)
         {
             _data = data;
         }
 
-        /// <summary>Drops the cached candidates so the source is resolved again. Called when assets are invalidated, since an item query's answer can change with them.</summary>
+        /// <summary>Drops the cached candidates so the item query is resolved again. Called when assets are invalidated, since an item query's answer can change with them.</summary>
         public void Invalidate()
         {
             _candidates = null;
@@ -122,7 +122,7 @@ namespace Parchment.Framework.Models
 
             _candidates = new List<ResultCandidate>();
 
-            IList<ItemQueryResult>? results = ItemQueryResolver.TryResolve(_data.Source, new ItemQueryContext(), perItemCondition: _data.PerItemCondition, logError: (query, error) => Parchment.monitor.LogOnce($"A Grid's \"Source\" of '{query}' failed: {error}", LogLevel.Warn));
+            IList<ItemQueryResult>? results = ItemQueryResolver.TryResolve(_data.ItemQuery, new ItemQueryContext(), perItemCondition: _data.PerItemCondition, logError: (query, error) => Parchment.monitor.LogOnce($"A Grid's \"ItemQuery\" of '{query}' failed: {error}", LogLevel.Warn));
 
             if (results is null)
             {

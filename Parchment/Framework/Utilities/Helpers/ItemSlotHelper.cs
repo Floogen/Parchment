@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
+using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using StardewValley;
 using StardewValley.ItemTypeDefinitions;

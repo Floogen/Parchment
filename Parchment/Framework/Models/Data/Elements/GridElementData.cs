@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data.Elements;
-using Parchment.Framework.Models.Data.Results;
+using Parchment.Framework.Models.Data.Sources;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.Utilities.Helpers;
@@ -54,17 +54,17 @@ namespace Parchment.Framework.Models.Data
         public int Padding { get; set; } = 0;
 
         /// <summary>Fills the cells from an item query instead of from <see cref="Children"/>, narrowed by what the reader has typed. See the Grid reference for what this does to Children.</summary>
-        public ResultsData? Results { get; set; }
+        public SourceData? Source { get; set; }
 
-        /// <summary>How many cells a Results block fills, from its own Count or from the grid's shape. Zero when the grid has no Results.</summary>
+        /// <summary>How many cells a Source block fills, from its own Count or from the grid's shape. Zero when the grid has no Source.</summary>
         public int GetSlotCount()
         {
-            if (Results is null)
+            if (Source is null)
             {
                 return 0;
             }
 
-            return Results.Count ?? (Rows is int rows ? rows * Columns : 0);
+            return Source.Count ?? (Rows is int rows ? rows * Columns : 0);
         }
 
         public override (bool Result, string Error) IsValid()
@@ -99,17 +99,17 @@ namespace Parchment.Framework.Models.Data
                 return (false, $"\"Padding\" cannot be negative.");
             }
 
-            if (Results is not null)
+            if (Source is not null)
             {
-                var resultsIsValidData = Results.IsValid();
-                if (resultsIsValidData.Result is false)
+                var sourceIsValidData = Source.IsValid();
+                if (sourceIsValidData.Result is false)
                 {
-                    return (false, $"[Results] {resultsIsValidData.Error}");
+                    return (false, $"[Source] {sourceIsValidData.Error}");
                 }
 
                 if (GetSlotCount() <= 0)
                 {
-                    return (false, $"\"Results\" needs a \"Count\", or a \"Rows\" on the grid to work one out from.");
+                    return (false, $"\"Source\" needs a \"Count\", or a \"Rows\" on the grid to work one out from.");
                 }
             }
 

@@ -105,7 +105,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 DisplayName = displayName,
                 Description = description,
                 IsVisible = isVisible,
-                Results = data is GridElementData resultsGrid && resultsGrid.Results is not null ? new ResultSet(resultsGrid.Results) : null,
+                Results = data is GridElementData sourceGrid && sourceGrid.Source is not null ? new ResultSet(sourceGrid.Source) : null,
                 Font = font,
                 TextColor = ResolveTextColor(data) ?? Game1.textColor,
                 TintColor = ResolveTintColor(data) ?? Color.White,
@@ -141,14 +141,14 @@ namespace Parchment.Framework.Utilities.Helpers
 
         private static IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver)
         {
-            if (data is not IContainer container || (container.Children is null && data is not GridElementData { Results: not null }))
+            if (data is not IContainer container || (container.Children is null && data is not GridElementData { Source: not null }))
             {
                 return Array.Empty<Element>();
             }
 
             var children = new List<Element>();
 
-            if (data is GridElementData gridData && gridData.Results?.Template is ElementData template)
+            if (data is GridElementData gridData && gridData.Source?.Template is ElementData template)
             {
                 int slotCount = gridData.GetSlotCount();
 

@@ -1479,7 +1479,7 @@ namespace Parchment.Framework.UI.Menus
         }
 
         /// <summary>The counts behind a Grid, found by its Id across the book's own layers and both visible pages.
-        /// A grid filling its cells from Results reports on its candidates, and one with authored children reports on those, so the same tokens read either kind.
+        /// A grid filling its cells from a Source reports on its candidates, and one with authored children reports on those, so the same tokens read either kind.
         /// </summary>
         public bool TryGetGridCounts(string gridId, out int displayed, out int matched, out int total)
         {
