@@ -44,8 +44,9 @@ namespace Parchment
 
         // Managers
         internal static ActionManager actionManager;
-        internal static InputManager inputManager;
         internal static BookManager bookManager;
+        internal static FlagManager flagManager;
+        internal static InputManager inputManager;
         internal static QueryManager queryManager;
         internal static TileManager tileManager;
 
@@ -57,9 +58,10 @@ namespace Parchment
             multiplayer = helper.Reflection.GetField<Multiplayer>(typeof(Game1), "multiplayer").GetValue();
 
             // Create managers
-            inputManager = new InputManager(monitor, helper);
             actionManager = new ActionManager(monitor, helper);
             bookManager = new BookManager(monitor, helper);
+            flagManager = new FlagManager(monitor, helper);
+            inputManager = new InputManager(monitor, helper);
             queryManager = new QueryManager(monitor, helper);
             tileManager = new TileManager(monitor, helper);
 

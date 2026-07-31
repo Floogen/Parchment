@@ -223,7 +223,7 @@ junimo.AddHoverFrameInPlace().FrameOffset(0, -2);         // a whole hover lift
 `FrameAction` works the same way, attaching an action to the frame above it:
 
 ```csharp
-junimo.AddFrame(80, 0, 400).FrameAction("PeacefulEnd.Parchment_SetInput danceDone 1");
+junimo.AddFrame(80, 0, 400).FrameAction("PeacefulEnd.Parchment_SetFlag danceDone");
 ```
 
 Calling either before any frame exists fails registration with a message saying so, rather than passing silently.

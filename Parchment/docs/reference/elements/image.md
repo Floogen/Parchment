@@ -166,9 +166,9 @@ There's no `PlayOnce` field, because the pieces already here compose into one. T
   "Scale": 4,
   "FrameDuration": 120,
   "Frames": [
-    { "SourcePoint": { "X": 16, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasInputText sealPlayed" },
-    { "SourcePoint": { "X": 32, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasInputText sealPlayed" },
-    { "SourcePoint": { "X": 48, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasInputText sealPlayed", "Action": "PeacefulEnd.Parchment_SetInput sealPlayed 1" }
+    { "SourcePoint": { "X": 16, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasFlag sealPlayed" },
+    { "SourcePoint": { "X": 32, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasFlag sealPlayed" },
+    { "SourcePoint": { "X": 48, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasFlag sealPlayed", "Action": "PeacefulEnd.Parchment_SetFlag sealPlayed" }
   ]
 }
 ```
@@ -177,7 +177,7 @@ Two things make this work, and both are easy to get wrong:
 
 **`TextureSourceRectangle` is what's left when it ends.** Conditioning every frame out doesn't hold the last frame, it falls back to the element's own source rectangle. Point that at the resting pose and the animation plays once and settles. Point it anywhere else and the sprite changes into something unrelated the moment the flourish finishes.
 
-**The flag has to outlive the frame, not the save.** The example uses an [`Input`](input.md) as the store, since that's cleared when the book closes, so the animation plays again next time the reader opens it. A mail flag would make it play once ever, on any save.
+**The flag has to outlive the frame, not the save.** A [session flag](../../concepts/actions.md#session-flags) is cleared when the book closes, so the animation plays again next time the reader opens it. A mail flag would make it play once ever, on every save.
 
 !!! note "The last frame is cut short"
     Actions fire as a frame *starts*, and the flag conditions the frames out within the same tick. The final frame therefore never gets its full `Duration`. It doesn't show, because what replaces it is the fallback sprite, but it's why you shouldn't put the pose you want to end on in the last frame rather than in `TextureSourceRectangle`.

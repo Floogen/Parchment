@@ -29,6 +29,9 @@ namespace Parchment.Framework.Managers
         public const string SET_INPUT = "PeacefulEnd.Parchment_SetInput";
         public const string CLEAR_INPUT = "PeacefulEnd.Parchment_ClearInput";
 
+        public const string SET_FLAG = "PeacefulEnd.Parchment_SetFlag";
+        public const string CLEAR_FLAG = "PeacefulEnd.Parchment_ClearFlag";
+
         public ActionManager(IMonitor monitor, IModHelper helper) : base(monitor, helper)
         {
             RegisterAll();
@@ -51,6 +54,9 @@ namespace Parchment.Framework.Managers
 
             TriggerActionManager.RegisterAction(SET_INPUT, SetInput);
             TriggerActionManager.RegisterAction(CLEAR_INPUT, ClearInput);
+
+            TriggerActionManager.RegisterAction(SET_FLAG, SetFlag);
+            TriggerActionManager.RegisterAction(CLEAR_FLAG, ClearFlag);
         }
 
         public bool GoToStart(string[] args, TriggerActionContext context, out string error)
@@ -230,6 +236,42 @@ namespace Parchment.Framework.Managers
             }
 
             Parchment.inputManager.SetText(inputId, string.Empty);
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Sets one or more flags for the rest of the reading session. Setting a flag that is already set does nothing.</summary>
+        public bool SetFlag(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string _, out error, name: "string flag") is false)
+            {
+                return false;
+            }
+
+            for (int index = 1; index < args.Length; index++)
+            {
+                Parchment.flagManager.Set(args[index]);
+            }
+
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Clears one or more flags. Clearing a flag that was never set does nothing.</summary>
+        public bool ClearFlag(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string _, out error, name: "string flag") is false)
+            {
+                return false;
+            }
+
+            for (int index = 1; index < args.Length; index++)
+            {
+                Parchment.flagManager.Clear(args[index]);
+            }
+
             error = null;
 
             return true;

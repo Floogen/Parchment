@@ -39,6 +39,8 @@ namespace Parchment.Framework.Managers
         public const string PAGE_HAS_TAG = "PeacefulEnd.Parchment_PageHasTag";
         public const string PAGE_TAG_MATCHES_INPUT = "PeacefulEnd.Parchment_PageTagMatchesInput";
 
+        public const string HAS_FLAG = "PeacefulEnd.Parchment_HasFlag";
+
         public const string INPUT_MATCHES = "PeacefulEnd.Parchment_InputMatches";
         public const string INPUT_EQUALS = "PeacefulEnd.Parchment_InputEquals";
         public const string HAS_INPUT_TEXT = "PeacefulEnd.Parchment_HasInputText";
@@ -73,6 +75,8 @@ namespace Parchment.Framework.Managers
             GameStateQuery.Register(CURRENT_PAGE_HAS_TAG, CurrentPageHasTag);
             GameStateQuery.Register(PAGE_HAS_TAG, PageHasTag);
             GameStateQuery.Register(PAGE_TAG_MATCHES_INPUT, PageTagMatchesInput);
+
+            GameStateQuery.Register(HAS_FLAG, HasFlag);
 
             GameStateQuery.Register(INPUT_MATCHES, InputMatches);
             GameStateQuery.Register(INPUT_EQUALS, InputEquals);
@@ -345,6 +349,25 @@ namespace Parchment.Framework.Managers
             }
 
             return pageData.HasTagMatching(Parchment.inputManager.GetText(inputId));
+        }
+
+        /// <summary>Whether any of the given session flags is set. Unlike the rest, this needs no book open, as a flag lasts the reading session rather than belonging to what is on screen.</summary>
+        private bool HasFlag(string[] query, GameStateQueryContext context)
+        {
+            if (ArgUtility.TryGet(query, 1, out string _, out string error, name: "string flag") is false)
+            {
+                return false;
+            }
+
+            for (int index = 1; index < query.Length; index++)
+            {
+                if (Parchment.flagManager.Has(query[index]) is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>Whether the text typed into an input appears in the given text, which is what a search box filters a list with.

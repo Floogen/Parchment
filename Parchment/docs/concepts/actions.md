@@ -82,6 +82,8 @@ These only work while a book is open. Elsewhere they fail with a message in the 
 | `PeacefulEnd.Parchment_CloseBook` | — | Close the book. |
 | `PeacefulEnd.Parchment_SetInput` | `<inputId> <text>` | Replace an [`Input`](../reference/elements/input.md) element's text. Everything past the ID counts as the text, so a phrase needs no quoting. |
 | `PeacefulEnd.Parchment_ClearInput` | `<inputId>` | Empty an `Input`. The same as `SetInput` with no text, spelled so a clear button reads as one. |
+| `PeacefulEnd.Parchment_SetFlag` | `<flag>...` | Set one or more [session flags](#session-flags). |
+| `PeacefulEnd.Parchment_ClearFlag` | `<flag>...` | Clear one or more session flags. |
 
 ### Scope
 
@@ -152,6 +154,27 @@ A duplicate `Id` resolves to the first match in book order, which is why the opt
 ```
 
 Both of these land on a spread rather than a single page. Asking for the right-hand page of a spread shows that spread, so `JumpToChapterPage rites 1` and `JumpToChapterPage rites 0` look the same.
+
+## Session flags
+
+A flag is a name a book sets to remember something for as long as it stays open. [`PeacefulEnd.Parchment_HasFlag`](conditions.md#session-flags) reads it back, so anything a condition can gate is gateable on something that happened earlier in the reading.
+
+```json
+{
+  "Type": "Button",
+  "TexturePath": "{{ModId}}/lever",
+  "Text": "Pull the lever",
+  "Action": "PeacefulEnd.Parchment_SetFlag leverPulled",
+  "Condition": "!PeacefulEnd.Parchment_HasFlag leverPulled"
+}
+```
+
+Both actions take a list, so `PeacefulEnd.Parchment_ClearFlag leverPulled doorOpened` resets several at once.
+
+!!! warning "Flags don't survive the book closing"
+    Every flag is dropped when the reader puts the book down, which is what makes them right for "has this happened during this reading" and wrong for "has the player ever done this". For the second, use a mail flag through the game's own `AddMail` action, which is saved.
+
+Flags are shared across books, so a name set by one book is visible to another opened afterwards in the same session. Prefix them with your mod's ID if that matters to you.
 
 ## Passing input text
 

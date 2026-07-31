@@ -57,6 +57,14 @@ These read a page's [`Tags`](../reference/page.md#tags), the keywords a page car
 | `PeacefulEnd.Parchment_PageHasTag` | `<pageId> <tag>...` | The named page carries any of the tags, wherever it sits in the book. |
 | `PeacefulEnd.Parchment_PageTagMatchesInput` | `<pageId> <inputId>` | What's typed into an [`Input`](../reference/elements/input.md) appears in any of the named page's tags. An empty input matches every tagged page, and a page with no tags never matches. |
 
+### Session flags
+
+| Query | Arguments | True when |
+| --- | --- | --- |
+| `PeacefulEnd.Parchment_HasFlag` | `<flag>...` | Any of the named [session flags](../concepts/actions.md#session-flags) is set. |
+
+Flags are set and cleared by `PeacefulEnd.Parchment_SetFlag` and `PeacefulEnd.Parchment_ClearFlag`, and all of them are dropped when the book closes. Like the input queries, this one needs no book open.
+
 ### Reader input
 
 These read what the reader has typed into an [`Input`](../reference/elements/input.md) element. Unlike the rest, they don't need a book open, since the text lasts for the reading session.
