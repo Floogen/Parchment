@@ -137,59 +137,44 @@ Two queries ask what the current player has read before, rather than what's on s
 }
 ```
 
-**Where it's stored.** The history lives in two data assets Parchment provides, `Data/PeacefulEnd.Parchment/SeenChapters` and `Data/PeacefulEnd.Parchment/SeenPages`. Each is a dictionary keyed by player name, whose value is the list of entries that player has seen:
+**Where it's stored.** The history rides on the player, in the farmer's `modData` under `PeacefulEnd.Parchment/SeenPages` and `PeacefulEnd.Parchment/SeenChapters`. The game saves it, so each save file keeps its own history and each player in multiplayer keeps their own.
+
+The entries themselves are:
 
 - a seen **chapter** is `<bookId>.<chapterId>`, for example `{{ModId}}_CampingGuide.tents`
 - a seen **page** is `<bookId>.<chapterId>.<pageId>`, for example `{{ModId}}_CampingGuide.tents.page_one`
 - a page with no `ChapterId` leaves the middle segment empty, so it reads `<bookId>..<pageId>`. That's what `HasSeenChapterlessPageId` looks up
 
-Because they're ordinary data assets, you can edit them with Content Patcher. Parchment reloads its copy whenever the asset changes, so an edit takes effect on the spot. Blanking a player's list resets their history:
+**Changing it.** Two [trigger actions](actions.md) edit the history, which a book can run from a button and a content pack can run through `Data/TriggerActions`:
 
-```json
+| Action | Arguments | What it does |
+| --- | --- | --- |
+| `PeacefulEnd.Parchment_MarkSeen` | `<bookId> <chapterId> [pageId]` | Mark a chapter as read, and a page too when one is given. |
+| `PeacefulEnd.Parchment_ClearSeen` | `[bookId]` | Forget everything the player has read, or just one book's worth. |
+
+```json title="content.json"
 {
   "Action": "EditData",
-  "Target": "Data/PeacefulEnd.Parchment/SeenChapters",
+  "Target": "Data/TriggerActions",
   "Entries": {
-    "{{PlayerName}}": null
+    "{{ModId}}_SeedGuide": {
+      "Id": "{{ModId}}_SeedGuide",
+      "Trigger": "DayStarted",
+      "Condition": "PLAYER_HAS_MAIL Current {{ModId}}_readTheGuide",
+      "Actions": [ "PeacefulEnd.Parchment_MarkSeen {{ModId}}_CampingGuide tents" ]
+    }
   }
 }
 ```
 
-The key is the player's name (the same `Name` the game stores on the farmer), so Content Patcher's `{{PlayerName}}` token is an easy way to target the current player's list.
+Pass `""` as the chapter for a page that has none:
 
-Setting the entry to `null` drops it entirely. A missing player reads as having seen nothing, the same as an empty list. `Data/PeacefulEnd.Parchment/SeenPages` clears the same way.
-
-To change individual entries instead of replacing the whole list, use Content Patcher's `TargetField` to descend into one player's list first. A player's value is a `List<string>`, so it takes the same add / remove / replace shorthand Content Patcher uses on a string list like `Data/Objects` → `ContextTags`, where each entry acts as its own key.
-
-The entries here are whole seen keys, not book IDs:
-
-```json
-{
-  "Action": "EditData",
-  "Target": "Data/PeacefulEnd.Parchment/SeenChapters",
-  "TargetField": [ "{{PlayerName}}" ],
-  "Entries": {
-    "{{ModId}}_CampingGuide.tents": "{{ModId}}_CampingGuide.tents", // mark this chapter seen
-    "{{ModId}}_CampingGuide.cover": null                            // mark this chapter unseen
-  }
-}
+```
+PeacefulEnd.Parchment_MarkSeen {{ModId}}_CampingGuide "" page_one
 ```
 
-`SeenPages` works the same way, keyed by the three-part page entry, for example `{{ModId}}_CampingGuide.tents.page_one`.
-
-`TargetField` only descends into an entry that already exists, so the player needs a list before you can edit it this way (they get one the first time they read anything). To seed a player who has none yet, set their whole list with a top-level `Entries` patch instead:
-
-```json
-{
-  "Action": "EditData",
-  "Target": "Data/PeacefulEnd.Parchment/SeenChapters",
-  "Entries": {
-    "{{PlayerName}}": [ "{{ModId}}_CampingGuide.tents" ]
-  }
-}
-```
-
-Either route lets you mark something read without the player ever opening the book, using the key formats above.
+!!! warning "This replaced two data assets"
+    Before 1.6.0 the history lived in `Data/PeacefulEnd.Parchment/SeenChapters` and `Data/PeacefulEnd.Parchment/SeenPages`, edited with `EditData`. Those assets are gone. A pack patching them should use the actions above instead, which reach the same history and, unlike the assets, are saved with the game.
 
 ## Book states
 

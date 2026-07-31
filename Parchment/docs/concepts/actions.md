@@ -64,7 +64,7 @@ So a button can give a reward, start a quest, play a sound or set a mail flag. V
 
 ## Parchment's actions
 
-These only work while a book is open. Elsewhere they fail with a message in the SMAPI log rather than doing something strange.
+These only work while a book is open, apart from `MarkSeen` and `ClearSeen`, which read and write saved history and so work anywhere. Elsewhere the rest fail with a message in the SMAPI log rather than doing something strange.
 
 | Action | Arguments | What it does |
 | --- | --- | --- |
@@ -84,6 +84,8 @@ These only work while a book is open. Elsewhere they fail with a message in the 
 | `PeacefulEnd.Parchment_ClearInput` | `<inputId>` | Empty an `Input`. The same as `SetInput` with no text, spelled so a clear button reads as one. |
 | `PeacefulEnd.Parchment_SetFlag` | `<flag>...` | Set one or more [session flags](#session-flags). |
 | `PeacefulEnd.Parchment_ClearFlag` | `<flag>...` | Clear one or more session flags. |
+| `PeacefulEnd.Parchment_MarkSeen` | `<bookId> <chapterId> [pageId]` | Mark a chapter as read, and a page too when one is given. See [Reading history](conditions.md#reading-history). |
+| `PeacefulEnd.Parchment_ClearSeen` | `[bookId]` | Forget what the player has read, all of it or one book's worth. |
 | `PeacefulEnd.Parchment_SetVariable` | `<variableId> <value>` | Set a [variable](../reference/variables.md) the open book declares. Everything past the ID counts as the value. |
 | `PeacefulEnd.Parchment_ClearVariable` | `<variableId>...` | Return one or more variables to their declared `Default`. |
 | `PeacefulEnd.Parchment_ToggleVariable` | `<variableId>...` | Flip one or more `Boolean` variables. |

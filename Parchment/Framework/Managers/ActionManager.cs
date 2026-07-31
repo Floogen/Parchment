@@ -32,6 +32,9 @@ namespace Parchment.Framework.Managers
         public const string SET_FLAG = "PeacefulEnd.Parchment_SetFlag";
         public const string CLEAR_FLAG = "PeacefulEnd.Parchment_ClearFlag";
 
+        public const string MARK_SEEN = "PeacefulEnd.Parchment_MarkSeen";
+        public const string CLEAR_SEEN = "PeacefulEnd.Parchment_ClearSeen";
+
         public const string SET_VARIABLE = "PeacefulEnd.Parchment_SetVariable";
         public const string CLEAR_VARIABLE = "PeacefulEnd.Parchment_ClearVariable";
         public const string TOGGLE_VARIABLE = "PeacefulEnd.Parchment_ToggleVariable";
@@ -61,6 +64,9 @@ namespace Parchment.Framework.Managers
 
             TriggerActionManager.RegisterAction(SET_FLAG, SetFlag);
             TriggerActionManager.RegisterAction(CLEAR_FLAG, ClearFlag);
+
+            TriggerActionManager.RegisterAction(MARK_SEEN, MarkSeen);
+            TriggerActionManager.RegisterAction(CLEAR_SEEN, ClearSeen);
 
             TriggerActionManager.RegisterAction(SET_VARIABLE, SetVariable);
             TriggerActionManager.RegisterAction(CLEAR_VARIABLE, ClearVariable);
@@ -285,6 +291,53 @@ namespace Parchment.Framework.Managers
                 Parchment.flagManager.Clear(args[index]);
             }
 
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Marks a chapter as read, and a page too when one is given. Pass "" as the chapter for a page that has none.</summary>
+        public bool MarkSeen(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string bookId, out error, name: "string bookId") is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(args, 2, out string chapterId, out error, allowBlank: true, name: "string chapterId") is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGetOptional(args, 3, out string pageId, out error, defaultValue: null, allowBlank: true, name: "string pageId") is false)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(chapterId) is false)
+            {
+                Parchment.bookManager.SetSeenChapter(Game1.player, bookId, chapterId);
+            }
+
+            if (string.IsNullOrEmpty(pageId) is false)
+            {
+                Parchment.bookManager.SetSeenPage(Game1.player, bookId, chapterId, pageId);
+            }
+
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Forgets what the player has read, all of it or one book's worth, so the next reading counts as the first.</summary>
+        public bool ClearSeen(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGetOptional(args, 1, out string bookId, out error, defaultValue: null, allowBlank: true, name: "string bookId") is false)
+            {
+                return false;
+            }
+
+            Parchment.bookManager.ClearSeen(Game1.player, string.IsNullOrEmpty(bookId) is true ? null : bookId);
             error = null;
 
             return true;
