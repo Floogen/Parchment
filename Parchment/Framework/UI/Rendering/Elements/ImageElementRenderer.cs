@@ -133,14 +133,18 @@ namespace Parchment.Framework.UI.Rendering.Elements
             // This uses the layout's scale rather than frameScale on purpose: compensating with the frame scale would move the pivot as the frame grew, turning a pulse into a drift.
             Vector2 drawPosition = new Vector2(bounds.X + imageLayout.Origin.X * imageLayout.DrawScale, bounds.Y + imageLayout.Origin.Y * imageLayout.DrawScale);
 
-            spriteBatch.Draw(element.Texture, drawPosition, frameRectangle, element.TintColor, imageLayout.Rotation, imageLayout.Origin, frameScale, data.SpriteEffects, LAYER_DEPTH);
+            // A frame offset is a plain screen-space shift applied after the origin compensation, so rotation and the frame scale don't turn it into an arc
+            Vector2 frameOffset = AnimationHelper.GetFrameOffset(activeFrame, imageLayout.DrawScale);
+
+            spriteBatch.Draw(element.Texture, drawPosition + frameOffset, frameRectangle, element.TintColor, imageLayout.Rotation, imageLayout.Origin, frameScale, data.SpriteEffects, LAYER_DEPTH);
 
             if (imageLayout.WrappedText is null)
             {
                 return;
             }
 
-            Rectangle textRegion = new Rectangle(bounds.X + imageLayout.TextArea.X, bounds.Y + imageLayout.TextArea.Y, imageLayout.TextArea.Width, imageLayout.TextArea.Height);
+            // Text rides along with the offset, unlike the frame scale, as a label left behind by a moving sprite reads as a bug rather than as emphasis
+            Rectangle textRegion = new Rectangle(bounds.X + imageLayout.TextArea.X + (int)frameOffset.X, bounds.Y + imageLayout.TextArea.Y + (int)frameOffset.Y, imageLayout.TextArea.Width, imageLayout.TextArea.Height);
             Rectangle textBounds = new Rectangle(textRegion.X, textRegion.Y + (int)((textRegion.Height - imageLayout.WrappedText.Size.Y) / 2f), textRegion.Width, (int)imageLayout.WrappedText.Size.Y);
 
             StringHelper.DrawLines(spriteBatch, element, imageLayout.WrappedText, textBounds, data.TextAlignment, element.TextColor, imageLayout.TextScale);

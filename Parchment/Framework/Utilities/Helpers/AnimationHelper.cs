@@ -199,6 +199,20 @@ namespace Parchment.Framework.Utilities.Helpers
             return frame?.Scale ?? 1f;
         }
 
+        /// <summary>Gets how far a frame shifts what it draws, in screen pixels. A null frame, or one without an offset, doesn't move.
+        /// Rounded to whole pixels, as a sprite that moves every tick shimmers on a fractional position in a way a still one doesn't.
+        /// </summary>
+        /// <param name="scale">The element's own draw scale, not the frame's. Using the frame's would move the offset as the frame grew, turning a bob that also pulses into a drift.</param>
+        public static Vector2 GetFrameOffset(AnimationFrameData? frame, float scale)
+        {
+            if (frame?.Offset is not Point offset)
+            {
+                return Vector2.Zero;
+            }
+
+            return new Vector2(MathF.Round(offset.X * scale), MathF.Round(offset.Y * scale));
+        }
+
         /// <summary>Gets the source rectangle to draw. When no frames are given, or every frame was filtered out by its condition, the element's own source rectangle is used.
         /// This ignores <see cref="AnimationFrameData.Scale"/>, so a caller that draws the result should use <see cref="GetActiveFrame(Element, float)"/> instead.
         /// </summary>

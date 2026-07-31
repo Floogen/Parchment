@@ -120,6 +120,14 @@ namespace Parchment.Framework.API
         /// <summary>Adds a hover frame that keeps whatever the element already draws, varying only its timing, scale or condition.</summary>
         IElementBuilder AddHoverFrameInPlace(float duration = 0f, float scale = 1f, string? condition = null);
 
+        /// <summary>Shifts the frame added last, whether idle or hover, without moving where the element sits. Measured in unscaled sprite pixels multiplied by the element's scale.
+        /// A draw-time effect like a frame's scale, so the element keeps the space and the hitbox it was measured with. Unlike scale it carries any text along with the sprite.
+        /// Registration fails when no frame has been added yet, since there would be nothing for the offset to belong to.
+        /// </summary>
+        /// <param name="x">How far right to shift the frame. Negative moves left.</param>
+        /// <param name="y">How far down to shift the frame. Negative moves up, which is what lifts art under the cursor.</param>
+        IElementBuilder FrameOffset(int x, int y);
+
         /// <summary>What a PageNumber counts from: "Book" or "Chapter".</summary>
         IElementBuilder Scope(string scope);
 

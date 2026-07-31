@@ -37,6 +37,7 @@ Each entry in `Frames`:
 | `SourcePoint` <span class="opt">optional</span> | `Point` | *the element's own sprite* | The coordinate of the sprite for this frame. Automatically inherits the element's `TextureSourceRectangle` for height and width. Omit it and the frame draws whatever the element already draws, which is how you vary only `Duration`, `Scale` or `Condition`. |
 | `Duration` <span class="opt">optional</span> | `number` | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
 | `Scale` <span class="opt">optional</span> | `number` | `1` | A multiplier on the element's `Scale` while this frame draws. See [Frame scale](#frame-scale). |
+| `Offset` <span class="opt">optional</span> | `Point` | `{ X: 0, Y: 0 }` | How far this frame is shifted from where the element sits, in unscaled sprite pixels × `Scale`. Positive moves right and down. See [Frame offset](#frame-offset). |
 | `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../../concepts/conditions.md) deciding whether this frame plays. When omitted the frame always plays. |
 
 Frames loop, and the cycle is timed from the moment the animation starts, so the first frame is the one that draws when it does.
@@ -109,6 +110,40 @@ A pulse needs no extra art at all, just the same cell drawn bigger for a moment.
   ]
 }
 ```
+
+### Frame offset
+
+`Offset` moves what a frame draws without moving where the element lives. Like [frame scale](#frame-scale), the element is measured once and keeps that space and that hitbox, so an offset frame slides over its own bounds rather than pushing the elements below it around or dragging its clickable area along.
+
+Two or three frames are enough for a bob, and none of them needs new art:
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/lantern",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 16, "Height": 16 },
+  "Scale": 4,
+  "Frames": [
+    { "Duration": 500 },
+    { "Duration": 500, "Offset": { "X": 0, "Y": -1 } }
+  ]
+}
+```
+
+At `Scale: 4` that single unscaled pixel is four screen pixels, since `Offset` is a measurement on the sprite rather than a coordinate on the page. That's the opposite of [`Position`](../../concepts/layout.md#placed-elements), which is a coordinate and deliberately doesn't scale.
+
+Paired with [hover frames](#hover-frames), one offset frame gives you art that lifts under the cursor and settles when it leaves:
+
+```json
+"HoverFrames": [
+  { "Offset": { "X": 0, "Y": -2 } }
+]
+```
+
+!!! note "`Offset` carries the text, `Scale` doesn't"
+    A frame's `Scale` leaves any [text on the image](#text-fields) at its own size, since scaling reads as emphasis on the art. An offset moves the whole element, text included, because a label left standing where a sprite used to be reads as a bug rather than as an effect.
+
+Offsets are rounded to whole screen pixels. A still sprite sits happily on a fractional position, but one that moves every tick shimmers there, so the rounding is deliberate rather than incidental.
 
 ### Animating an item
 

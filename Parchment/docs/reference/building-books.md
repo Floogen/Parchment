@@ -136,6 +136,7 @@ Most methods are named after the field they set, so anything you've written in a
 | `AddFrameInPlace(duration, scale, condition)` | An animation frame that keeps whatever the element already draws. Every argument is optional. |
 | `AddHoverFrame(x, y, duration, scale, condition)` | A [hover frame](elements/image.md#hover-frames), played while the cursor is over the element. |
 | `AddHoverFrameInPlace(duration, scale, condition)` | A hover frame that keeps whatever the element already draws. |
+| `FrameOffset(x, y)` | Shifts the frame added last. See [Frame offset](elements/image.md#frame-offset). |
 | `AddChild(type)` | A child element on a container such as a Panel |
 | `AddBackground(type)` | An element behind a container's children, placed by `Position` within its content area |
 | `AddForeground(type)` | An element over a container's children, placed the same way |
@@ -209,6 +210,16 @@ Every argument after `y` is optional, so `AddFrame(48, 0)` is a frame at the ele
 junimo.AddHoverFrame(48, 0, 120, 1.15f);
 junimo.AddHoverFrame(64, 0, 120);
 ```
+
+`FrameOffset` shifts whatever frame you added last, in unscaled sprite pixels × the element's scale, without moving where the element sits. It reads as a modifier on the line above it, and it doesn't care which of the four `Add` methods put the frame there:
+
+```csharp
+junimo.AddFrame(48, 0, 400);
+junimo.AddFrame(48, 0, 400).FrameOffset(0, -1);           // the same cell, a pixel higher
+junimo.AddHoverFrameInPlace().FrameOffset(0, -2);         // a whole hover lift
+```
+
+Calling it before any frame exists fails registration with a message saying so, rather than passing silently.
 
 `AddFrameInPlace` and `AddHoverFrameInPlace` are the same thing without a coordinate, for a frame that keeps whatever the element already draws and varies only its timing, scale or condition. That's what animates an [item icon](elements/image.md#animating-an-item), which has no source rectangle of your own to point at:
 

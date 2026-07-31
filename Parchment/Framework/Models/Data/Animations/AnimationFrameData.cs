@@ -23,6 +23,12 @@ namespace Parchment.Framework.Models.Data.Animations
         /// </summary>
         public float Scale { get; set; } = 1f;
 
+        /// <summary>How far this frame is shifted from where the element was laid out, in unscaled sprite pixels multiplied by the element's <see cref="ElementData.Scale"/>. Positive values move right and down.
+        /// A draw-time effect only, like <see cref="Scale"/>: the element keeps the space and the hitbox it was measured with, so a moving frame slides over its own bounds rather than pushing anything aside or dragging its clickable area with it.
+        /// Measured against the element's own scale rather than this frame's, so a frame that offsets and scales at once doesn't drift. Unlike <see cref="Scale"/> this carries any text along with the sprite.
+        /// </summary>
+        public Point? Offset { get; set; }
+
         /// <summary>A game state query determining whether this frame plays. When null, the frame always plays. Checked periodically while the book is open, on the same interval as element conditions. Frames whose condition fails are skipped, which shortens the animation cycle rather than pausing on them.
         /// When every frame's condition fails, the element falls back to drawing <see cref="ISprite.TextureSourceRectangle"/> statically.</summary>
         public string? Condition { get; set; }

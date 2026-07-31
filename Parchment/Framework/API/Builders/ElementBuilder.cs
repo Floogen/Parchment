@@ -20,6 +20,10 @@ namespace Parchment.Framework.API.Builders
         private readonly List<ElementBuilder> _foreground = new List<ElementBuilder>();
         private readonly List<FrameRecipe> _frames = new List<FrameRecipe>();
         private readonly List<FrameRecipe> _hoverFrames = new List<FrameRecipe>();
+
+        // The frame FrameOffset applies to, being whichever was added last from either list
+        private FrameRecipe? _lastFrame;
+        private bool _hasOrphanFrameOffset = false;
         private readonly List<string> _actions = new List<string>();
         private readonly List<string> _hoverActions = new List<string>();
         private readonly List<string> _submitActions = new List<string>();
@@ -101,28 +105,44 @@ namespace Parchment.Framework.API.Builders
 
         public IElementBuilder AddFrame(int x, int y, float duration = 0f, float scale = 1f, string? condition = null)
         {
-            _frames.Add(new FrameRecipe(new Point(x, y), duration > 0f ? (float?)duration : null, scale, condition));
-
-            return this;
+            return RecordFrame(_frames, new Point(x, y), duration, scale, condition);
         }
 
         public IElementBuilder AddFrameInPlace(float duration = 0f, float scale = 1f, string? condition = null)
         {
-            _frames.Add(new FrameRecipe(null, duration > 0f ? (float?)duration : null, scale, condition));
-
-            return this;
+            return RecordFrame(_frames, null, duration, scale, condition);
         }
 
         public IElementBuilder AddHoverFrame(int x, int y, float duration = 0f, float scale = 1f, string? condition = null)
         {
-            _hoverFrames.Add(new FrameRecipe(new Point(x, y), duration > 0f ? (float?)duration : null, scale, condition));
-
-            return this;
+            return RecordFrame(_hoverFrames, new Point(x, y), duration, scale, condition);
         }
 
         public IElementBuilder AddHoverFrameInPlace(float duration = 0f, float scale = 1f, string? condition = null)
         {
-            _hoverFrames.Add(new FrameRecipe(null, duration > 0f ? (float?)duration : null, scale, condition));
+            return RecordFrame(_hoverFrames, null, duration, scale, condition);
+        }
+
+        public IElementBuilder FrameOffset(int x, int y)
+        {
+            // Nothing to hang the offset on. Recorded rather than thrown, so it surfaces as a registration error alongside every other authoring mistake
+            if (_lastFrame is null)
+            {
+                _hasOrphanFrameOffset = true;
+
+                return this;
+            }
+
+            _lastFrame.Offset = x is 0 && y is 0 ? null : new Point(x, y);
+
+            return this;
+        }
+
+        /// <summary>Records a frame in one of the two lists and remembers it, so <see cref="FrameOffset"/> knows which frame it is modifying.</summary>
+        private IElementBuilder RecordFrame(List<FrameRecipe> frames, Point? sourcePoint, float duration, float scale, string? condition)
+        {
+            _lastFrame = new FrameRecipe(sourcePoint, duration > 0f ? (float?)duration : null, scale, condition);
+            frames.Add(_lastFrame);
 
             return this;
         }
@@ -232,6 +252,12 @@ namespace Parchment.Framework.API.Builders
                 }
             }
 
+            if (_hasOrphanFrameOffset is true)
+            {
+                error = $"[{_elementType}] FrameOffset was called before any frame was added";
+                return false;
+            }
+
             if (_frames.Count > 0 || _hoverFrames.Count > 0)
             {
                 if (data is not ImageElementData imageData)
@@ -333,7 +359,7 @@ namespace Parchment.Framework.API.Builders
 
             foreach (FrameRecipe recipe in recipes)
             {
-                frames.Add(new AnimationFrameData() { SourcePoint = recipe.SourcePoint, Duration = recipe.Duration, Scale = recipe.Scale, Condition = recipe.Condition });
+                frames.Add(new AnimationFrameData() { SourcePoint = recipe.SourcePoint, Duration = recipe.Duration, Scale = recipe.Scale, Condition = recipe.Condition, Offset = recipe.Offset });
             }
 
             return frames;
@@ -346,6 +372,9 @@ namespace Parchment.Framework.API.Builders
             public float? Duration { get; }
             public float Scale { get; }
             public string? Condition { get; }
+
+            // Set after construction by FrameOffset, and null when the frame draws where the element was laid out, which is every frame that isn't moving
+            public Point? Offset { get; set; }
 
             public FrameRecipe(Point? sourcePoint, float? duration, float scale, string? condition)
             {
