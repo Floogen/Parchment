@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
+using Parchment.Framework.Models.Data.Elements;
 using StardewValley;
 using System;
 using System.Collections.Generic;
@@ -31,6 +32,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 // A set that just gained or lost frames is a different animation, so it starts over. This is what stops an animation gated behind a condition, such as one that only plays on its own page, from being partway through the moment it becomes active
                 element.AnimationStartedAt = GetAnimationTime();
+                element.LastPlayedFrame = null;
             }
 
             bool hasHoverFramesChanged = TryBuildActiveFrames(imageData?.HoverFrames, element.ActiveHoverFrames, out List<AnimationFrameData>? activeHoverFrames);
@@ -38,6 +40,7 @@ namespace Parchment.Framework.Utilities.Helpers
             {
                 element.ActiveHoverFrames = activeHoverFrames;
                 element.HoverAnimationStartedAt = GetAnimationTime();
+                element.LastPlayedFrame = null;
             }
 
             return hasFramesChanged || hasHoverFramesChanged;
@@ -197,6 +200,55 @@ namespace Parchment.Framework.Utilities.Helpers
         public static float GetFrameScale(AnimationFrameData? frame)
         {
             return frame?.Scale ?? 1f;
+        }
+
+        /// <summary>Whether any frame in either of an element's authored lists carries an action, which is what decides whether it needs watching for frame changes at all.
+        /// Read from the authored lists rather than the active ones, so an element whose frames are currently all conditioned out is still watched for when they come back.
+        /// </summary>
+        public static bool HasFrameActions(Element element)
+        {
+            if (element.Data is not ImageElementData imageData)
+            {
+                return false;
+            }
+
+            return HasFrameActions(imageData.Frames) || HasFrameActions(imageData.HoverFrames);
+        }
+
+        /// <summary>Walks element lists and their nested lists, gathering everything carrying a frame action.
+        /// Gathered once by whatever owns the elements, since frame actions are dispatched every tick and conditions only toggle an element's visibility rather than replacing the element.
+        /// </summary>
+        public static void CollectFrameActionElements(IReadOnlyList<Element> elements, List<Element> frameActionElements)
+        {
+            foreach (Element element in elements)
+            {
+                if (HasFrameActions(element) is true)
+                {
+                    frameActionElements.Add(element);
+                }
+
+                CollectFrameActionElements(element.Children, frameActionElements);
+                CollectFrameActionElements(element.Background, frameActionElements);
+                CollectFrameActionElements(element.Foreground, frameActionElements);
+            }
+        }
+
+        private static bool HasFrameActions(List<AnimationFrameData>? frames)
+        {
+            if (frames is null)
+            {
+                return false;
+            }
+
+            foreach (AnimationFrameData frame in frames)
+            {
+                if (frame.HasActions is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>Gets how far a frame shifts what it draws, in screen pixels. A null frame, or one without an offset, doesn't move.

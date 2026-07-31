@@ -23,7 +23,7 @@ namespace Parchment.Framework.API.Builders
 
         // The frame FrameOffset applies to, being whichever was added last from either list
         private FrameRecipe? _lastFrame;
-        private bool _hasOrphanFrameOffset = false;
+        private bool _hasOrphanFrameModifier = false;
         private readonly List<string> _actions = new List<string>();
         private readonly List<string> _hoverActions = new List<string>();
         private readonly List<string> _submitActions = new List<string>();
@@ -128,12 +128,26 @@ namespace Parchment.Framework.API.Builders
             // Nothing to hang the offset on. Recorded rather than thrown, so it surfaces as a registration error alongside every other authoring mistake
             if (_lastFrame is null)
             {
-                _hasOrphanFrameOffset = true;
+                _hasOrphanFrameModifier = true;
 
                 return this;
             }
 
             _lastFrame.Offset = x is 0 && y is 0 ? null : new Point(x, y);
+
+            return this;
+        }
+
+        public IElementBuilder FrameAction(string action)
+        {
+            if (_lastFrame is null)
+            {
+                _hasOrphanFrameModifier = true;
+
+                return this;
+            }
+
+            _lastFrame.Actions.Add(action);
 
             return this;
         }
@@ -252,9 +266,9 @@ namespace Parchment.Framework.API.Builders
                 }
             }
 
-            if (_hasOrphanFrameOffset is true)
+            if (_hasOrphanFrameModifier is true)
             {
-                error = $"[{_elementType}] FrameOffset was called before any frame was added";
+                error = $"[{_elementType}] FrameOffset or FrameAction was called before any frame was added";
                 return false;
             }
 
@@ -359,7 +373,7 @@ namespace Parchment.Framework.API.Builders
 
             foreach (FrameRecipe recipe in recipes)
             {
-                frames.Add(new AnimationFrameData() { SourcePoint = recipe.SourcePoint, Duration = recipe.Duration, Scale = recipe.Scale, Condition = recipe.Condition, Offset = recipe.Offset });
+                frames.Add(new AnimationFrameData() { SourcePoint = recipe.SourcePoint, Duration = recipe.Duration, Scale = recipe.Scale, Condition = recipe.Condition, Offset = recipe.Offset, Actions = recipe.Actions.Count > 0 ? new List<string>(recipe.Actions) : null });
             }
 
             return frames;
@@ -375,6 +389,9 @@ namespace Parchment.Framework.API.Builders
 
             // Set after construction by FrameOffset, and null when the frame draws where the element was laid out, which is every frame that isn't moving
             public Point? Offset { get; set; }
+
+            // Filled after construction by FrameAction, in the order the calls were made
+            public List<string> Actions { get; } = new List<string>();
 
             public FrameRecipe(Point? sourcePoint, float? duration, float scale, string? condition)
             {

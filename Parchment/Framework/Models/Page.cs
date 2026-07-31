@@ -40,6 +40,9 @@ namespace Parchment.Framework.Models
 
         public ElementRenderContext? LastLayoutContext;
 
+        /// <summary>Every element on this page carrying a frame action, gathered once at construction. Frame actions are dispatched every tick, so this is what keeps a page with none from walking its whole element tree sixty times a second.</summary>
+        public List<Element> FrameActionElements { get; }
+
         public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver)
         {
             Data = data;
@@ -47,6 +50,11 @@ namespace Parchment.Framework.Models
             Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver);
             Background = ElementFactory.CreateList(Data.Background, registry, fontResolver);
             Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver);
+
+            FrameActionElements = new List<Element>();
+            AnimationHelper.CollectFrameActionElements(Elements, FrameActionElements);
+            AnimationHelper.CollectFrameActionElements(Background, FrameActionElements);
+            AnimationHelper.CollectFrameActionElements(Foreground, FrameActionElements);
         }
 
         /// <summary>

@@ -38,6 +38,8 @@ Each entry in `Frames`:
 | `Duration` <span class="opt">optional</span> | `number` | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
 | `Scale` <span class="opt">optional</span> | `number` | `1` | A multiplier on the element's `Scale` while this frame draws. See [Frame scale](#frame-scale). |
 | `Offset` <span class="opt">optional</span> | `Point` | `{ X: 0, Y: 0 }` | How far this frame is shifted from where the element sits, in unscaled sprite pixels × `Scale`. Positive moves right and down. See [Frame offset](#frame-offset). |
+| `Action` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) run each time this frame starts. See [Frame actions](#frame-actions). |
+| `Actions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order each time this frame starts. Combined with `Action` rather than replacing it. |
 | `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../../concepts/conditions.md) deciding whether this frame plays. When omitted the frame always plays. |
 
 Frames loop, and the cycle is timed from the moment the animation starts, so the first frame is the one that draws when it does.
@@ -144,6 +146,41 @@ Paired with [hover frames](#hover-frames), one offset frame gives you art that l
     A frame's `Scale` leaves any [text on the image](#text-fields) at its own size, since scaling reads as emphasis on the art. An offset moves the whole element, text included, because a label left standing where a sprite used to be reads as a bug rather than as an effect.
 
 Offsets are rounded to whole screen pixels. A still sprite sits happily on a fractional position, but one that moves every tick shimmers there, so the rounding is deliberate rather than incidental.
+
+### Frame actions
+
+A frame can run [trigger actions](../../concepts/actions.md) at the moment it starts. Actions are dispatched every tick, so they keep time with the animation rather than with the slower interval conditions are checked on.
+
+!!! danger "They run on every cycle, forever"
+    A three-frame loop with an action on the middle frame runs it several times a second for as long as the page is open. Nothing rate-limits this. Either keep the actions harmless to repeat, the way [hover actions](index.md#common-fields) have to be, or condition the frames so the loop stops or gets skipped.
+
+### Playing an animation once
+
+There's no `PlayOnce` field, because the pieces already here compose into one. The last frame sets a flag, every frame is conditioned on that flag being unset, and the animation drops out rather than looping:
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/seal",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 16, "Height": 16 },
+  "Scale": 4,
+  "FrameDuration": 120,
+  "Frames": [
+    { "SourcePoint": { "X": 16, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasInputText sealPlayed" },
+    { "SourcePoint": { "X": 32, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasInputText sealPlayed" },
+    { "SourcePoint": { "X": 48, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasInputText sealPlayed", "Action": "PeacefulEnd.Parchment_SetInput sealPlayed 1" }
+  ]
+}
+```
+
+Two things make this work, and both are easy to get wrong:
+
+**`TextureSourceRectangle` is what's left when it ends.** Conditioning every frame out doesn't hold the last frame, it falls back to the element's own source rectangle. Point that at the resting pose and the animation plays once and settles. Point it anywhere else and the sprite changes into something unrelated the moment the flourish finishes.
+
+**The flag has to outlive the frame, not the save.** The example uses an [`Input`](input.md) as the store, since that's cleared when the book closes, so the animation plays again next time the reader opens it. A mail flag would make it play once ever, on any save.
+
+!!! note "The last frame is cut short"
+    Actions fire as a frame *starts*, and the flag conditions the frames out within the same tick. The final frame therefore never gets its full `Duration`. It doesn't show, because what replaces it is the fallback sprite, but it's why you shouldn't put the pose you want to end on in the last frame rather than in `TextureSourceRectangle`.
 
 ### Animating an item
 

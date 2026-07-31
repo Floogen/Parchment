@@ -137,6 +137,7 @@ Most methods are named after the field they set, so anything you've written in a
 | `AddHoverFrame(x, y, duration, scale, condition)` | A [hover frame](elements/image.md#hover-frames), played while the cursor is over the element. |
 | `AddHoverFrameInPlace(duration, scale, condition)` | A hover frame that keeps whatever the element already draws. |
 | `FrameOffset(x, y)` | Shifts the frame added last. See [Frame offset](elements/image.md#frame-offset). |
+| `FrameAction(action)` | A [trigger action](elements/image.md#frame-actions) run when the frame added last starts. Call it more than once to build a list. |
 | `AddChild(type)` | A child element on a container such as a Panel |
 | `AddBackground(type)` | An element behind a container's children, placed by `Position` within its content area |
 | `AddForeground(type)` | An element over a container's children, placed the same way |
@@ -219,7 +220,13 @@ junimo.AddFrame(48, 0, 400).FrameOffset(0, -1);           // the same cell, a pi
 junimo.AddHoverFrameInPlace().FrameOffset(0, -2);         // a whole hover lift
 ```
 
-Calling it before any frame exists fails registration with a message saying so, rather than passing silently.
+`FrameAction` works the same way, attaching an action to the frame above it:
+
+```csharp
+junimo.AddFrame(80, 0, 400).FrameAction("PeacefulEnd.Parchment_SetInput danceDone 1");
+```
+
+Calling either before any frame exists fails registration with a message saying so, rather than passing silently.
 
 `AddFrameInPlace` and `AddHoverFrameInPlace` are the same thing without a coordinate, for a frame that keeps whatever the element already draws and varies only its timing, scale or condition. That's what animates an [item icon](elements/image.md#animating-an-item), which has no source rectangle of your own to point at:
 

@@ -128,6 +128,12 @@ namespace Parchment.Framework.API
         /// <param name="y">How far down to shift the frame. Negative moves up, which is what lifts art under the cursor.</param>
         IElementBuilder FrameOffset(int x, int y);
 
+        /// <summary>Adds a trigger action to the frame added last, run each time that frame starts. Calling this more than once builds a list run in order.
+        /// A looping animation runs them again on every cycle, so keep the whole list harmless to repeat or condition the frames so the loop stops.
+        /// Registration fails when no frame has been added yet, since there would be nothing for the action to belong to.
+        /// </summary>
+        IElementBuilder FrameAction(string action);
+
         /// <summary>What a PageNumber counts from: "Book" or "Chapter".</summary>
         IElementBuilder Scope(string scope);
 

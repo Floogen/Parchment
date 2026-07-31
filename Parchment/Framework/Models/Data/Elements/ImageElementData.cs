@@ -137,6 +137,11 @@ namespace Parchment.Framework.Models.Data
                 {
                     return (false, $"A frame in \"{fieldName}\" has a non-positive \"frame.Scale\"");
                 }
+
+                if (frame.Actions is not null && frame.Actions.Any(string.IsNullOrWhiteSpace))
+                {
+                    return (false, $"A frame in \"{fieldName}\" has an empty entry in \"frame.Actions\"");
+                }
             }
 
             return (true, string.Empty);

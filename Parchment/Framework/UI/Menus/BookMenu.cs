@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Books;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Data.Pages;
@@ -1259,6 +1260,79 @@ namespace Parchment.Framework.UI.Menus
             _nextCornerAnimationTimer = 0f;
         }
 
+        /// <summary>Runs the actions of any frame that started this tick, on either visible page.
+        /// Only elements that carry a frame action are walked, so a book without any pays almost nothing for this running every tick.
+        /// </summary>
+        private void DispatchFrameActions()
+        {
+            if (CurrentState is not MenuState.Ready and not MenuState.Turning)
+            {
+                return;
+            }
+
+            // The book's own layers are on screen whatever is being read, so they run first and regardless of which pages are showing
+            bool hasRunAny = DispatchFrameActions(Book.FrameActionElements);
+
+            if (CurrentState is MenuState.Ready or MenuState.Turning)
+            {
+                hasRunAny |= DispatchPageFrameActions(GetLeftPageIndex());
+            }
+
+            // A frame action may have turned the page or closed the book, in which case the right page is no longer the one being read
+            if (CurrentState is MenuState.Ready or MenuState.Turning)
+            {
+                hasRunAny |= DispatchPageFrameActions(GetRightPageIndex());
+            }
+
+            // Refreshed straight away rather than on the next interval, so an animation that ends by setting a flag has its frames conditioned out before the cycle wraps and replays
+            if (hasRunAny is true)
+            {
+                RefreshVisiblePages();
+            }
+        }
+
+        private bool DispatchPageFrameActions(int pageIndex)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return false;
+            }
+
+            return DispatchFrameActions(_pages[pageIndex].FrameActionElements);
+        }
+
+        /// <summary>Runs the actions of any frame in this list that started on this tick, reporting whether any of them ran.</summary>
+        private bool DispatchFrameActions(IReadOnlyList<Element> frameActionElements)
+        {
+            bool hasRunAny = false;
+
+            foreach (Element element in frameActionElements)
+            {
+                if (element.IsVisible is false || element.Data is not ImageElementData imageData)
+                {
+                    continue;
+                }
+
+                AnimationFrameData? activeFrame = AnimationHelper.GetActiveFrame(element, imageData.FrameDuration);
+                if (ReferenceEquals(element.LastPlayedFrame, activeFrame) is true)
+                {
+                    continue;
+                }
+
+                element.LastPlayedFrame = activeFrame;
+
+                if (activeFrame is null || activeFrame.HasActions is false)
+                {
+                    continue;
+                }
+
+                RunActions(activeFrame.GetActions(), element, "frame action");
+                hasRunAny = true;
+            }
+
+            return hasRunAny;
+        }
+
         private void UpdateConditionTimer()
         {
             _conditionRefreshTimer++;
@@ -1285,8 +1359,9 @@ namespace Parchment.Framework.UI.Menus
 
             ClearInputFocus();
 
-            // Input text is per reading session, so it doesn't survive the book being put down
+            // Input text and flags are per reading session, so they don't survive the book being put down
             Parchment.inputManager.ClearAll();
+            Parchment.flagManager.ClearAll();
 
             base.cleanupBeforeExit();
         }
@@ -1297,6 +1372,7 @@ namespace Parchment.Framework.UI.Menus
 
             ClearInputFocus();
             Parchment.inputManager.ClearAll();
+            Parchment.flagManager.ClearAll();
 
             base.emergencyShutDown();
         }
@@ -1504,6 +1580,9 @@ namespace Parchment.Framework.UI.Menus
 
             // Conditions refresh in every state, so CurrentBookState works for all of them and there's no state where a condition goes stale
             UpdateConditionTimer();
+
+            // Every tick rather than on the condition interval, as a frame shorter than that interval would otherwise be stepped over without ever being seen
+            DispatchFrameActions();
 
             // Tracked in every state, since an action a keybind ran may have started an animation the reader is now holding the button through
             UpdateForceCloseHold(elapsedMilliseconds);

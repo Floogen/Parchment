@@ -29,6 +29,39 @@ namespace Parchment.Framework.Models.Data.Animations
         /// </summary>
         public Point? Offset { get; set; }
 
+        /// <summary>A trigger action to run when this frame starts. Shorthand for a single-entry <see cref="Actions"/>, and when both are given this one runs first.</summary>
+        public string? Action { get; set; }
+
+        /// <summary>The trigger actions to run, in order, each time this frame starts. Combined with <see cref="Action"/> rather than replacing it.
+        /// These run on every pass through the frame, so a looping animation runs them again on each cycle. Keep the whole list harmless to repeat, or condition the frames so the loop stops.
+        /// </summary>
+        public List<string>? Actions { get; set; }
+
+        /// <summary>Whether this frame has at least one action, from either <see cref="Action"/> or <see cref="Actions"/>.</summary>
+        internal bool HasActions => string.IsNullOrWhiteSpace(Action) is false || (Actions is not null && Actions.Any(action => string.IsNullOrWhiteSpace(action) is false));
+
+        /// <summary>Every action on this frame, <see cref="Action"/> first and then <see cref="Actions"/> in order, skipping empty entries.</summary>
+        public IEnumerable<string> GetActions()
+        {
+            if (string.IsNullOrWhiteSpace(Action) is false)
+            {
+                yield return Action;
+            }
+
+            if (Actions is null)
+            {
+                yield break;
+            }
+
+            foreach (string action in Actions)
+            {
+                if (string.IsNullOrWhiteSpace(action) is false)
+                {
+                    yield return action;
+                }
+            }
+        }
+
         /// <summary>A game state query determining whether this frame plays. When null, the frame always plays. Checked periodically while the book is open, on the same interval as element conditions. Frames whose condition fails are skipped, which shortens the animation cycle rather than pausing on them.
         /// When every frame's condition fails, the element falls back to drawing <see cref="ISprite.TextureSourceRectangle"/> statically.</summary>
         public string? Condition { get; set; }

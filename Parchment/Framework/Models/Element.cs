@@ -48,6 +48,11 @@ namespace Parchment.Framework.Models
         // The same for the hover animation, stamped when the cursor arrives
         public double HoverAnimationStartedAt { get; set; }
 
+        /// <summary>The frame this element was showing when frame actions were last dispatched, which is how entering a new frame is told apart from staying on the current one.
+        /// Cleared whenever the animation restarts, so a set of frames that becomes active again runs its first frame's actions rather than skipping them.
+        /// </summary>
+        public AnimationFrameData? LastPlayedFrame { get; set; }
+
         internal object? LayoutState { get; set; }
 
         private bool _isHovered;

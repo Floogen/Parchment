@@ -24,6 +24,9 @@ namespace Parchment.Framework.Models
 
         public ElementRenderContext? LastLayoutContext;
 
+        /// <summary>Every element on the book's own layers carrying a frame action, gathered once. The book's layers are on screen whatever page is being read, so these are dispatched alongside the visible pages' own.</summary>
+        public List<Element> FrameActionElements { get; }
+
         public Book(BookData data, ElementRegistry elementRegistry, FontResolver fontResolver)
         {
             Data = data;
@@ -31,6 +34,10 @@ namespace Parchment.Framework.Models
             Underlay = ElementFactory.CreateList(Data.Underlay, elementRegistry, fontResolver);
             Overlay = ElementFactory.CreateList(Data.Overlay, elementRegistry, fontResolver);
             Chapters = CreateChapters();
+
+            FrameActionElements = new List<Element>();
+            AnimationHelper.CollectFrameActionElements(Underlay, FrameActionElements);
+            AnimationHelper.CollectFrameActionElements(Overlay, FrameActionElements);
         }
 
         private List<Chapter> CreateChapters()
