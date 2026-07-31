@@ -1,6 +1,7 @@
 ﻿using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Variables;
 using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
 using StardewValley;
@@ -19,6 +20,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<PageBuilder> _pages = new List<PageBuilder>();
         private readonly List<ElementBuilder> _underlay = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _overlay = new List<ElementBuilder>();
+        private readonly List<VariableBuilder> _variables = new List<VariableBuilder>();
         private readonly List<(string Keybind, string Action, string? Condition)> _onKeyPress = new List<(string Keybind, string Action, string? Condition)>();
 
         public string BookId { get { return _bookId; } }
@@ -100,6 +102,14 @@ namespace Parchment.Framework.API.Builders
             _overlay.Add(element);
 
             return element;
+        }
+
+        public IVariableBuilder AddVariable(string variableId)
+        {
+            var variable = new VariableBuilder(variableId);
+            _variables.Add(variable);
+
+            return variable;
         }
 
         public bool TryRegister(out string error)
@@ -205,6 +215,24 @@ namespace Parchment.Framework.API.Builders
                 }
 
                 data.Overlay = overlay;
+            }
+
+            if (_variables.Count > 0)
+            {
+                var variables = new List<VariableData>();
+
+                foreach (VariableBuilder variableBuilder in _variables)
+                {
+                    if (variableBuilder.TryBuild(out VariableData variable, out error) is false)
+                    {
+                        error = $"variable \"{variableBuilder.VariableId}\": {error}";
+                        return false;
+                    }
+
+                    variables.Add(variable);
+                }
+
+                data.Variables = variables;
             }
 
             if (_onKeyPress.Count > 0)

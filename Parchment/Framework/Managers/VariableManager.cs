@@ -15,6 +15,9 @@ namespace Parchment.Framework.Managers
     /// <summary>Holds the values of the variables books declare, which unlike a session flag outlive the book being put down.
     /// Save-scoped values live in the player's modData so the game saves them alongside everything else, and global ones live in a file of Parchment's own.
     /// </summary>
+    /// <remarks>Every method here leaves <c>error</c> null on success rather than empty. TriggerActionManager treats a non-null error as a failure whatever the handler returned,
+    /// so an empty string makes a working action report "the action failed but didn't provide an error message".
+    /// </remarks>
     public class VariableManager : BaseManager
     {
         public const string GLOBAL_DATA_KEY = "variables";
@@ -45,14 +48,39 @@ namespace Parchment.Framework.Managers
             return false;
         }
 
-        /// <summary>Finds what a book declared about one of its variables. Fails when the book isn't loaded or never declared the name, which is what stops a typo becoming a stored value.</summary>
+        /// <summary>Finds the data behind a book ID, being the loaded book of that ID or, failing that, the one on screen.
+        /// A book opened through the API's TryOpen is never added to the books asset, so the open menu is the only place its declarations exist.
+        /// The asset is checked first, so a registered book resolves exactly as it did before whether or not it happens to be open.
+        /// </summary>
+        private static bool TryGetBookData(string bookId, out BookData bookData)
+        {
+            if (Parchment.bookManager.Books.FirstOrDefault(book => book.Id.EqualsIgnoreCase(bookId)) is BookData loadedBookData)
+            {
+                bookData = loadedBookData;
+
+                return true;
+            }
+
+            if (Game1.activeClickableMenu is BookMenu bookMenu && bookMenu.Book.Data.Id.EqualsIgnoreCase(bookId))
+            {
+                bookData = bookMenu.Book.Data;
+
+                return true;
+            }
+
+            bookData = null!;
+
+            return false;
+        }
+
+        /// <summary>Finds what a book declared about one of its variables. Fails when the book is neither loaded nor open, or never declared the name, which is what stops a typo becoming a stored value.</summary>
         public bool TryGetDeclaration(string bookId, string variableId, out VariableData declaration, out string error)
         {
             declaration = null!;
 
-            if (Parchment.bookManager.Books.FirstOrDefault(book => book.Id.EqualsIgnoreCase(bookId)) is not BookData bookData)
+            if (TryGetBookData(bookId, out BookData bookData) is false)
             {
-                error = $"no book with the ID \"{bookId}\" is loaded";
+                error = $"no book with the ID \"{bookId}\" is loaded or open";
                 return false;
             }
 
@@ -69,12 +97,11 @@ namespace Parchment.Framework.Managers
             }
 
             declaration = match;
-            error = string.Empty;
+            error = null!;
 
             return true;
         }
 
-        /// <summary>The variable's current value, or its default when nothing has set it yet. A declared variable always answers with something.</summary>
         /// <summary>The variable's current value for a player, or its default when nothing has set it yet. A declared variable always answers with something.</summary>
         /// <remarks>A Global variable is shared, so the player is ignored for one. A Save variable belongs to the farmer it was set on.</remarks>
         public string Get(Farmer who, string bookId, VariableData declaration)
@@ -153,7 +180,7 @@ namespace Parchment.Framework.Managers
                 Store(who, bookId, declaration, declaration.GetDefault());
             }
 
-            error = string.Empty;
+            error = null!;
 
             return true;
         }
@@ -193,7 +220,7 @@ namespace Parchment.Framework.Managers
                 Store(who, bookId, declaration, flipped);
             }
 
-            error = string.Empty;
+            error = null!;
 
             return true;
         }
@@ -202,7 +229,7 @@ namespace Parchment.Framework.Managers
         private bool TryGetDeclarations(string bookId, IEnumerable<string> variableIds, out List<VariableData> declarations, out string error)
         {
             declarations = new List<VariableData>();
-            error = string.Empty;
+            error = null!;
 
             foreach (string variableId in variableIds)
             {
@@ -288,7 +315,7 @@ namespace Parchment.Framework.Managers
                 return false;
             }
 
-            error = string.Empty;
+            error = null!;
 
             return true;
         }

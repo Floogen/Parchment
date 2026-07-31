@@ -25,6 +25,11 @@
         /// <summary>Adds an element drawn in front of the book sprite and its pages.</summary>
         IElementBuilder AddOverlay(string elementType);
 
+        /// <summary>Adds a variable this book declares and returns its builder. Declaring is required before an action or query can name the variable,
+        /// which is what stops a typo persisting into a save. A variable added here is addressed by this book's ID, so two books can declare the same name without sharing a value.
+        /// </summary>
+        IVariableBuilder AddVariable(string variableId);
+
         /// <summary>Runs a trigger action when the given keybind is pressed on any page of this book, taking the button over from the menu.
         /// A page binding the same button wins, and this is left alone while that page is on screen.</summary>
         IBookBuilder OnKeyPress(string keybind, string action);

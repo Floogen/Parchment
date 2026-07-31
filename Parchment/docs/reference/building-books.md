@@ -1,4 +1,4 @@
-# Building books in C#
+# Building books in C\#
 
 A SMAPI mod can build a book in code instead of shipping it as a content pack. This page covers the builder; for fetching the API and opening books that already exist, see [C# API](api.md).
 
@@ -63,6 +63,7 @@ You can only remove books your own mod registered. Books from content packs, and
 | `AddPage(pageId, chapterId)` | Adds a page belonging to a chapter. Pages sharing a chapter must be added together. |
 | `AddUnderlay(type)` | Adds an element drawn behind the book sprite. |
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
+| `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. |
 | `OnKeyPress(keybind, action)` | Runs a trigger action when the key is pressed on any page of the book. A page binding the same key takes it over. |
 | `OnKeyPress(keybind, action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
 | `TryRegister(out error)` | Validates and registers the book. |
@@ -92,6 +93,28 @@ You can only remove books your own mod registered. Books from content packs, and
 | `OnView(action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
 | `OnKeyPress(keybind, action)` | Runs a trigger action when the key is pressed while the page is visible, taking the key over from the menu and from the book's own binds. |
 | `OnKeyPress(keybind, action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
+
+## The variable builder
+
+`AddVariable` returns this rather than the book builder, the same way `AddPage` does. Keep your own reference to the book builder for `TryRegister`.
+
+| Method | Sets |
+| --- | --- |
+| `Set(field, value)` | Any [variable field](variables.md#variable-fields) by name. |
+| `Type(variableType)` | `Type`, one of `"Boolean"`, `"Number"`, `"Text"` |
+| `Default(defaultValue)` | `Default` |
+| `Scope(variableScope)` | `Scope`, either `"Save"` or `"Global"` |
+| `AllowedValue(value)` | Adds one entry to `AllowedValues`. Call it more than once to build the list. |
+
+```cs title="Declaring two variables"
+var book = api.CreateBook($"{ModManifest.UniqueID}_Almanac");
+
+book.AddVariable("showSpoilers").Scope("Global");
+book.AddVariable("units").Type("Text").Default("metric").Scope("Global").AllowedValue("metric").AllowedValue("imperial");
+```
+
+!!! warning "`AllowedValue` needs a `Default`"
+    The starting value has to be one of the allowed ones. A `Text` variable with allowed values and no `Default` starts as empty text, which isn't in the list, and registration fails. Set `Default` whenever you call `AllowedValue`.
 
 ## The element builder
 

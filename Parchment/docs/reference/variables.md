@@ -137,7 +137,20 @@ To use it, list Parchment as a dependency in your pack's `manifest.json`, the sa
 !!! warning "Content Patcher sees a change later than the book does"
     `%Variable:id%` and `HasVariable` see a new value the moment it's set. The token doesn't: Content Patcher reads it on its own context updates, which happen on day start, on the ten-minute clock and on warping. In single player an open book pauses that clock, so a setting toggled in a book reaches your patches once the book is closed and time moves again.
 
-## Reading one from C#
+## Declaring one from C\#
+
+A book [built in code](building-books.md) declares its variables through `AddVariable`, which returns a builder covering the same fields as the JSON above:
+
+```cs
+book.AddVariable("units").Type("Text").Default("metric").Scope("Global").AllowedValue("metric").AllowedValue("imperial");
+```
+
+Everything after that works exactly as it does for a book from a content pack. The variable is keyed by the book's `Id`, so a book built in code and a book in a content pack sharing an ID would share values, which is one more reason to prefix book IDs with your mod's unique ID.
+
+!!! note "A `TryOpen` book keeps its variables to itself"
+    Variables work on a book opened through `TryOpen` as well as on a registered one, and they persist the same way. What that book can't do is publish them to the [Content Patcher token](#reading-one-from-content-patcher), which only lists the variables of books in the books asset. A book that never registers isn't in it.
+
+## Reading one from C\#
 
 A SMAPI mod can read and write a book's variables through the [API](api.md), which is how a mod backs a book's settings page with its own config file.
 
