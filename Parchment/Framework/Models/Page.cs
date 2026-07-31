@@ -40,6 +40,9 @@ namespace Parchment.Framework.Models
 
         public ElementRenderContext? LastLayoutContext;
 
+        /// <summary>Every element on this page whose text carries a token, gathered once so the change watch has nothing to walk in a book that uses none.</summary>
+        public List<Element> TokenTextElements { get; }
+
         /// <summary>Every Grid on this page whose cells come from a Results block, gathered once so the per-tick assignment pass has nothing to walk in a book that uses none.</summary>
         public List<Element> ResultElements { get; }
 
@@ -71,6 +74,11 @@ namespace Parchment.Framework.Models
             CollectElements(Elements, HasResults, ResultElements);
             CollectElements(Background, HasResults, ResultElements);
             CollectElements(Foreground, HasResults, ResultElements);
+
+            TokenTextElements = new List<Element>();
+            CollectElements(Elements, TokenHelper.HasTokenText, TokenTextElements);
+            CollectElements(Background, TokenHelper.HasTokenText, TokenTextElements);
+            CollectElements(Foreground, TokenHelper.HasTokenText, TokenTextElements);
         }
 
         /// <summary>Whether an element is a Grid filling its cells from a Results block.</summary>

@@ -41,6 +41,9 @@ namespace Parchment.Framework.Models
             return false;
         }
 
+        /// <summary>Every element on the book's own layers whose text carries a token.</summary>
+        public List<Element> TokenTextElements { get; }
+
         /// <summary>Every Grid on the book's own layers whose cells come from a Results block.</summary>
         public List<Element> ResultElements { get; }
 
@@ -73,6 +76,10 @@ namespace Parchment.Framework.Models
             ResultElements = new List<Element>();
             Page.CollectElements(Underlay, Page.HasResults, ResultElements);
             Page.CollectElements(Overlay, Page.HasResults, ResultElements);
+
+            TokenTextElements = new List<Element>();
+            Page.CollectElements(Underlay, TokenHelper.HasTokenText, TokenTextElements);
+            Page.CollectElements(Overlay, TokenHelper.HasTokenText, TokenTextElements);
         }
 
         private static void InvalidateResults(IReadOnlyList<Element> resultElements)

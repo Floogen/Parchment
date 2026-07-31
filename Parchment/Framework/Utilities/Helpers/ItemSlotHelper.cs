@@ -16,12 +16,17 @@ namespace Parchment.Framework.Utilities.Helpers
         {
             ParsedItemData? itemData = string.IsNullOrWhiteSpace(qualifiedItemId) ? null : ItemRegistry.GetData(qualifiedItemId);
 
-            Apply(element, qualifiedItemId, itemData);
+            // Built once here rather than per token resolution, since a handful of instances per filter change is nothing while a handful per frame would not be
+            Item? item = itemData is null ? null : ItemRegistry.Create(qualifiedItemId, allowNull: true);
+
+            Apply(element, qualifiedItemId, itemData, item);
         }
 
-        private static void Apply(Element element, string? qualifiedItemId, ParsedItemData? itemData)
+        private static void Apply(Element element, string? qualifiedItemId, ParsedItemData? itemData, Item? item)
         {
             element.AssignedItemId = qualifiedItemId;
+            element.AssignedItemData = itemData;
+            element.AssignedItem = item;
 
             // An Image with its own ItemId is authored art rather than a hole for the result to fill, so it is left alone
             if (element.Data is ImageElementData imageData && string.IsNullOrWhiteSpace(imageData.ItemId) is true && string.IsNullOrWhiteSpace(imageData.TexturePath) is true)
@@ -34,16 +39,16 @@ namespace Parchment.Framework.Utilities.Helpers
                 element.Description = element.Data.Description ?? itemData?.Description;
             }
 
-            ApplyToList(element.Children, qualifiedItemId, itemData);
-            ApplyToList(element.Background, qualifiedItemId, itemData);
-            ApplyToList(element.Foreground, qualifiedItemId, itemData);
+            ApplyToList(element.Children, qualifiedItemId, itemData, item);
+            ApplyToList(element.Background, qualifiedItemId, itemData, item);
+            ApplyToList(element.Foreground, qualifiedItemId, itemData, item);
         }
 
-        private static void ApplyToList(System.Collections.Generic.IReadOnlyList<Element> elements, string? qualifiedItemId, ParsedItemData? itemData)
+        private static void ApplyToList(System.Collections.Generic.IReadOnlyList<Element> elements, string? qualifiedItemId, ParsedItemData? itemData, Item? item)
         {
             foreach (Element element in elements)
             {
-                Apply(element, qualifiedItemId, itemData);
+                Apply(element, qualifiedItemId, itemData, item);
             }
         }
     }

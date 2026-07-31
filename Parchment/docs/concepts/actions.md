@@ -200,15 +200,57 @@ Both actions take a list, so `PeacefulEnd.Parchment_ClearFlag leverPulled doorOp
 
 Flags are shared across books, so a name set by one book is visible to another opened afterwards in the same session. Prefix them with your mod's ID if that matters to you.
 
-## Passing input text
+## Tokens
 
-`%Input%` in an action is replaced with the text currently in an [`Input`](../reference/elements/input.md) element, just before the action runs. That lets any action take what the reader typed, including the game's own and other mods'.
+A token is a placeholder replaced with something the book knows at the moment it's needed. They work in an action, resolved just before it runs, and in an element's [`Text`](../reference/elements/index.md), resolved as it's laid out. The same token means the same thing in both.
 
-| Form | Means |
+| Token | Means |
 | --- | --- |
-| `%Input%` | This element's own text. Only valid on an `Input`. |
+| `%Input%` | This element's own typed text. Only valid on an [`Input`](../reference/elements/input.md). |
 | `%Input:someId%` | The text in the input with that `InputId`, from any element. |
 | `%Item%` | The qualified item ID the element is showing. Only valid inside a [`Grid`](../reference/elements/grid.md#results) result cell. |
+| `%Item.Something%` | A property of that item. See [Item properties](#item-properties). |
+| `%GridDisplayed:someId%` | How many cells a grid is currently showing. |
+| `%GridMatched:someId%` | How many candidates matched, which is larger than the above once the matches outnumber the cells. |
+| `%GridTotal:someId%` | How many candidates the grid has before any filtering. |
+
+The grid tokens read a [`Grid`](../reference/elements/grid.md) by its `Id`, found on the book's own layers or on either visible page. They work on a grid with authored children too, where "matched" means visible children and "total" means all of them.
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "Showing %GridDisplayed:fish% of %GridMatched:fish% matches, out of %GridTotal:fish% fish."
+}
+```
+
+### Item properties
+
+Inside a result cell, `%Item%` on its own is the qualified ID, and a dot reaches one of the item's properties:
+
+| Token | Gives |
+| --- | --- |
+| `%Item.Id%` | The unqualified ID, `128` rather than `(O)128`. |
+| `%Item.Name%` | The display name, translated. |
+| `%Item.InternalName%` | The internal name, which never translates. |
+| `%Item.Description%` | The description. |
+| `%Item.Type%` | The object type, such as `Fish` or `Arch`. |
+| `%Item.Category%` | The category **name**, such as `Fish`, rather than the number behind it. |
+| `%Item.Price%` | The sale price. |
+
+```json
+{
+  "Type": "Panel",
+  "Children": [
+    { "Type": "Image", "Scale": 3, "Alignment": "Center" },
+    { "Type": "Paragraph", "Text": "%Item.Name%", "Alignment": "Center" }
+  ]
+}
+```
+
+The list is fixed rather than reaching into the item for whatever it happens to have. That keeps these names Parchment's to keep: a game update that renames something underneath one of them is a fix here rather than a break in your book. Ask for something not on the list and the token is left in place, with the accepted names logged.
+
+!!! note "An unknown token is left alone"
+    `%GridTotal:fsh%` isn't replaced with nothing, it stays in the text and is logged. Anything the vocabulary doesn't recognise is passed through untouched, so ordinary prose containing a `%` survives. Write `%%` where you need a literal one next to something token-shaped.
 
 ```json
 {
@@ -220,10 +262,10 @@ Flags are shared across books, so a name set by one book is visible to another o
 }
 ```
 
-The text is substituted already quoted, so a typed phrase arrives as one argument rather than several. Quotes the reader types are dropped, since trigger actions have no way to escape them.
+In an **action** a value is substituted already quoted, so a typed phrase arrives as one argument rather than several, and quotes the reader typed are dropped since trigger actions have no way to escape them. In **text** it's substituted as-is.
 
-!!! note "A name that doesn't exist is left alone"
-    `%Input:searhc%` isn't replaced with nothing, it's left in the action and logged. The action then fails on its own argument parsing, which is easier to trace than a silently blank argument.
+!!! warning "Text tokens cost a relayout"
+    A token in text changes what the element measures, so the page is laid out again whenever one resolves differently. That's fine at typing speed, and worth thinking about if you ever point a token at something that changes every tick.
 
 ## Combining with conditions
 

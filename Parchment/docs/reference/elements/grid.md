@@ -135,7 +135,18 @@ So a cell can be more than an icon. Make the template a `Panel` and everything i
 Typing narrows the candidates by display name **and** by qualified item ID, ignoring case. Matches fill the cells from the first, and cells past the last match are emptied and hidden. An empty box matches everything.
 
 !!! warning "You see the first `Count` matches, not all of them"
-    A filter matching 112 items across 30 cells shows 30. That's the trade a fixed cell count buys: nothing reflows and the page count never changes. Pair the grid with a line saying how many matched.
+    A filter matching 112 items across 30 cells shows 30. That's the trade a fixed cell count buys: nothing reflows and the page count never changes.
+
+Say so with [tokens](../../concepts/actions.md#tokens), which read the grid by its `Id`:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "Showing %GridDisplayed:fish% of %GridMatched:fish% matches."
+}
+```
+
+Inside the template, [`%Item.Name%`](../../concepts/actions.md#item-properties) and its siblings let a cell label itself with the item it landed on.
 
 !!! note "`Children` is ignored"
     A grid with `Results` builds its cells from `Template` alone. Anything in `Children` is not drawn, rather than being appended after the results.

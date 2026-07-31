@@ -75,7 +75,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return TextWrapper.Wrap(string.Empty, element.Font!, maximumTextWidth, data.TextScale);
             }
 
-            return TextWrapper.Wrap(data.Text, element.Font, maximumTextWidth, data.TextScale);
+            return TextWrapper.Wrap(TokenHelper.Resolve(data.Text, element, quoteValues: false), element.Font, maximumTextWidth, data.TextScale);
         }
 
         protected override void Draw(SpriteBatch spriteBatch, ButtonElementData data, Element element, Rectangle bounds, ElementRenderContext context)

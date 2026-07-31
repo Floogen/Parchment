@@ -8,7 +8,7 @@ namespace Parchment.Framework.Models.Data.Results
     /// </summary>
     public class ResultsData : BaseModel
     {
-        /// <summary>A name for this result set, used by anything that reports on it. Optional today, and worth setting anyway.</summary>
+        /// <summary>A name for this result set, used by anything that reports on it.</summary>
         public string? Id { get; set; }
 
         /// <summary>The item query supplying the candidates, such as "ALL_ITEMS (O)". Resolved once and cached, so this cost is paid on load rather than on a keystroke.</summary>

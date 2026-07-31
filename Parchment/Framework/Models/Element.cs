@@ -7,6 +7,7 @@ using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using StardewValley;
+using StardewValley.ItemTypeDefinitions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,8 +34,14 @@ namespace Parchment.Framework.Models
         public Color TintColor { get; init; } = Color.White;
         public IAssetName? TextureAssetName { get; init; }
 
-        /// <summary>The item this element is currently showing, when it is a Grid result cell or something inside one. Null everywhere else, and what the %Item% token in an action resolves to.</summary>
+        /// <summary>The item this element is currently showing, when it is a Grid result cell or something inside one. Null everywhere else, and what the %Item% token resolves to.</summary>
         public string? AssignedItemId { get; set; }
+
+        /// <summary>The parsed data behind <see cref="AssignedItemId"/>, kept so the %Item.Something% tokens read it rather than looking it up on every draw.</summary>
+        public ParsedItemData? AssignedItemData { get; set; }
+
+        /// <summary>An instance of <see cref="AssignedItemId"/>, built once when the cell is assigned. Only the properties that can't be answered without one need it, such as category name and price.</summary>
+        public Item? AssignedItem { get; set; }
 
         /// <summary>The candidates and filter behind a Grid's cells. Only set on a Grid carrying a Results block.</summary>
         public ResultSet? Results { get; set; }
@@ -94,6 +101,9 @@ namespace Parchment.Framework.Models
                 }
             }
         }
+
+        /// <summary>This element's text as it last resolved, which is how a token whose value changed without any condition changing is spotted. Null until the element has been looked at once.</summary>
+        public string? LastResolvedText { get; set; }
 
         /// <summary>The input text this element was last seen holding, which is how a change is told apart from the text sitting still. Null until the element has been looked at once, so a book doesn't count its own starting text as a change.</summary>
         public string? LastSeenInputText { get; set; }

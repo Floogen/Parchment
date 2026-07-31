@@ -1478,6 +1478,146 @@ namespace Parchment.Framework.UI.Menus
             return hasChanged;
         }
 
+        /// <summary>The counts behind a Grid, found by its Id across the book's own layers and both visible pages.
+        /// A grid filling its cells from Results reports on its candidates, and one with authored children reports on those, so the same tokens read either kind.
+        /// </summary>
+        public bool TryGetGridCounts(string gridId, out int displayed, out int matched, out int total)
+        {
+            displayed = 0;
+            matched = 0;
+            total = 0;
+
+            if (TryFindGridInBook(gridId, out Element? grid) is false)
+            {
+                return false;
+            }
+
+            if (grid!.Results is ResultSet results)
+            {
+                displayed = results.DisplayedCount;
+                matched = results.MatchedCount;
+                total = results.TotalCount;
+
+                return true;
+            }
+
+            foreach (Element child in grid.Children)
+            {
+                total++;
+
+                if (child.IsVisible is true)
+                {
+                    matched++;
+                }
+            }
+
+            // A capped grid draws only what its cells hold, so what is displayed and what matched are different numbers
+            int cellCount = grid.Data is GridElementData gridData && gridData.Rows is int rows ? rows * gridData.Columns : matched;
+            displayed = Math.Min(matched, cellCount);
+
+            return true;
+        }
+
+        /// <summary>Looks for a grid on the book's own layers first, then on each visible page. A grid the reader can't see isn't found, so a token can only report on what is in front of them.</summary>
+        private bool TryFindGridInBook(string gridId, out Element? grid)
+        {
+            if (TryFindGrid(Book.Underlay, gridId, out grid) is true || TryFindGrid(Book.Overlay, gridId, out grid) is true)
+            {
+                return true;
+            }
+
+            return TryFindGridOnPage(GetLeftPageIndex(), gridId, out grid) || TryFindGridOnPage(GetRightPageIndex(), gridId, out grid);
+        }
+
+        private bool TryFindGridOnPage(int pageIndex, string gridId, out Element? grid)
+        {
+            grid = null;
+
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return false;
+            }
+
+            Page page = _pages[pageIndex];
+
+            return TryFindGrid(page.Elements, gridId, out grid) || TryFindGrid(page.Background, gridId, out grid) || TryFindGrid(page.Foreground, gridId, out grid);
+        }
+
+        private static bool TryFindGrid(IReadOnlyList<Element> elements, string gridId, out Element? grid)
+        {
+            foreach (Element element in elements)
+            {
+                if (element.Data is GridElementData && string.Equals(element.Data.Id, gridId, StringComparison.OrdinalIgnoreCase) is true)
+                {
+                    grid = element;
+                    return true;
+                }
+
+                if (TryFindGrid(element.Children, gridId, out grid) is true || TryFindGrid(element.Background, gridId, out grid) is true || TryFindGrid(element.Foreground, gridId, out grid) is true)
+                {
+                    return true;
+                }
+            }
+
+            grid = null;
+            return false;
+        }
+
+        /// <summary>Watches the elements whose text carries a token and asks for a relayout when one resolves differently.
+        /// Text is wrapped and measured once per layout pass, so a token whose value moves without a condition moving with it would otherwise stay on screen as it was.
+        /// </summary>
+        private void RefreshTokenText()
+        {
+            if (CurrentState is not MenuState.Ready and not MenuState.Turning)
+            {
+                return;
+            }
+
+            if (RefreshTokenText(Book.TokenTextElements) is true)
+            {
+                Book.InvalidateLayout();
+            }
+
+            RefreshPageTokenText(GetLeftPageIndex());
+            RefreshPageTokenText(GetRightPageIndex());
+        }
+
+        private void RefreshPageTokenText(int pageIndex)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return;
+            }
+
+            if (RefreshTokenText(_pages[pageIndex].TokenTextElements) is true)
+            {
+                _pages[pageIndex].InvalidateLayout();
+            }
+        }
+
+        private static bool RefreshTokenText(IReadOnlyList<Element> tokenTextElements)
+        {
+            bool hasChanged = false;
+
+            foreach (Element element in tokenTextElements)
+            {
+                string? resolvedText = TokenHelper.ResolveElementText(element);
+
+                if (string.Equals(element.LastResolvedText, resolvedText, StringComparison.Ordinal) is true)
+                {
+                    continue;
+                }
+
+                // The first look records the text without asking for anything, since the layout that is about to run will resolve it anyway
+                bool hasSeenBefore = element.LastResolvedText is not null;
+
+                element.LastResolvedText = resolvedText;
+                hasChanged |= hasSeenBefore;
+            }
+
+            return hasChanged;
+        }
+
         private void UpdateConditionTimer()
         {
             _conditionRefreshTimer++;
@@ -1732,6 +1872,8 @@ namespace Parchment.Framework.UI.Menus
             DispatchTextChangedActions(elapsedMilliseconds);
 
             RefreshResults();
+
+            RefreshTokenText();
 
             // Tracked in every state, since an action a keybind ran may have started an animation the reader is now holding the button through
             UpdateForceCloseHold(elapsedMilliseconds);
