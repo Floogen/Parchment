@@ -55,8 +55,11 @@ namespace Parchment.Framework.UI.Rendering.Elements
                     break;
             }
 
+            // An authored Height scales the way Width does under Fixed sizing, so raising Scale grows the box on both axes rather than only across
+            float contentHeight = data.Height is int height ? height * data.Scale : lineHeight;
+
             inputWidth = Math.Max(inputWidth, borderThickness * 2f);
-            float inputHeight = Math.Max(lineHeight + inset * 2f, borderThickness * 2f);
+            float inputHeight = Math.Max(contentHeight + inset * 2f, borderThickness * 2f);
 
             element.LayoutState = new InputLayout(inset, data.TextScale, lineHeight, ResolvePlaceholderColor(data, element));
 

@@ -43,6 +43,11 @@ namespace Parchment.Framework.Models.Data.Elements
         public SizingMode Sizing { get; set; } = SizingMode.Fill;
         public int? Width { get; set; }
 
+        /// <summary>The content height in unscaled pixels, multiplied by <see cref="ElementData.Scale"/>. Gives the box a scale-driven term of its own, so both axes answer to Scale at the same rate.
+        /// When null the box is only as tall as a line of text, which leaves height responding to Scale through the frame and padding alone.
+        /// </summary>
+        public int? Height { get; set; }
+
         /// <summary>A trigger action to run when the reader presses enter. Shorthand for a single-entry <see cref="SubmitActions"/>, and when both are given this one runs first.</summary>
         public string? SubmitAction { get; set; }
 
@@ -83,6 +88,11 @@ namespace Parchment.Framework.Models.Data.Elements
             if (Width is int width && width <= 0)
             {
                 return (false, $"\"Width\" must be positive.");
+            }
+
+            if (Height is int height && height <= 0)
+            {
+                return (false, $"\"Height\" must be positive.");
             }
 
             if (Padding < 0)

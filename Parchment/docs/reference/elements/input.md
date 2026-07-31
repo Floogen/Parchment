@@ -29,6 +29,7 @@ A text box the reader types into. What they type is held for as long as the book
 | `Padding` <span class="opt">optional</span> | `int` | `0` | Space between the frame's inner edge and the text, in unscaled sprite pixels × `Scale`. |
 | `Sizing` <span class="opt">optional</span> | [`sizing mode`](index.md#sizing-modes) | `Fill` | How wide the box is. `ShrinkToFit` hugs the `Placeholder` rather than the typed text, so the box doesn't grow and shrink under the reader as they type. |
 | `Width` <span class="opt">optional</span> | `int?` | — | The **content** width in unscaled sprite pixels × `Scale`. Required when `Sizing` is `Fixed`. |
+| `Height` <span class="opt">optional</span> | `int?` | *one line of text* | The **content** height in unscaled sprite pixels × `Scale`. Set it when you want `Scale` to size the box's height the way it sizes its width. |
 | `TextScale` <span class="opt">optional</span> | `number` | `1` | The text's scale, independent of `Scale`, which sizes the frame. |
 | `SubmitAction` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) run when the reader presses enter. |
 | `SubmitActions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order on enter. Combined with `SubmitAction` rather than replacing it. |
@@ -108,6 +109,8 @@ Text is always drawn from the left and vertically centred, whatever `Alignment` 
 
 ## Common fields
 
-`Scale` on an `Input` is the **frame** scale. Use `TextScale` for the text.
+`Scale` on an `Input` is the **frame** scale, sizing the border and the padding. `TextScale` sizes the text.
+
+That leaves `Scale` with nothing proportional to grab on the vertical axis unless you give the box a `Height`. Without one, `Width` (under `Fixed` sizing) is multiplied by `Scale` while the height is just a line of text plus the frame, so raising `Scale` widens the box far faster than it deepens it. `Height` fixes that, and setting `TextScale` alongside `Scale` keeps the text in proportion with the box.
 
 --8<-- "element-common.md"

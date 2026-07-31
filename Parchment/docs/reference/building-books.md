@@ -124,7 +124,7 @@ Most methods are named after the field they set, so anything you've written in a
 | `Sound(sound)` | `Sound` |
 | `Condition(condition)` | `Condition` |
 | `Sizing(mode)` | `Sizing`, one of `"Fill"`, `"ShrinkToFit"`, `"Fixed"` |
-| `Width(width)` / `Height(height)` | `Width` and `Height`. `Width` is taken by a [`Panel`](elements/panel.md), [`Divider`](elements/divider.md) or [`Banner`](elements/banner.md) with a `Fixed` `Sizing`, and by a [`Paragraph`](elements/paragraph.md) on its own. `Height` is a Panel's. |
+| `Width(width)` / `Height(height)` | `Width` and `Height`. `Width` is taken by a [`Panel`](elements/panel.md), [`Divider`](elements/divider.md), [`Banner`](elements/banner.md) or [`Input`](elements/input.md) with a `Fixed` `Sizing`, and by a [`Paragraph`](elements/paragraph.md) on its own. `Height` is a Panel's or an `Input`'s. |
 | `Padding(padding)` | `Padding` |
 | `Scope(scope)` | A PageNumber's `Scope`, either `"Book"` or `"Chapter"` |
 | `Format(format)` | A PageNumber's `Format`, such as `"Page {0}"` |
