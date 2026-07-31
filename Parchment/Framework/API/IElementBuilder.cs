@@ -61,6 +61,18 @@ namespace Parchment.Framework.API
         /// order. Every entry runs on each entry of the cursor, so keep the whole list harmless to repeat.</summary>
         IElementBuilder HoverAction(string action);
 
+        /// <summary>The handle conditions and actions use to reach an Input's text, such as "PeacefulEnd.Parchment_InputMatches search Tulip".</summary>
+        IElementBuilder InputId(string inputId);
+
+        /// <summary>The prompt shown while an Input is empty.</summary>
+        IElementBuilder Placeholder(string placeholder);
+
+        /// <summary>The most characters an Input accepts.</summary>
+        IElementBuilder MaxLength(int maxLength);
+
+        /// <summary>Adds a trigger action to run when the reader presses enter in an Input. Calling this more than once builds a list run in order.</summary>
+        IElementBuilder SubmitAction(string action);
+
         /// <summary>Sets the sound played when the element is clicked.</summary>
         IElementBuilder Sound(string sound);
 

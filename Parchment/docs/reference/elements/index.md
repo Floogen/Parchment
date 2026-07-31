@@ -64,6 +64,10 @@ Where an element appears doesn't change what it can do. A tooltip, an `Action` o
 
     The page's own number, filled in automatically.
 
+-   **[Input](input.md)** (`Input`)
+
+    A text box the reader types into, for filtering a page against what they've typed.
+
 </div>
 
 An unrecognised `Type` is skipped with a warning rather than breaking the book.
@@ -81,13 +85,13 @@ Every element understands these, whatever its type.
 
 ## Text fields
 
-Understood by [`Title`](title.md), [`Heading`](heading.md), [`Paragraph`](paragraph.md), [`Banner`](banner.md), [`Button`](button.md) and [`Image`](image.md).
+Understood by [`Title`](title.md), [`Heading`](heading.md), [`Paragraph`](paragraph.md), [`Banner`](banner.md), [`Button`](button.md), [`Image`](image.md) and [`Input`](input.md).
 
 --8<-- "text-content.md"
 
 ## Sprite fields
 
-Understood by [`Image`](image.md), [`Panel`](panel.md), [`Banner`](banner.md), [`Button`](button.md) and [`Divider`](divider.md).
+Understood by [`Image`](image.md), [`Panel`](panel.md), [`Banner`](banner.md), [`Button`](button.md), [`Divider`](divider.md) and [`Input`](input.md).
 
 --8<-- "sprite.md"
 

@@ -17,6 +17,7 @@ namespace Parchment.Framework.Models.Enums
         Panel,
         Banner,
         Button,
-        PageNumber
+        PageNumber,
+        Input
     }
 }

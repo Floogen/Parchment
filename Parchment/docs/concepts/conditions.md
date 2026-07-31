@@ -47,6 +47,18 @@ Most describe the open book, so they only work while a book is open (otherwise t
 | `PeacefulEnd.Parchment_CurrentBookId` | `<bookId>` | The open book has this `Id`. |
 | `PeacefulEnd.Parchment_CurrentBookState` | `<state>` | The book is in this state. See [Book states](#book-states). |
 
+### Reader input
+
+These read what the reader has typed into an [`Input`](../reference/elements/input.md) element. Unlike the rest, they don't need a book open, since the text lasts for the reading session.
+
+| Query | Arguments | True when |
+| --- | --- | --- |
+| `PeacefulEnd.Parchment_InputMatches` | `<inputId> <text>` | The typed text appears in `<text>`, ignoring case. **An empty input matches everything**, so an untouched search box leaves the whole list showing. Everything past the ID counts as one piece of text, so a phrase needs no quoting. |
+| `PeacefulEnd.Parchment_InputEquals` | `<inputId> <value>...` | The typed text is exactly one of the values, ignoring case. |
+| `PeacefulEnd.Parchment_HasInputText` | `<inputId>` | The input has anything typed into it. |
+
+The direction of `InputMatches` is the thing to keep straight: the typed text is what you're searching **for**, the argument is what you're searching **in**. So a row for tulips reads `PeacefulEnd.Parchment_InputMatches search Tulip` and appears whenever what the reader typed fits inside the word Tulip.
+
 ### The page
 
 | Query | Arguments | True when |

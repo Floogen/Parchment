@@ -117,6 +117,10 @@ Most methods are named after the field they set, so anything you've written in a
 | `Item(itemId)` | `ItemId` |
 | `Action(action)` / `Action(action, sound)` | A click [action](../concepts/actions.md). Call it more than once to build a list. |
 | `HoverAction(action)` | A hover action. Call it more than once to build a list. |
+| `SubmitAction(action)` | An action run when enter is pressed in an [`Input`](elements/input.md). Call it more than once to build a list. |
+| `InputId(inputId)` | An `Input`'s `InputId` |
+| `Placeholder(placeholder)` | An `Input`'s `Placeholder` |
+| `MaxLength(maxLength)` | An `Input`'s `MaxLength` |
 | `Sound(sound)` | `Sound` |
 | `Condition(condition)` | `Condition` |
 | `Sizing(mode)` | `Sizing`, one of `"Fill"`, `"ShrinkToFit"`, `"Fixed"` |

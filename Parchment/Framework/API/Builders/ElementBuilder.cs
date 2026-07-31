@@ -22,6 +22,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<FrameRecipe> _hoverFrames = new List<FrameRecipe>();
         private readonly List<string> _actions = new List<string>();
         private readonly List<string> _hoverActions = new List<string>();
+        private readonly List<string> _submitActions = new List<string>();
 
         public string ElementType { get { return _elementType; } }
 
@@ -76,6 +77,17 @@ namespace Parchment.Framework.API.Builders
 
             return this;
         }
+
+        public IElementBuilder SubmitAction(string action)
+        {
+            _submitActions.Add(action);
+
+            return this;
+        }
+
+        public IElementBuilder InputId(string inputId) { return Set("InputId", inputId); }
+        public IElementBuilder Placeholder(string placeholder) { return Set("Placeholder", placeholder); }
+        public IElementBuilder MaxLength(int maxLength) { return Set("MaxLength", maxLength); }
         public IElementBuilder Condition(string condition) { return Set("Condition", condition); }
         public IElementBuilder Sizing(string sizingMode) { return Set("Sizing", sizingMode); }
         public IElementBuilder Scope(string scope) { return Set("Scope", scope); }
@@ -192,6 +204,22 @@ namespace Parchment.Framework.API.Builders
                 if (_hoverActions.Count > 1)
                 {
                     data.HoverActions = _hoverActions.GetRange(1, _hoverActions.Count - 1);
+                }
+            }
+
+            if (_submitActions.Count > 0)
+            {
+                if (data is not InputElementData inputData)
+                {
+                    error = $"[{_elementType}] submit actions can only be added to an Input";
+                    return false;
+                }
+
+                inputData.SubmitAction = _submitActions[0];
+
+                if (_submitActions.Count > 1)
+                {
+                    inputData.SubmitActions = _submitActions.GetRange(1, _submitActions.Count - 1);
                 }
             }
 

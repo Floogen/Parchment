@@ -26,6 +26,9 @@ namespace Parchment.Framework.Managers
         public const string CLOSE_BOOK = "PeacefulEnd.Parchment_CloseBook";
         public const string VIEW_COVER = "PeacefulEnd.Parchment_ViewCover";
 
+        public const string SET_INPUT = "PeacefulEnd.Parchment_SetInput";
+        public const string CLEAR_INPUT = "PeacefulEnd.Parchment_ClearInput";
+
         public ActionManager(IMonitor monitor, IModHelper helper) : base(monitor, helper)
         {
             RegisterAll();
@@ -45,6 +48,9 @@ namespace Parchment.Framework.Managers
             TriggerActionManager.RegisterAction(VIEW_COVER, ViewCover);
             TriggerActionManager.RegisterAction(FIRST_PAGE, FirstPage);
             TriggerActionManager.RegisterAction(LAST_PAGE, LastPage);
+
+            TriggerActionManager.RegisterAction(SET_INPUT, SetInput);
+            TriggerActionManager.RegisterAction(CLEAR_INPUT, ClearInput);
         }
 
         public bool GoToStart(string[] args, TriggerActionContext context, out string error)
@@ -199,6 +205,34 @@ namespace Parchment.Framework.Managers
             }
 
             return bookMenu.TryViewCover(out error);
+        }
+
+        /// <summary>Replaces an input's text. Everything past the input ID is taken as the text, so a phrase needs no quoting, and giving nothing empties the input.</summary>
+        public bool SetInput(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string inputId, out error, name: "string inputId") is false)
+            {
+                return false;
+            }
+
+            Parchment.inputManager.SetText(inputId, string.Join(" ", args.Skip(2)));
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Empties an input. The same as SetInput with no text, spelled so a clear button reads as one.</summary>
+        public bool ClearInput(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string inputId, out error, name: "string inputId") is false)
+            {
+                return false;
+            }
+
+            Parchment.inputManager.SetText(inputId, string.Empty);
+            error = null;
+
+            return true;
         }
 
         private bool TryGetBookMenu(out BookMenu bookMenu, out string error)

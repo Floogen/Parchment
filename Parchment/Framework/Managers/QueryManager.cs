@@ -34,6 +34,10 @@ namespace Parchment.Framework.Managers
         public const string CURRENT_CHAPTER_ID = "PeacefulEnd.Parchment_CurrentChapterId";
         public const string CURRENT_BOOK_ID = "PeacefulEnd.Parchment_CurrentBookId";
 
+        public const string INPUT_MATCHES = "PeacefulEnd.Parchment_InputMatches";
+        public const string INPUT_EQUALS = "PeacefulEnd.Parchment_InputEquals";
+        public const string HAS_INPUT_TEXT = "PeacefulEnd.Parchment_HasInputText";
+
         public QueryManager(IMonitor monitor, IModHelper helper) : base(monitor, helper)
         {
             RegisterAll();
@@ -60,6 +64,10 @@ namespace Parchment.Framework.Managers
             GameStateQuery.Register(CURRENT_PAGE_ID, CurrentPageId);
             GameStateQuery.Register(CURRENT_CHAPTER_ID, CurrentChapterId);
             GameStateQuery.Register(CURRENT_BOOK_ID, CurrentBookId);
+
+            GameStateQuery.Register(INPUT_MATCHES, InputMatches);
+            GameStateQuery.Register(INPUT_EQUALS, InputEquals);
+            GameStateQuery.Register(HAS_INPUT_TEXT, HasInputText);
         }
 
         private bool IsBookOpen(string[] query, GameStateQueryContext context)
@@ -252,6 +260,57 @@ namespace Parchment.Framework.Managers
             }
 
             return bookMenu.Book.Data.Id.EqualsIgnoreCase(bookId);
+        }
+
+        /// <summary>Whether the text typed into an input appears in the given text, which is what a search box filters a list with.
+        /// An empty input matches everything, so an untouched search box shows the whole list rather than nothing. Everything past the input ID is treated as one piece of text, so a phrase needs no quoting.
+        /// </summary>
+        private bool InputMatches(string[] query, GameStateQueryContext context)
+        {
+            if (ArgUtility.TryGet(query, 1, out string inputId, out string error, name: "string inputId") is false)
+            {
+                return false;
+            }
+
+            string typedText = Parchment.inputManager.GetText(inputId);
+            if (string.IsNullOrEmpty(typedText) is true)
+            {
+                return true;
+            }
+
+            return string.Join(" ", query.Skip(2)).Contains(typedText, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Whether an input's text is exactly one of the given values.</summary>
+        private bool InputEquals(string[] query, GameStateQueryContext context)
+        {
+            if (ArgUtility.TryGet(query, 1, out string inputId, out string error, name: "string inputId") is false)
+            {
+                return false;
+            }
+
+            string typedText = Parchment.inputManager.GetText(inputId);
+
+            for (int index = 2; index < query.Length; index++)
+            {
+                if (typedText.EqualsIgnoreCase(query[index]) is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether an input has anything typed into it, for a "no results" line or a clear button.</summary>
+        private bool HasInputText(string[] query, GameStateQueryContext context)
+        {
+            if (ArgUtility.TryGet(query, 1, out string inputId, out string error, name: "string inputId") is false)
+            {
+                return false;
+            }
+
+            return string.IsNullOrEmpty(Parchment.inputManager.GetText(inputId)) is false;
         }
 
         private bool TryGetBookMenu(out BookMenu bookMenu)

@@ -80,6 +80,8 @@ These only work while a book is open. Elsewhere they fail with a message in the 
 | `PeacefulEnd.Parchment_GoToStart` | — | Jump to the book's very first page, whatever chapter you're in. |
 | `PeacefulEnd.Parchment_ViewCover` | — | Shut the book to its cover without leaving the menu. Works on any book, whatever its `ExitToCover` is set to. Fails when the book is already shut. See [Cover view](../reference/book.md#cover-view). |
 | `PeacefulEnd.Parchment_CloseBook` | — | Close the book. |
+| `PeacefulEnd.Parchment_SetInput` | `<inputId> <text>` | Replace an [`Input`](../reference/elements/input.md) element's text. Everything past the ID counts as the text, so a phrase needs no quoting. |
+| `PeacefulEnd.Parchment_ClearInput` | `<inputId>` | Empty an `Input`. The same as `SetInput` with no text, spelled so a clear button reads as one. |
 
 ### Scope
 
@@ -150,6 +152,30 @@ A duplicate `Id` resolves to the first match in book order, which is why the opt
 ```
 
 Both of these land on a spread rather than a single page. Asking for the right-hand page of a spread shows that spread, so `JumpToChapterPage rites 1` and `JumpToChapterPage rites 0` look the same.
+
+## Passing input text
+
+`%Input%` in an action is replaced with the text currently in an [`Input`](../reference/elements/input.md) element, just before the action runs. That lets any action take what the reader typed, including the game's own and other mods'.
+
+| Form | Means |
+| --- | --- |
+| `%Input%` | This element's own text. Only valid on an `Input`. |
+| `%Input:someId%` | The text in the input with that `InputId`, from any element. |
+
+```json
+{
+  "Type": "Input",
+  "InputId": "entry",
+  "TexturePath": "{{ModId}}/box",
+  "Placeholder": "Go to entry...",
+  "SubmitAction": "PeacefulEnd.Parchment_JumpToPageId %Input%"
+}
+```
+
+The text is substituted already quoted, so a typed phrase arrives as one argument rather than several. Quotes the reader types are dropped, since trigger actions have no way to escape them.
+
+!!! note "A name that doesn't exist is left alone"
+    `%Input:searhc%` isn't replaced with nothing, it's left in the action and logged. The action then fails on its own argument parsing, which is easier to trace than a silently blank argument.
 
 ## Combining with conditions
 

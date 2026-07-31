@@ -83,6 +83,9 @@ namespace Parchment.Framework.UI.Menus
 
         private Element? _hoveredElement;
 
+        private Element? _focusedElement;
+        private InputTextSubscriber? _focusedInput;
+
         private bool _isHoveringLeftPage;
         private bool _isHoveringRightPage;
 
@@ -851,11 +854,32 @@ namespace Parchment.Framework.UI.Menus
         /// </summary>
         private void RunClickActions(Element element)
         {
-            foreach (string action in element.Data.GetActions())
+            RunActions(element.Data.GetActions(), element, "action");
+        }
+
+        /// <summary>Runs an input's submit actions in order, from <see cref="InputElementData.SubmitAction"/> and then <see cref="InputElementData.SubmitActions"/>.</summary>
+        private void RunSubmitActions(Element element)
+        {
+            if (element.Data is not InputElementData inputData || inputData.HasSubmitActions is false)
             {
-                if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
+                return;
+            }
+
+            RunActions(inputData.GetSubmitActions(), element, "submit action");
+
+            RefreshVisiblePages();
+        }
+
+        /// <summary>Runs a list of trigger actions in order, resolving any placeholders first. A failing action doesn't stop the ones after it.</summary>
+        private void RunActions(IEnumerable<string> actions, Element? element, string label)
+        {
+            foreach (string action in actions)
+            {
+                string resolvedAction = ActionTokenHelper.Resolve(action, element);
+
+                if (TriggerActionManager.TryRunAction(resolvedAction, out string error, out Exception exception) is false)
                 {
-                    Parchment.monitor.Log($"Element action '{action}' failed: {error}", LogLevel.Warn);
+                    Parchment.monitor.Log($"Element {label} '{resolvedAction}' failed: {error}", LogLevel.Warn);
 
                     if (exception is not null)
                     {
@@ -875,18 +899,7 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            foreach (string action in element.Data.GetHoverActions())
-            {
-                if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
-                {
-                    Parchment.monitor.Log($"Element hover action '{action}' failed: {error}", LogLevel.Warn);
-
-                    if (exception is not null)
-                    {
-                        Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
-                    }
-                }
-            }
+            RunActions(element.Data.GetHoverActions(), element, "hover action");
 
             RefreshVisiblePages();
         }
@@ -898,6 +911,7 @@ namespace Parchment.Framework.UI.Menus
             _animationFrame = 0;
 
             ClearHoverState();
+            ClearInputFocus();
 
             // The book state is itself testable through CurrentBookState, so a transition can change what's visible. Refreshing here rather than waiting for the next tick keeps the swap in step with the animation it belongs to
             RefreshVisiblePages();
@@ -952,9 +966,11 @@ namespace Parchment.Framework.UI.Menus
 
                 foreach (string action in trigger.Actions)
                 {
-                    if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
+                    string resolvedAction = ActionTokenHelper.Resolve(action, element: null);
+
+                    if (TriggerActionManager.TryRunAction(resolvedAction, out string error, out Exception exception) is false)
                     {
-                        Parchment.monitor.Log($"OnView action '{action}' on page '{pageId}' failed: {error}", LogLevel.Warn);
+                        Parchment.monitor.Log($"OnView action '{resolvedAction}' on page '{pageId}' failed: {error}", LogLevel.Warn);
 
                         if (exception is not null)
                         {
@@ -971,6 +987,12 @@ namespace Parchment.Framework.UI.Menus
         private bool HandleKeybinds(SButton button)
         {
             if (CurrentState is not MenuState.Ready || button is SButton.None)
+            {
+                return false;
+            }
+
+            // A focused input takes precedence over every bind, so a book that binds a letter doesn't fire it while the reader types that letter
+            if (_focusedInput is not null)
             {
                 return false;
             }
@@ -1147,6 +1169,61 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
+        /// <summary>Whether an Input element currently has the keyboard. Read from the mod's button handler, which suppresses world binds while the reader is typing.</summary>
+        public bool HasFocusedInput => _focusedInput is not null;
+
+        /// <summary>Gives an Input element the keyboard, so typing goes to it rather than to the menu.</summary>
+        private void FocusInput(Element element)
+        {
+            if (element.Data is not InputElementData inputData || string.IsNullOrWhiteSpace(inputData.InputId))
+            {
+                return;
+            }
+
+            if (ReferenceEquals(_focusedElement, element) is true)
+            {
+                return;
+            }
+
+            ClearInputFocus();
+
+            _focusedElement = element;
+            element.IsFocused = true;
+
+            _focusedInput = new InputTextSubscriber(inputData.InputId, inputData.MaxLength, OnInputTextChanged, () => RunSubmitActions(element));
+
+            // Assigning the subscriber is what starts the game routing characters here. The dispatcher owns the Selected flag on both the old and new subscriber
+            Game1.keyboardDispatcher.Subscriber = _focusedInput;
+        }
+
+        private void ClearInputFocus()
+        {
+            if (_focusedElement is not null)
+            {
+                _focusedElement.IsFocused = false;
+                _focusedElement = null;
+            }
+
+            if (_focusedInput is null)
+            {
+                return;
+            }
+
+            // Only release the dispatcher when it is still ours, so a menu opened over this one keeps the keyboard
+            if (ReferenceEquals(Game1.keyboardDispatcher.Subscriber, _focusedInput) is true)
+            {
+                Game1.keyboardDispatcher.Subscriber = null;
+            }
+
+            _focusedInput = null;
+        }
+
+        /// <summary>Refreshes conditions the moment an input changes, so a list filtered on the typed text keeps up with the reader rather than waiting for the next condition tick.</summary>
+        private void OnInputTextChanged()
+        {
+            RefreshVisiblePages();
+        }
+
         private void ClearHoverState()
         {
             SetHoveredElement(null);
@@ -1186,12 +1263,22 @@ namespace Parchment.Framework.UI.Menus
         protected override void cleanupBeforeExit()
         {
             Game1.displayHUD = _previousHudState;
+
+            ClearInputFocus();
+
+            // Input text is per reading session, so it doesn't survive the book being put down
+            Parchment.inputManager.ClearAll();
+
             base.cleanupBeforeExit();
         }
 
         public override void emergencyShutDown()
         {
             Game1.displayHUD = _previousHudState;
+
+            ClearInputFocus();
+            Parchment.inputManager.ClearAll();
+
             base.emergencyShutDown();
         }
 
@@ -1214,6 +1301,18 @@ namespace Parchment.Framework.UI.Menus
             }
 
             bool isExitButton = Game1.options.doesInputListContain(Game1.options.menuButton, key);
+
+            // A focused input has the keyboard, so no keystroke reaches the page's binds or the menu's own handling while the reader is typing
+            if (_focusedInput is not null)
+            {
+                // Escape alone leaves the box, as the menu button list also holds E by default and a reader typing "e" means the letter. A second press then closes the book
+                if (key is Keys.Escape)
+                {
+                    ClearInputFocus();
+                }
+
+                return;
+            }
 
             // The visible page gets first refusal, so it can take the button over before the menu acts on it
             if (HandleKeybinds(key.ToSButton()) is true)
@@ -1316,6 +1415,15 @@ namespace Parchment.Framework.UI.Menus
 
             // Check for any button element
             Element? clickedElement = GetElementAt(new Point(x, y));
+
+            if (clickedElement is not null && clickedElement.Data is InputElementData)
+            {
+                FocusInput(clickedElement);
+                return;
+            }
+
+            ClearInputFocus();
+
             if (clickedElement is not null && clickedElement.Data.HasActions)
             {
                 PlaySound(clickedElement.Data.Sound);

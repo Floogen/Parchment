@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using Parchment.Framework.API;
 using Parchment.Framework.Managers;
 using Parchment.Framework.Models;
@@ -43,6 +44,7 @@ namespace Parchment
 
         // Managers
         internal static ActionManager actionManager;
+        internal static InputManager inputManager;
         internal static BookManager bookManager;
         internal static QueryManager queryManager;
         internal static TileManager tileManager;
@@ -55,6 +57,7 @@ namespace Parchment
             multiplayer = helper.Reflection.GetField<Multiplayer>(typeof(Game1), "multiplayer").GetValue();
 
             // Create managers
+            inputManager = new InputManager(monitor, helper);
             actionManager = new ActionManager(monitor, helper);
             bookManager = new BookManager(monitor, helper);
             queryManager = new QueryManager(monitor, helper);
@@ -122,6 +125,14 @@ namespace Parchment
 
         private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
         {
+            // A focused Input owns typed characters, which arrive through the keyboard dispatcher, but the chat hotkey and every other world bind are read from the polled key state instead and never pass through the menu
+            // Suppressing here is the only place that reaches them. Escape is let through so it can still leave the box
+            if (Game1.activeClickableMenu is BookMenu focusedBookMenu && focusedBookMenu.HasFocusedInput is true && e.Button.TryGetKeyboard(out Keys pressedKey) is true && pressedKey is not Keys.Escape)
+            {
+                Helper.Input.Suppress(e.Button);
+                return;
+            }
+
             // Only runs if debug mode is active
             if (isDebugMode is true && e.Button is SButton.O && Context.IsPlayerFree && Game1.activeClickableMenu is null)
             {

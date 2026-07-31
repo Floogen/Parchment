@@ -76,6 +76,9 @@ namespace Parchment.Framework.Models.Data.Elements
         /// <summary>A game state query determining whether this element appears. When null, the element always appears. Checked periodically while the book is open.</summary>
         public string? Condition { get; set; }
 
+        /// <summary>Whether this element claims the cursor whatever else it carries. Overridden by types that must be clickable to work at all, such as Input.</summary>
+        public virtual bool IsAlwaysInteractive => false;
+
         /// <summary>Whether this element has at least one click action, from either <see cref="Action"/> or <see cref="Actions"/>.</summary>
         internal bool HasActions => HasAny(Action, Actions);
 
@@ -88,12 +91,12 @@ namespace Parchment.Framework.Models.Data.Elements
         /// <summary>Every hover action on this element, <see cref="HoverAction"/> first and then <see cref="HoverActions"/> in order, skipping empty entries.</summary>
         public IEnumerable<string> GetHoverActions() => Combine(HoverAction, HoverActions);
 
-        private static bool HasAny(string? single, List<string>? many) => string.IsNullOrWhiteSpace(single) is false || (many is not null && many.Any(action => string.IsNullOrWhiteSpace(action) is false));
+        protected static bool HasAny(string? single, List<string>? many) => string.IsNullOrWhiteSpace(single) is false || (many is not null && many.Any(action => string.IsNullOrWhiteSpace(action) is false));
 
         /// <summary>Yields the single field followed by the list, skipping empty entries.
         /// This is composed on each call rather than merged into the list at load, as the deserialized instance is shared and merging would accumulate duplicates across asset reloads.
         /// </summary>
-        private static IEnumerable<string> Combine(string? single, List<string>? many)
+        protected static IEnumerable<string> Combine(string? single, List<string>? many)
         {
             if (string.IsNullOrWhiteSpace(single) is false)
             {
