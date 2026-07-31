@@ -75,7 +75,9 @@ namespace Parchment.Framework.Managers
         }
 
         /// <summary>The variable's current value, or its default when nothing has set it yet. A declared variable always answers with something.</summary>
-        public string Get(string bookId, VariableData declaration)
+        /// <summary>The variable's current value for a player, or its default when nothing has set it yet. A declared variable always answers with something.</summary>
+        /// <remarks>A Global variable is shared, so the player is ignored for one. A Save variable belongs to the farmer it was set on.</remarks>
+        public string Get(Farmer who, string bookId, VariableData declaration)
         {
             string key = GetKey(bookId, declaration.Id);
 
@@ -84,15 +86,15 @@ namespace Parchment.Framework.Managers
                 return _globalValues.TryGetValue(key, out string? globalValue) ? globalValue : declaration.GetDefault();
             }
 
-            if (Context.IsWorldReady is false)
+            if (who is null || Context.IsWorldReady is false)
             {
                 return declaration.GetDefault();
             }
 
-            return Game1.player.modData.TryGetValue(MOD_DATA_PREFIX + key, out string? savedValue) ? savedValue : declaration.GetDefault();
+            return who.modData.TryGetValue(MOD_DATA_PREFIX + key, out string? savedValue) ? savedValue : declaration.GetDefault();
         }
 
-        public bool TryGet(string bookId, string variableId, out string value, out string error)
+        public bool TryGet(Farmer who, string bookId, string variableId, out string value, out string error)
         {
             value = string.Empty;
 
@@ -101,12 +103,12 @@ namespace Parchment.Framework.Managers
                 return false;
             }
 
-            value = Get(bookId, declaration);
+            value = Get(who, bookId, declaration);
 
             return true;
         }
 
-        public bool TrySet(string bookId, string variableId, string value, out string error)
+        public bool TrySet(Farmer who, string bookId, string variableId, string value, out string error)
         {
             if (TryGetDeclaration(bookId, variableId, out VariableData declaration, out error) is false)
             {
@@ -119,43 +121,106 @@ namespace Parchment.Framework.Managers
                 return false;
             }
 
-            return TryStore(bookId, declaration, value, out error);
+            return TryStore(who, bookId, declaration, value, out error);
         }
 
         /// <summary>Returns a variable to its declared default. A declared variable has no absent state, so this is a reset rather than a removal.</summary>
-        public bool TryClear(string bookId, string variableId, out string error)
+        public bool TryClear(Farmer who, string bookId, string variableId, out string error)
         {
-            if (TryGetDeclaration(bookId, variableId, out VariableData declaration, out error) is false)
+            return TryClearAll(who, bookId, new string[] { variableId }, out error);
+        }
+
+        /// <summary>Returns several variables to their declared defaults, all of them or none.
+        /// Every name is resolved and checked before anything is written, so one bad name can't leave the rest half applied.
+        /// </summary>
+        public bool TryClearAll(Farmer who, string bookId, IEnumerable<string> variableIds, out string error)
+        {
+            if (TryGetDeclarations(bookId, variableIds, out List<VariableData> declarations, out error) is false)
             {
                 return false;
             }
 
-            return TryStore(bookId, declaration, declaration.GetDefault(), out error);
+            foreach (VariableData declaration in declarations)
+            {
+                if (CanStore(who, declaration, out error) is false)
+                {
+                    return false;
+                }
+            }
+
+            foreach (VariableData declaration in declarations)
+            {
+                Store(who, bookId, declaration, declaration.GetDefault());
+            }
+
+            error = string.Empty;
+
+            return true;
         }
 
         /// <summary>Flips a boolean variable, which is what a checkbox needs rather than a pair of conditioned SetVariable buttons.</summary>
-        public bool TryToggle(string bookId, string variableId, out string error)
+        public bool TryToggle(Farmer who, string bookId, string variableId, out string error)
         {
-            if (TryGetDeclaration(bookId, variableId, out VariableData declaration, out error) is false)
+            return TryToggleAll(who, bookId, new string[] { variableId }, out error);
+        }
+
+        /// <summary>Flips several boolean variables, all of them or none. A non-boolean anywhere in the list stops the whole thing before anything is written.</summary>
+        public bool TryToggleAll(Farmer who, string bookId, IEnumerable<string> variableIds, out string error)
+        {
+            if (TryGetDeclarations(bookId, variableIds, out List<VariableData> declarations, out error) is false)
             {
                 return false;
             }
 
-            if (declaration.Type is not VariableType.Boolean)
+            foreach (VariableData declaration in declarations)
             {
-                error = $"\"{variableId}\" is a {declaration.Type} variable, and only Boolean variables can be toggled";
-                return false;
+                if (declaration.Type is not VariableType.Boolean)
+                {
+                    error = $"\"{declaration.Id}\" is a {declaration.Type} variable, and only Boolean variables can be toggled";
+                    return false;
+                }
+
+                if (CanStore(who, declaration, out error) is false)
+                {
+                    return false;
+                }
             }
 
-            string flipped = bool.TryParse(Get(bookId, declaration), out bool current) is true && current is true ? "false" : "true";
+            foreach (VariableData declaration in declarations)
+            {
+                string flipped = bool.TryParse(Get(who, bookId, declaration), out bool current) is true && current is true ? "false" : "true";
 
-            return TryStore(bookId, declaration, flipped, out error);
+                Store(who, bookId, declaration, flipped);
+            }
+
+            error = string.Empty;
+
+            return true;
+        }
+
+        // Resolves a whole list of names up front, so a caller can check everything before it writes anything
+        private bool TryGetDeclarations(string bookId, IEnumerable<string> variableIds, out List<VariableData> declarations, out string error)
+        {
+            declarations = new List<VariableData>();
+            error = string.Empty;
+
+            foreach (string variableId in variableIds)
+            {
+                if (TryGetDeclaration(bookId, variableId, out VariableData declaration, out error) is false)
+                {
+                    return false;
+                }
+
+                declarations.Add(declaration);
+            }
+
+            return true;
         }
 
         /// <summary>Whether a variable currently holds the given value, compared as the declared type rather than as text in every case.</summary>
-        public bool Matches(string bookId, VariableData declaration, string value)
+        public bool Matches(Farmer who, string bookId, VariableData declaration, string value)
         {
-            string current = Get(bookId, declaration);
+            string current = Get(who, bookId, declaration);
 
             if (declaration.Type is VariableType.Number)
             {
@@ -177,7 +242,33 @@ namespace Parchment.Framework.Managers
             _hasUnsavedGlobalValues = false;
         }
 
-        private bool TryStore(string bookId, VariableData declaration, string value, out string error)
+        private bool TryStore(Farmer who, string bookId, VariableData declaration, string value, out string error)
+        {
+            if (CanStore(who, declaration, out error) is false)
+            {
+                return false;
+            }
+
+            Store(who, bookId, declaration, value);
+
+            return true;
+        }
+
+        /// <summary>Whether this variable has somewhere to be written right now, which is the only way storing can fail once the name has resolved.</summary>
+        private static bool CanStore(Farmer who, VariableData declaration, out string error)
+        {
+            if (declaration.Scope is not VariableScope.Global && (who is null || Context.IsWorldReady is false))
+            {
+                error = $"\"{declaration.Id}\" is a Save variable, which has no player to be stored on until a save is loaded. Give it a Global scope if it should be settable from the title screen";
+                return false;
+            }
+
+            error = string.Empty;
+
+            return true;
+        }
+
+        private void Store(Farmer who, string bookId, VariableData declaration, string value)
         {
             string key = GetKey(bookId, declaration.Id);
 
@@ -185,21 +276,11 @@ namespace Parchment.Framework.Managers
             {
                 _globalValues[key] = value;
                 _hasUnsavedGlobalValues = true;
-                error = string.Empty;
 
-                return true;
+                return;
             }
 
-            if (Context.IsWorldReady is false)
-            {
-                error = $"\"{declaration.Id}\" is a Save variable, which has nowhere to be stored until a save is loaded. Give it a Global scope if it should be settable from the title screen";
-                return false;
-            }
-
-            Game1.player.modData[MOD_DATA_PREFIX + key] = value;
-            error = string.Empty;
-
-            return true;
+            who.modData[MOD_DATA_PREFIX + key] = value;
         }
 
         // Keyed by book so two books declaring the same name can't read each other's value

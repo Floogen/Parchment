@@ -148,7 +148,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 return match.Value;
             }
 
-            if (Parchment.variableManager.TryGet(bookId, variableId, out string value, out string error) is false)
+            if (Parchment.variableManager.TryGet(Game1.player, bookId, variableId, out string value, out string error) is false)
             {
                 Parchment.monitor.LogOnce($"'{source}' reads the variable '{variableId}', but {error}.", LogLevel.Warn);
                 return match.Value;

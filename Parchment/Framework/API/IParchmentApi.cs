@@ -37,14 +37,14 @@ namespace Parchment.Framework.API
         /// <summary>Gets whether a book with the given ID is loaded, whether it came from a content pack or the C# API.</summary>
         bool HasBook(string bookId);
 
-        /// <summary>Reads a variable a book declares, so a mod can mirror a reader's choice into its own config.</summary>
+        /// <summary>Reads a variable a book declares, so a mod can mirror a reader's choice into its own config. A Save-scoped variable is read from the local player.</summary>
         /// <param name="bookId">The BookData.Id value of the book declaring the variable.</param>
         /// <param name="variableId">The VariableData.Id value of the variable.</param>
         /// <param name="value">The variable's current value, or its default when nothing has set it yet.</param>
         /// <returns>False when the book isn't loaded or declares no variable by that name.</returns>
         bool TryGetVariable(string bookId, string variableId, out string value);
 
-        /// <summary>Sets a variable a book declares. The value has to suit the variable's declared type and allowed values.</summary>
+        /// <summary>Sets a variable a book declares. The value has to suit the variable's declared type and allowed values. A Save-scoped variable is set on the local player.</summary>
         /// <param name="bookId">The BookData.Id value of the book declaring the variable.</param>
         /// <param name="variableId">The VariableData.Id value of the variable.</param>
         /// <param name="value">The value to store.</param>

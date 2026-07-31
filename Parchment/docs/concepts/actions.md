@@ -64,7 +64,7 @@ So a button can give a reward, start a quest, play a sound or set a mail flag. V
 
 ## Parchment's actions
 
-These only work while a book is open, apart from `MarkSeen` and `ClearSeen`, which read and write saved history and so work anywhere. Elsewhere the rest fail with a message in the SMAPI log rather than doing something strange.
+These only work while a book is open, apart from `MarkSeen`, `ClearSeen` and the variable actions, which read and write saved state and so work anywhere. Elsewhere the rest fail with a message in the SMAPI log rather than doing something strange.
 
 | Action | Arguments | What it does |
 | --- | --- | --- |
@@ -86,9 +86,9 @@ These only work while a book is open, apart from `MarkSeen` and `ClearSeen`, whi
 | `PeacefulEnd.Parchment_ClearFlag` | `<flag>...` | Clear one or more session flags. |
 | `PeacefulEnd.Parchment_MarkSeen` | `<bookId> <chapterId> [pageId]` | Mark a chapter as read, and a page too when one is given. See [Reading history](conditions.md#reading-history). |
 | `PeacefulEnd.Parchment_ClearSeen` | `[bookId]` | Forget what the player has read, all of it or one book's worth. |
-| `PeacefulEnd.Parchment_SetVariable` | `<variableId> <value>` | Set a [variable](../reference/variables.md) the open book declares. Everything past the ID counts as the value. |
-| `PeacefulEnd.Parchment_ClearVariable` | `<variableId>...` | Return one or more variables to their declared `Default`. |
-| `PeacefulEnd.Parchment_ToggleVariable` | `<variableId>...` | Flip one or more `Boolean` variables. |
+| `PeacefulEnd.Parchment_SetVariable` | `<bookId> <variableId> <value>` | Set a [variable](../reference/variables.md) a book declares. Everything past the variable ID counts as the value. |
+| `PeacefulEnd.Parchment_ClearVariable` | `<bookId> <variableId>...` | Return one or more of a book's variables to their declared `Default`. |
+| `PeacefulEnd.Parchment_ToggleVariable` | `<bookId> <variableId>...` | Flip one or more `Boolean` variables. |
 
 ### Skipping the turn
 
@@ -213,9 +213,11 @@ Where a flag is a name that lasts the reading, a [variable](../reference/variabl
 {
   "Type": "Button",
   "Text": "Show spoilers: %Variable:showSpoilers%",
-  "Action": "PeacefulEnd.Parchment_ToggleVariable showSpoilers"
+  "Action": "PeacefulEnd.Parchment_ToggleVariable {{ModId}}_Almanac showSpoilers"
 }
 ```
+
+Every variable action names the book that declares it, so they work from `Data/TriggerActions` as readily as from a button inside the book. The `%Variable:id%` token is the exception, since it only appears inside a book's text and takes that book as read.
 
 Unlike flags, variables are per book and have to be declared. See [Variables](../reference/variables.md) for the declaration and what it buys you.
 

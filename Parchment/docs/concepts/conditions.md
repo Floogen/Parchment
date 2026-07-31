@@ -69,9 +69,15 @@ Flags are set and cleared by `PeacefulEnd.Parchment_SetFlag` and `PeacefulEnd.Pa
 
 | Query | Arguments | True when |
 | --- | --- | --- |
-| `PeacefulEnd.Parchment_HasVariable` | `<variableId> <value>...` | One of the open book's [variables](../reference/variables.md) holds any of the values. |
+| `PeacefulEnd.Parchment_HasVariable` | `<bookId> <variableId> <value>...` | One of a book's [variables](../reference/variables.md) holds any of the values. |
 
-Values are compared as the type the variable was declared with, so a `Number` variable holding `9` matches `9.0` where a `Text` one wouldn't. This one **does** need a book open, since a variable belongs to the book that declares it, and it returns false with a logged message when the book declares no variable by that name.
+Values are compared as the type the variable was declared with, so a `Number` variable holding `9` matches `9.0` where a `Text` one wouldn't. It returns false with a logged message when the book declares no variable by that name.
+
+Like the reading history queries, this one needs **no book open**. A variable outlives the reading, so an event, a dialogue line or another mod's condition can ask about one:
+
+```
+PeacefulEnd.Parchment_HasVariable {{ModId}}_Almanac showSpoilers true
+```
 
 ### Reader input
 

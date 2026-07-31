@@ -343,76 +343,42 @@ namespace Parchment.Framework.Managers
             return true;
         }
 
-        /// <summary>Sets a variable the open book declares. Everything past the ID counts as the value, so a phrase needs no quoting.</summary>
+        /// <summary>Sets a variable a book declares. Everything past the variable ID counts as the value, so a phrase needs no quoting.</summary>
         public bool SetVariable(string[] args, TriggerActionContext context, out string error)
         {
-            if (ArgUtility.TryGet(args, 1, out string variableId, out error, name: "string variableId") is false)
+            if (ArgUtility.TryGet(args, 1, out string bookId, out error, name: "string bookId") is false)
             {
                 return false;
             }
 
-            if (TryGetCurrentBookId(out string bookId, out error) is false)
+            if (ArgUtility.TryGet(args, 2, out string variableId, out error, name: "string variableId") is false)
             {
                 return false;
             }
 
-            return Parchment.variableManager.TrySet(bookId, variableId, string.Join(" ", args.Skip(2)), out error);
+            return Parchment.variableManager.TrySet(Game1.player, bookId, variableId, string.Join(" ", args.Skip(3)), out error);
         }
 
-        /// <summary>Returns one or more variables to their declared defaults. A declared variable has no absent state, so this resets rather than removes.</summary>
+        /// <summary>Returns one or more of a book's variables to their declared defaults. A declared variable has no absent state, so this resets rather than removes.</summary>
         public bool ClearVariable(string[] args, TriggerActionContext context, out string error)
         {
-            if (ArgUtility.TryGet(args, 1, out string _, out error, name: "string variableId") is false || TryGetCurrentBookId(out string bookId, out error) is false)
+            if (ArgUtility.TryGet(args, 1, out string bookId, out error, name: "string bookId") is false || ArgUtility.TryGet(args, 2, out string _, out error, name: "string variableId") is false)
             {
                 return false;
             }
 
-            for (int index = 1; index < args.Length; index++)
-            {
-                if (Parchment.variableManager.TryClear(bookId, args[index], out error) is false)
-                {
-                    return false;
-                }
-            }
-
-            error = null;
-
-            return true;
+            return Parchment.variableManager.TryClearAll(Game1.player, bookId, args.Skip(2), out error);
         }
 
         /// <summary>Flips one or more Boolean variables, which is what a checkbox needs rather than a pair of conditioned SetVariable buttons.</summary>
         public bool ToggleVariable(string[] args, TriggerActionContext context, out string error)
         {
-            if (ArgUtility.TryGet(args, 1, out string _, out error, name: "string variableId") is false || TryGetCurrentBookId(out string bookId, out error) is false)
+            if (ArgUtility.TryGet(args, 1, out string bookId, out error, name: "string bookId") is false || ArgUtility.TryGet(args, 2, out string _, out error, name: "string variableId") is false)
             {
                 return false;
             }
 
-            for (int index = 1; index < args.Length; index++)
-            {
-                if (Parchment.variableManager.TryToggle(bookId, args[index], out error) is false)
-                {
-                    return false;
-                }
-            }
-
-            error = null;
-
-            return true;
-        }
-
-        /// <summary>The book a variable action is speaking about. Variables belong to a book, so these fail with no book open rather than guessing.</summary>
-        private bool TryGetCurrentBookId(out string bookId, out string error)
-        {
-            if (Parchment.variableManager.TryGetCurrentBookId(out bookId) is false)
-            {
-                error = "no book is open, and a variable belongs to the book that declares it";
-                return false;
-            }
-
-            error = null;
-
-            return true;
+            return Parchment.variableManager.TryToggleAll(Game1.player, bookId, args.Skip(2), out error);
         }
 
         /// <summary>Reads the optional trailing flag every navigation action ends with, which lands the reader on the target spread without playing the turn.</summary>

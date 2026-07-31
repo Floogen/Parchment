@@ -375,22 +375,22 @@ namespace Parchment.Framework.Managers
             return false;
         }
 
-        /// <summary>Whether one of the open book's variables currently holds any of the given values, compared as the type it was declared with.
-        /// Needs a book open, as a variable belongs to the book that declares it.
+        /// <summary>Whether one of a book's variables currently holds any of the given values, compared as the type it was declared with.
+        /// Needs no book open, as a variable outlives the reading the way the reading history does.
         /// </summary>
         private bool HasVariable(string[] query, GameStateQueryContext context)
         {
-            if (ArgUtility.TryGet(query, 1, out string variableId, out string error, name: "string variableId") is false)
+            if (ArgUtility.TryGet(query, 1, out string bookId, out string error, name: "string bookId") is false)
             {
                 return false;
             }
 
-            if (ArgUtility.TryGet(query, 2, out string _, out error, name: "string value") is false)
+            if (ArgUtility.TryGet(query, 2, out string variableId, out error, name: "string variableId") is false)
             {
                 return false;
             }
 
-            if (Parchment.variableManager.TryGetCurrentBookId(out string bookId) is false)
+            if (ArgUtility.TryGet(query, 3, out string _, out error, name: "string value") is false)
             {
                 return false;
             }
@@ -401,9 +401,9 @@ namespace Parchment.Framework.Managers
                 return false;
             }
 
-            for (int index = 2; index < query.Length; index++)
+            for (int index = 3; index < query.Length; index++)
             {
-                if (Parchment.variableManager.Matches(bookId, declaration, query[index]) is true)
+                if (Parchment.variableManager.Matches(context.Player ?? Game1.player, bookId, declaration, query[index]) is true)
                 {
                     return true;
                 }

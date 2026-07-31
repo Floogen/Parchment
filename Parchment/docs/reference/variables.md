@@ -55,11 +55,15 @@ Only a `Boolean` can be toggled. `ToggleVariable` on anything else fails with a 
 
 | Action | Arguments | What it does |
 | --- | --- | --- |
-| `PeacefulEnd.Parchment_SetVariable` | `<variableId> <value>` | Set a variable. Everything past the ID counts as the value, so a phrase needs no quoting. |
-| `PeacefulEnd.Parchment_ClearVariable` | `<variableId>...` | Return one or more variables to their `Default`. |
-| `PeacefulEnd.Parchment_ToggleVariable` | `<variableId>...` | Flip one or more `Boolean` variables. |
+| `PeacefulEnd.Parchment_SetVariable` | `<bookId> <variableId> <value>` | Set a variable. Everything past the variable ID counts as the value, so a phrase needs no quoting. |
+| `PeacefulEnd.Parchment_ClearVariable` | `<bookId> <variableId>...` | Return one or more variables to their `Default`. |
+| `PeacefulEnd.Parchment_ToggleVariable` | `<bookId> <variableId>...` | Flip one or more `Boolean` variables. |
 
-Read one back with the [`%Variable:id%`](../concepts/actions.md#tokens) token in an element's text, or with the [`PeacefulEnd.Parchment_HasVariable`](../concepts/conditions.md#variables) query in a `Condition`.
+Every one names the book that declares the variable, which is what lets them run from `Data/TriggerActions` rather than only from a button inside the book.
+
+`ClearVariable` and `ToggleVariable` take a list, and they're **all or nothing**. Every name in the list is resolved and checked before any of them is written, so `PeacefulEnd.Parchment_ToggleVariable {{ModId}}_Almanac showSpoilers units` fails on `units` being `Text` and leaves `showSpoilers` alone rather than flipping it first.
+
+Read one back with the [`%Variable:id%`](../concepts/actions.md#tokens) token in an element's text, or with the [`PeacefulEnd.Parchment_HasVariable`](../concepts/conditions.md#variables) query in a `Condition`. The token takes the open book as read, since it only appears inside one. The query names the book, so it works anywhere a game state query does.
 
 A checkbox is the two put together, one element per state:
 
@@ -71,15 +75,15 @@ A checkbox is the two put together, one element per state:
       "Type": "Image",
       "TexturePath": "{{ModId}}/checkbox",
       "TextureSourceRectangle": "0, 0, 9, 9",
-      "Action": "PeacefulEnd.Parchment_ToggleVariable showSpoilers",
-      "Condition": "!PeacefulEnd.Parchment_HasVariable showSpoilers true"
+      "Action": "PeacefulEnd.Parchment_ToggleVariable {{ModId}}_Almanac showSpoilers",
+      "Condition": "!PeacefulEnd.Parchment_HasVariable {{ModId}}_Almanac showSpoilers true"
     },
     {
       "Type": "Image",
       "TexturePath": "{{ModId}}/checkbox",
       "TextureSourceRectangle": "9, 0, 9, 9",
-      "Action": "PeacefulEnd.Parchment_ToggleVariable showSpoilers",
-      "Condition": "PeacefulEnd.Parchment_HasVariable showSpoilers true"
+      "Action": "PeacefulEnd.Parchment_ToggleVariable {{ModId}}_Almanac showSpoilers",
+      "Condition": "PeacefulEnd.Parchment_HasVariable {{ModId}}_Almanac showSpoilers true"
     }
   ]
 }
@@ -91,14 +95,16 @@ A cycling setting is one `Button` per value, each conditioned on the value befor
 {
   "Type": "Button",
   "Text": "Units: %Variable:units%",
-  "Action": "PeacefulEnd.Parchment_SetVariable units imperial",
-  "Condition": "PeacefulEnd.Parchment_HasVariable units metric"
+  "Action": "PeacefulEnd.Parchment_SetVariable {{ModId}}_Almanac units imperial",
+  "Condition": "PeacefulEnd.Parchment_HasVariable {{ModId}}_Almanac units metric"
 }
 ```
 
 ## Variables belong to a book
 
-A variable is stored against the `Id` of the book that declares it, so two books declaring `showSpoilers` keep separate values and can't read each other's. There's no way for one book to reach another's variables, and no way for a Content Patcher patch outside the book to read one.
+A variable is stored against the `Id` of the book that declares it, so two books declaring `showSpoilers` keep separate values. That's why every action and query names the book: the variable `Id` on its own is only unique within its book, and prefixing happens in the store rather than in what you write.
+
+Naming the book also means nothing has to be open. A `DayStarted` trigger can set a variable, and an event or a dialogue line can ask about one, the same way the [reading history](../concepts/conditions.md#reading-history) queries work.
 
 That last point is the limit worth knowing before you plan around it: a variable governs **what the book shows**. It can't change a map edit, a shop's stock or an NPC's schedule, because Content Patcher never sees it. For settings that have to reach the rest of a content pack, use Content Patcher's own [`ConfigSchema`](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/config.md) instead.
 
@@ -121,3 +127,5 @@ if (api.TryGetVariable("{{ModId}}_Almanac", "showSpoilers", out string value) is
 **Clearing is a reset, not a removal.** `ClearVariable` puts the `Default` back. A declared variable always holds something, so there's no unset state to return to.
 
 **Global values are written when the book closes.** They're also written when the game saves and when you return to the title, so a crash mid-reading is the only way to lose one.
+
+**A `Save` variable belongs to a player.** In multiplayer each farmer holds their own, so a condition evaluated against another player reads theirs rather than yours. `Global` variables are shared by everyone on that installation.
