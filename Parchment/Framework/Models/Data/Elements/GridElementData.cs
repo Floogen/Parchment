@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Results;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.Utilities.Helpers;
@@ -52,6 +53,20 @@ namespace Parchment.Framework.Models.Data
         /// <summary>Increases the space between the cells and the grid's border.</summary>
         public int Padding { get; set; } = 0;
 
+        /// <summary>Fills the cells from an item query instead of from <see cref="Children"/>, narrowed by what the reader has typed. See the Grid reference for what this does to Children.</summary>
+        public ResultsData? Results { get; set; }
+
+        /// <summary>How many cells a Results block fills, from its own Count or from the grid's shape. Zero when the grid has no Results.</summary>
+        public int GetSlotCount()
+        {
+            if (Results is null)
+            {
+                return 0;
+            }
+
+            return Results.Count ?? (Rows is int rows ? rows * Columns : 0);
+        }
+
         public override (bool Result, string Error) IsValid()
         {
             if (Columns <= 0)
@@ -82,6 +97,20 @@ namespace Parchment.Framework.Models.Data
             if (Padding < 0)
             {
                 return (false, $"\"Padding\" cannot be negative.");
+            }
+
+            if (Results is not null)
+            {
+                var resultsIsValidData = Results.IsValid();
+                if (resultsIsValidData.Result is false)
+                {
+                    return (false, $"[Results] {resultsIsValidData.Error}");
+                }
+
+                if (GetSlotCount() <= 0)
+                {
+                    return (false, $"\"Results\" needs a \"Count\", or a \"Rows\" on the grid to work one out from.");
+                }
             }
 
             var childrenIsValidData = ElementValidationHelper.ValidateElements(Children);

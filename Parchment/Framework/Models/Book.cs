@@ -41,6 +41,9 @@ namespace Parchment.Framework.Models
             return false;
         }
 
+        /// <summary>Every Grid on the book's own layers whose cells come from a Results block.</summary>
+        public List<Element> ResultElements { get; }
+
         /// <summary>Every Input element on the book's own layers carrying a text changed action. A search box usually lives here rather than on a page, so this is the list that matters most.</summary>
         public List<Element> TextChangedActionElements { get; }
 
@@ -66,6 +69,24 @@ namespace Parchment.Framework.Models
             TextChangedActionElements = new List<Element>();
             Page.CollectElements(Underlay, Page.HasTextChangedActions, TextChangedActionElements);
             Page.CollectElements(Overlay, Page.HasTextChangedActions, TextChangedActionElements);
+
+            ResultElements = new List<Element>();
+            Page.CollectElements(Underlay, Page.HasResults, ResultElements);
+            Page.CollectElements(Overlay, Page.HasResults, ResultElements);
+        }
+
+        private static void InvalidateResults(IReadOnlyList<Element> resultElements)
+        {
+            foreach (Element element in resultElements)
+            {
+                element.Results?.Invalidate();
+            }
+        }
+
+        /// <summary>Forces the next draw to lay the book's own layers out again.</summary>
+        public void InvalidateLayout()
+        {
+            LastLayoutContext = null;
         }
 
         private List<Chapter> CreateChapters()
@@ -211,6 +232,14 @@ namespace Parchment.Framework.Models
 
         public void RefreshTextures(IReadOnlyCollection<IAssetName> invalidatedAssetNames)
         {
+            // An item query's answer can change with the assets behind it, so the candidates are resolved again rather than trusted
+            InvalidateResults(ResultElements);
+
+            foreach (Page resultPage in Pages)
+            {
+                InvalidateResults(resultPage.ResultElements);
+            }
+
             bool wasBookLayerRefreshed = ElementFactory.RefreshTextures(Underlay, invalidatedAssetNames);
             wasBookLayerRefreshed |= ElementFactory.RefreshTextures(Overlay, invalidatedAssetNames);
 

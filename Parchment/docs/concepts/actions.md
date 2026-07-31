@@ -208,6 +208,7 @@ Flags are shared across books, so a name set by one book is visible to another o
 | --- | --- |
 | `%Input%` | This element's own text. Only valid on an `Input`. |
 | `%Input:someId%` | The text in the input with that `InputId`, from any element. |
+| `%Item%` | The qualified item ID the element is showing. Only valid inside a [`Grid`](../reference/elements/grid.md#results) result cell. |
 
 ```json
 {

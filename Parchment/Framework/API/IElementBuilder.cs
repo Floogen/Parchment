@@ -107,6 +107,24 @@ namespace Parchment.Framework.API
         /// <summary>A Grid cell's height, in unscaled pixels multiplied by the element's scale.</summary>
         IElementBuilder CellHeight(int cellHeight);
 
+        /// <summary>Fills a Grid's cells from an item query rather than from its children, such as "ALL_ITEMS (O)". Pair it with AddResultTemplate, which is what each cell is built from.</summary>
+        IElementBuilder Results(string source);
+
+        /// <summary>The InputId whose text narrows a Grid's results. Without one the results are unfiltered.</summary>
+        IElementBuilder ResultFilter(string inputId);
+
+        /// <summary>A game state query each candidate must pass, evaluated with that item in context, such as "ITEM_CATEGORY Target -4".</summary>
+        IElementBuilder ResultCondition(string perItemCondition);
+
+        /// <summary>What a Grid's results are sorted by: "DisplayName", "ItemId" or "None".</summary>
+        IElementBuilder ResultOrder(string order);
+
+        /// <summary>How many cells a Grid's results fill. When left out, the grid's Columns and Rows decide.</summary>
+        IElementBuilder ResultCount(int count);
+
+        /// <summary>Adds the element each of a Grid's result cells is built from. The item is applied to any Image inside it that has no item or texture of its own.</summary>
+        IElementBuilder AddResultTemplate(string elementType);
+
         /// <summary>The space between a Grid's columns and rows, in unscaled pixels multiplied by the element's scale. Not applied outside the outermost cells, which is what Padding is for.</summary>
         IElementBuilder CellSpacing(int columnSpacing, int rowSpacing);
 

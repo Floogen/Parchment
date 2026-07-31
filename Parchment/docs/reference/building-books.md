@@ -133,6 +133,12 @@ Most methods are named after the field they set, so anything you've written in a
 | `Columns(columns)` / `Rows(rows)` | A [`Grid`](elements/grid.md)'s `Columns` and `Rows` |
 | `CellWidth(width)` / `CellHeight(height)` | A `Grid`'s `CellWidth` and `CellHeight` |
 | `CellSpacing(columnSpacing, rowSpacing)` | A `Grid`'s `ColumnSpacing` and `RowSpacing` |
+| `Results(source)` | Fills a `Grid`'s cells from an item query. See [Results](elements/grid.md#results). |
+| `ResultFilter(inputId)` | The [`Input`](elements/input.md) narrowing those results. |
+| `ResultCondition(perItemCondition)` | A game state query each candidate must pass. |
+| `ResultOrder(order)` | `"DisplayName"`, `"ItemId"` or `"None"`. |
+| `ResultCount(count)` | How many cells the results fill, when the grid has no `Rows`. |
+| `AddResultTemplate(elementType)` | The element each result cell is built from. Returns **the template's** builder. |
 | `Scope(scope)` | A PageNumber's `Scope`, either `"Book"` or `"Chapter"` |
 | `Format(format)` | A PageNumber's `Format`, such as `"Page {0}"` |
 | `Spacing(spacingAfter)` | `SpacingAfter` |

@@ -40,6 +40,9 @@ namespace Parchment.Framework.Models
 
         public ElementRenderContext? LastLayoutContext;
 
+        /// <summary>Every Grid on this page whose cells come from a Results block, gathered once so the per-tick assignment pass has nothing to walk in a book that uses none.</summary>
+        public List<Element> ResultElements { get; }
+
         /// <summary>Every Input element on this page carrying a text changed action, gathered once for the same reason as <see cref="FrameActionElements"/>: they are polled every tick.</summary>
         public List<Element> TextChangedActionElements { get; }
 
@@ -63,6 +66,23 @@ namespace Parchment.Framework.Models
             CollectElements(Elements, HasTextChangedActions, TextChangedActionElements);
             CollectElements(Background, HasTextChangedActions, TextChangedActionElements);
             CollectElements(Foreground, HasTextChangedActions, TextChangedActionElements);
+
+            ResultElements = new List<Element>();
+            CollectElements(Elements, HasResults, ResultElements);
+            CollectElements(Background, HasResults, ResultElements);
+            CollectElements(Foreground, HasResults, ResultElements);
+        }
+
+        /// <summary>Whether an element is a Grid filling its cells from a Results block.</summary>
+        public static bool HasResults(Element element)
+        {
+            return element.Results is not null;
+        }
+
+        /// <summary>Forces the next draw to lay this page out again, for a change the condition pass can't see, such as a result cell gaining or losing its item.</summary>
+        public void InvalidateLayout()
+        {
+            LastLayoutContext = null;
         }
 
         /// <summary>Whether an element is an Input with something to run when its text settles.</summary>

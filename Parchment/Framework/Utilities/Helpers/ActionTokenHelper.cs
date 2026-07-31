@@ -11,6 +11,7 @@ namespace Parchment.Framework.Utilities.Helpers
     public static class ActionTokenHelper
     {
         private static readonly Regex _inputTokenPattern = new Regex("%Input(?::(?<inputId>[^%]+))?%", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _itemTokenPattern = new Regex("%Item%", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>Replaces every %Input% and %Input:inputId% token with the text currently in that input, quoted so a typed phrase stays one argument.</summary>
         /// <param name="element">The element the action belongs to, used to resolve the bare %Input% token. Null for an action that belongs to no element, such as a page's OnView trigger.</param>
@@ -21,7 +22,21 @@ namespace Parchment.Framework.Utilities.Helpers
                 return action;
             }
 
-            return _inputTokenPattern.Replace(action, match => ResolveInputToken(match, action, element));
+            string resolvedAction = _inputTokenPattern.Replace(action, match => ResolveInputToken(match, action, element));
+
+            return _itemTokenPattern.Replace(resolvedAction, match => ResolveItemToken(match, action, element));
+        }
+
+        /// <summary>Replaces %Item% with the qualified ID of the item the element is showing, which is how one template's action reaches whichever result its cell landed on.</summary>
+        private static string ResolveItemToken(Match match, string action, Element? element)
+        {
+            if (element is null || string.IsNullOrWhiteSpace(element.AssignedItemId))
+            {
+                Parchment.monitor.LogOnce($"The action '{action}' uses %Item%, which only works inside a Grid's result cell.", LogLevel.Warn);
+                return match.Value;
+            }
+
+            return Quote(element.AssignedItemId);
         }
 
         private static string ResolveInputToken(Match match, string action, Element? element)

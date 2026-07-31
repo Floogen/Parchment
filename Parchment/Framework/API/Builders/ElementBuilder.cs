@@ -2,6 +2,8 @@ using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Results;
+using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Rendering;
 using System;
@@ -28,6 +30,14 @@ namespace Parchment.Framework.API.Builders
         private readonly List<string> _hoverActions = new List<string>();
         private readonly List<string> _submitActions = new List<string>();
         private readonly List<string> _textChangedActions = new List<string>();
+
+        // A grid's results, kept as parts rather than as a built block so the recipe survives an asset reload the way every other field does
+        private string? _resultSource;
+        private string? _resultInputId;
+        private string? _resultCondition;
+        private string? _resultOrder;
+        private int? _resultCount;
+        private ElementBuilder? _resultTemplate;
 
         public string ElementType { get { return _elementType; } }
 
@@ -114,6 +124,48 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder CellWidth(int cellWidth) { return Set("CellWidth", cellWidth); }
         public IElementBuilder CellHeight(int cellHeight) { return Set("CellHeight", cellHeight); }
         public IElementBuilder CellSpacing(int columnSpacing, int rowSpacing) { return Set("ColumnSpacing", columnSpacing).Set("RowSpacing", rowSpacing); }
+
+        public IElementBuilder Results(string source)
+        {
+            _resultSource = source;
+
+            return this;
+        }
+
+        public IElementBuilder ResultFilter(string inputId)
+        {
+            _resultInputId = inputId;
+
+            return this;
+        }
+
+        public IElementBuilder ResultCondition(string perItemCondition)
+        {
+            _resultCondition = perItemCondition;
+
+            return this;
+        }
+
+        public IElementBuilder ResultOrder(string order)
+        {
+            _resultOrder = order;
+
+            return this;
+        }
+
+        public IElementBuilder ResultCount(int count)
+        {
+            _resultCount = count;
+
+            return this;
+        }
+
+        public IElementBuilder AddResultTemplate(string elementType)
+        {
+            _resultTemplate = new ElementBuilder(elementType);
+
+            return _resultTemplate;
+        }
         public IElementBuilder Spacing(int spacingAfter) { return Set("SpacingAfter", spacingAfter); }
         public IElementBuilder Margin(int left, int right) { return Set("MarginLeft", left).Set("MarginRight", right); }
         public IElementBuilder Tooltip(string displayName, string description) { return Set("DisplayName", displayName).Set("Description", description); }
@@ -317,6 +369,40 @@ namespace Parchment.Framework.API.Builders
                 {
                     imageData.HoverFrames = CreateFrames(_hoverFrames);
                 }
+            }
+
+            if (_resultSource is not null || _resultTemplate is not null)
+            {
+                if (data is not GridElementData gridData)
+                {
+                    error = $"[{_elementType}] results can only be added to a Grid";
+                    return false;
+                }
+
+                if (_resultTemplate is null)
+                {
+                    error = $"[{_elementType}] results need a template, added through AddResultTemplate";
+                    return false;
+                }
+
+                if (_resultTemplate.TryBuild(out ElementData templateElement, out error) is false)
+                {
+                    return false;
+                }
+
+                var results = new ResultsData() { Source = _resultSource ?? "ALL_ITEMS (O)", InputId = _resultInputId, PerItemCondition = _resultCondition, Count = _resultCount, Template = templateElement };
+                if (_resultOrder is not null)
+                {
+                    if (Enum.TryParse(_resultOrder, ignoreCase: true, out ResultOrder order) is false)
+                    {
+                        error = $"[{_elementType}] '{_resultOrder}' is not a valid result order";
+                        return false;
+                    }
+
+                    results.OrderBy = order;
+                }
+
+                gridData.Results = results;
             }
 
             if (_children.Count > 0)

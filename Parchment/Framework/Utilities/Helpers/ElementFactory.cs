@@ -105,6 +105,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 DisplayName = displayName,
                 Description = description,
                 IsVisible = isVisible,
+                Results = data is GridElementData resultsGrid && resultsGrid.Results is not null ? new ResultSet(resultsGrid.Results) : null,
                 Font = font,
                 TextColor = ResolveTextColor(data) ?? Game1.textColor,
                 TintColor = ResolveTintColor(data) ?? Color.White,
@@ -140,12 +141,31 @@ namespace Parchment.Framework.Utilities.Helpers
 
         private static IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver)
         {
-            if (data is not IContainer container || container.Children is null)
+            if (data is not IContainer container || (container.Children is null && data is not GridElementData { Results: not null }))
             {
                 return Array.Empty<Element>();
             }
 
             var children = new List<Element>();
+
+            if (data is GridElementData gridData && gridData.Results?.Template is ElementData template)
+            {
+                int slotCount = gridData.GetSlotCount();
+
+                for (int index = 0; index < slotCount; index++)
+                {
+                    var slot = Create(template, registry, fontResolver);
+                    if (slot is not null)
+                    {
+                        // A cell starts empty and is shown once the filter hands it an item, so a grid never flashes a full set of blanks before its first assignment
+                        slot.IsVisible = false;
+                        children.Add(slot);
+                    }
+                }
+
+                return children;
+            }
+
             foreach (ElementData childData in container.Children)
             {
                 var child = Create(childData, registry, fontResolver);

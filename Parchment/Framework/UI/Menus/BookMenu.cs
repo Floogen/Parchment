@@ -1430,6 +1430,54 @@ namespace Parchment.Framework.UI.Menus
             return hasRunAny;
         }
 
+        /// <summary>Hands each result Grid's cells the items matching whatever the reader has typed. A grid whose filter hasn't moved does nothing, so this is a pair of string compares on a quiet tick.</summary>
+        private void RefreshResults()
+        {
+            if (CurrentState is not MenuState.Ready and not MenuState.Turning)
+            {
+                return;
+            }
+
+            if (RefreshResults(Book.ResultElements) is true)
+            {
+                Book.InvalidateLayout();
+            }
+
+            RefreshPageResults(GetLeftPageIndex());
+            RefreshPageResults(GetRightPageIndex());
+        }
+
+        private void RefreshPageResults(int pageIndex)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return;
+            }
+
+            // Cells gaining or losing an item isn't something the condition pass can see, so the relayout has to be asked for rather than waited on
+            if (RefreshResults(_pages[pageIndex].ResultElements) is true)
+            {
+                _pages[pageIndex].InvalidateLayout();
+            }
+        }
+
+        private static bool RefreshResults(IReadOnlyList<Element> resultElements)
+        {
+            bool hasChanged = false;
+
+            foreach (Element element in resultElements)
+            {
+                if (element.Results is null)
+                {
+                    continue;
+                }
+
+                hasChanged |= element.Results.TryRefresh(element.Children);
+            }
+
+            return hasChanged;
+        }
+
         private void UpdateConditionTimer()
         {
             _conditionRefreshTimer++;
@@ -1682,6 +1730,8 @@ namespace Parchment.Framework.UI.Menus
             DispatchFrameActions();
 
             DispatchTextChangedActions(elapsedMilliseconds);
+
+            RefreshResults();
 
             // Tracked in every state, since an action a keybind ran may have started an animation the reader is now holding the button through
             UpdateForceCloseHold(elapsedMilliseconds);

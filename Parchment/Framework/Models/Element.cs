@@ -27,11 +27,17 @@ namespace Parchment.Framework.Models
 
         public IElementRenderer Renderer { get; }
         public Rectangle Bounds { get; set; }
-        public Rectangle? SourceRectangle { get; init; }
+        public Rectangle? SourceRectangle { get; set; }
 
         public Color TextColor { get; init; } = Game1.textColor;
         public Color TintColor { get; init; } = Color.White;
         public IAssetName? TextureAssetName { get; init; }
+
+        /// <summary>The item this element is currently showing, when it is a Grid result cell or something inside one. Null everywhere else, and what the %Item% token in an action resolves to.</summary>
+        public string? AssignedItemId { get; set; }
+
+        /// <summary>The candidates and filter behind a Grid's cells. Only set on a Grid carrying a Results block.</summary>
+        public ResultSet? Results { get; set; }
 
         public IFont? Font { get; set; }
         public Texture2D? Texture { get; set; }
