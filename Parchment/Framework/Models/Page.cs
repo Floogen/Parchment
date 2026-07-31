@@ -296,6 +296,7 @@ namespace Parchment.Framework.Models
 
         /// <param name="interactiveOnly">When true, elements that do nothing on hover or click are stepped over instead of claiming the cursor. Used for <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/>,
         /// where a decorative element covering the page would otherwise block everything beneath it. Their children are still tested, so a plain panel can hold an element carrying a description.
+        /// <see cref="ElementData.IgnoreCursor"/> does the same for one element regardless of this, which is how a list that is always hit-tested gets a transparent element of its own.
         /// </param>
         public static Element? HitTest(IReadOnlyList<Element> elements, Rectangle containerBounds, Point screenPosition, bool interactiveOnly = false)
         {
@@ -334,7 +335,8 @@ namespace Parchment.Framework.Models
                     return hitLayer;
                 }
 
-                if (interactiveOnly && element.IsInteractive is false)
+                // Checked after the children and layers above, so a container the cursor passes through still lets the elements inside it be reached
+                if (element.Data.IgnoreCursor || (interactiveOnly && element.IsInteractive is false))
                 {
                     continue;
                 }

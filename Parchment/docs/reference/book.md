@@ -37,7 +37,7 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 | `ExitToCover` <span class="opt">optional</span> | `boolean` | `false` | Whether closing the book shuts it in place first, leaving its cover on screen, rather than leaving the menu. See [Cover view](#cover-view). |
 
 !!! note "Underlay and overlay elements always take the cursor"
-    Unlike a page's [`Background` and `Foreground`](page.md#background-and-foreground), a decorative element here is hit-tested whether or not it has a tooltip or an action, and the overlay is tested before the pages. Keep overlay art to the area it actually covers rather than stretching a transparent sheet over the whole book.
+    Unlike a page's [`Background` and `Foreground`](page.md#background-and-foreground), a decorative element here is hit-tested whether or not it has a tooltip or an action, and the overlay is tested before the pages. Keep overlay art to the area it actually covers rather than stretching a transparent sheet over the whole book, or set [`IgnoreCursor`](page.md#passing-the-cursor-through) on it so the cursor reaches the pages beneath.
 
 !!! note "Both layers ride in with the book"
     Neither layer waits for the book to open. They're drawn from the moment it starts sliding up, through the open and close animations and on the cover. An overlay laid out against the open spread will therefore appear over the closed cover on the way in, so give it a [book state](../concepts/conditions.md#book-states) condition such as `ANY "PeacefulEnd.Parchment_CurrentBookState Ready" "PeacefulEnd.Parchment_CurrentBookState Turning"` when it should only exist once the book is open.

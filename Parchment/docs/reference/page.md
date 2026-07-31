@@ -64,7 +64,30 @@ That rule exists because these two lists are usually art. A full-page border in 
 A plain container is transparent even when its children aren't, so a `Panel` with no tooltip of its own can hold an `Image` that has one and only the image reacts.
 
 !!! note "This applies to pages, not to the book"
-    [`Book.Underlay` and `Book.Overlay`](book.md) are hit-tested whatever they contain, so a decorative element there does claim the cursor. `Page.Elements` is likewise always hit-tested, since a stacked element takes up space that nothing else can occupy anyway.
+    [`Book.Underlay` and `Book.Overlay`](book.md) are hit-tested whatever they contain, so a decorative element there does claim the cursor. `Page.Elements` is likewise always hit-tested, since a stacked element takes up space that nothing else can occupy anyway. `IgnoreCursor` is how an element in one of those lists opts out.
+
+### Passing the cursor through
+
+`IgnoreCursor` makes one element transparent to the cursor whatever list it sits in. It's the explicit form of the rule above, for the three lists that don't apply it on their own: `Page.Elements`, `Book.Underlay` and `Book.Overlay`.
+
+```json title="A book overlay that doesn't cover the pages"
+{
+  "Overlay": [
+    {
+      "Type": "Image",
+      "TexturePath": "{{ModId}}/gilt-frame",
+      "IgnoreCursor": true
+    }
+  ]
+}
+```
+
+It doesn't carry down to what the element contains. A `Panel` with `IgnoreCursor` still lets its children, its own `Background` and its own `Foreground` be hovered and clicked, so a decorative frame can hold live buttons.
+
+!!! warning "It can't be combined with an action"
+    An element with `IgnoreCursor` alongside `Action`, `Actions`, `HoverAction` or `HoverActions` fails validation, since the cursor never reaches it to run them. The same goes for an [`Input`](elements/input.md), which has to be clickable to work at all.
+
+    `DisplayName`, `Description`, `HoverTextureSourceRectangle` and `HoverFrames` are allowed through with a warning in the log, so an [`Image`](elements/image.md) drawing an `ItemId` can drop the tooltip the item hands it without having to blank the fields by hand.
 
 ---
 

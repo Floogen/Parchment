@@ -86,6 +86,12 @@ namespace Parchment.Framework.API
         /// <summary>A game state query deciding whether the element appears.</summary>
         IElementBuilder Condition(string condition);
 
+        /// <summary>Lets the cursor pass straight through the element to whatever sits beneath it, leaving it unhoverable and unclickable.
+        /// It doesn't carry down, so a decorative container can let the cursor through while the elements inside it stay reachable.
+        /// Registration fails when the element also carries a click or hover action, or when its type has to be clickable to work at all, such as an Input.
+        /// </summary>
+        IElementBuilder IgnoreCursor(bool ignoreCursor = true);
+
         /// <summary>How the element sizes itself: "Fill", "ShrinkToFit" or "Fixed".</summary>
         IElementBuilder Sizing(string sizingMode);
 

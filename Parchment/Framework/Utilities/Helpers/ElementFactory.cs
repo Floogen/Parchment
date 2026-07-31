@@ -117,6 +117,8 @@ namespace Parchment.Framework.Utilities.Helpers
                 Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver)
             };
 
+            WarnOnUnreachableContent(data);
+
             // Prep the active frames, so a conditional animation is correct on the first draw rather than after the first condition refresh
             AnimationHelper.RefreshActiveFrames(element);
 
@@ -127,6 +129,33 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return element;
+        }
+
+        /// <summary>Reports a tooltip or hover art on an element the cursor passes through, which is always an authoring mistake.
+        /// Logged once per element type and ID, as a Grid builds one element per cell from the same template.
+        /// </summary>
+        private static void WarnOnUnreachableContent(ElementData data)
+        {
+            if (data.IgnoreCursor is false)
+            {
+                return;
+            }
+
+            var unreachableFields = new List<string>();
+
+            if (string.IsNullOrEmpty(data.DisplayName) is false) { unreachableFields.Add("DisplayName"); }
+            if (string.IsNullOrEmpty(data.Description) is false) { unreachableFields.Add("Description"); }
+            if (data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) { unreachableFields.Add("HoverTextureSourceRectangle"); }
+            if (data is ImageElementData hoverImageData && hoverImageData.HoverFrames is not null && hoverImageData.HoverFrames.Count is not 0) { unreachableFields.Add("HoverFrames"); }
+
+            if (unreachableFields.Count is 0)
+            {
+                return;
+            }
+
+            string elementLabel = string.IsNullOrWhiteSpace(data.Id) ? $"A {data.Type} element" : $"The {data.Type} element \"{data.Id}\"";
+
+            Parchment.monitor.LogOnce($"{elementLabel} sets \"IgnoreCursor\" alongside {string.Join(", ", unreachableFields)}, which the cursor never reaches.", LogLevel.Warn);
         }
 
         private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver)

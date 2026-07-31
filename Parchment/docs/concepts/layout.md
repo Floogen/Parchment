@@ -52,7 +52,7 @@ Placed elements don't participate in the layout at all. They can't push anything
 
 Because `Position` is a coordinate rather than a measurement, it's the one field that **doesn't** scale (see [Units and scale](units.md)). Changing a placed element's `Scale` grows it from its top-left rather than moving it.
 
-Placed elements are still fully featured. One in a page's `Background` or `Foreground` can carry a tooltip, an `Action` or a `HoverAction`, and it's tested against the cursor in drawing order from the top down: foreground, then the stacked elements, then background. An element in those two lists with nothing to offer is [skipped entirely](../reference/page.md#background-and-foreground) so decorative art can overlap a button without stealing its clicks.
+Placed elements are still fully featured. One in a page's `Background` or `Foreground` can carry a tooltip, an `Action` or a `HoverAction`, and it's tested against the cursor in drawing order from the top down: foreground, then the stacked elements, then background. An element in those two lists with nothing to offer is [skipped entirely](../reference/page.md#background-and-foreground) so decorative art can overlap a button without stealing its clicks. Elsewhere, [`IgnoreCursor`](../reference/page.md#passing-the-cursor-through) asks for the same treatment by hand.
 
 ### Alignment anchors, position offsets
 

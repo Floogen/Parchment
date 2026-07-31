@@ -74,6 +74,8 @@ Both layers are anchored to the panel's **content area**, the same rectangle the
 
 Placed elements are only reachable by the cursor when they have something to offer, such as a `Description`, `DisplayName` or an `Action`. Purely decorative art in either layer passes the cursor through to the children beneath it, which holds regardless of whether the panel itself is in a page's stacked `Elements` or in one of its layers.
 
+The panel itself is reachable in the stacked list whatever it holds, so a panel with no tooltip of its own still claims the cursor over its own padding. Set [`IgnoreCursor`](../page.md#passing-the-cursor-through) on it to hand that back to whatever is drawn beneath, without affecting the children.
+
 ## Sprite fields
 
 `TexturePath` is optional. A panel without one is an invisible container, which is a fine way to group and indent content.

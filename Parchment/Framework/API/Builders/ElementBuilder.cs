@@ -114,6 +114,7 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder Placeholder(string placeholder) { return Set("Placeholder", placeholder); }
         public IElementBuilder MaxLength(int maxLength) { return Set("MaxLength", maxLength); }
         public IElementBuilder Condition(string condition) { return Set("Condition", condition); }
+        public IElementBuilder IgnoreCursor(bool ignoreCursor = true) { return Set("IgnoreCursor", ignoreCursor); }
         public IElementBuilder Sizing(string sizingMode) { return Set("Sizing", sizingMode); }
         public IElementBuilder Scope(string scope) { return Set("Scope", scope); }
         public IElementBuilder Format(string format) { return Set("Format", format); }

@@ -76,6 +76,12 @@ namespace Parchment.Framework.Models.Data.Elements
         /// <summary>A game state query determining whether this element appears. When null, the element always appears. Checked periodically while the book is open.</summary>
         public string? Condition { get; set; }
 
+        /// <summary>Whether the cursor passes straight through this element to whatever sits beneath it, leaving it unhoverable and unclickable.
+        /// It doesn't carry down, so a decorative container can let the cursor through while its children and its own layers stay reachable.
+        /// This is what makes an element transparent in a list that is hit-tested whatever it holds, such as <see cref="PageData.Elements"/> or a book's Underlay and Overlay.
+        /// </summary>
+        public bool IgnoreCursor { get; set; } = false;
+
         /// <summary>Whether this element claims the cursor whatever else it carries. Overridden by types that must be clickable to work at all, such as Input.</summary>
         public virtual bool IsAlwaysInteractive => false;
 
@@ -142,6 +148,16 @@ namespace Parchment.Framework.Models.Data.Elements
             if (SpacingAfter < 0)
             {
                 return (false, $"\"SpacingAfter\" cannot be negative.");
+            }
+
+            if (IgnoreCursor && IsAlwaysInteractive)
+            {
+                return (false, $"\"IgnoreCursor\" cannot be used on a {Type} element, which has to be clickable to work at all.");
+            }
+
+            if (IgnoreCursor && (HasActions || HasHoverActions))
+            {
+                return (false, $"\"IgnoreCursor\" cannot be combined with \"Action\", \"Actions\", \"HoverAction\" or \"HoverActions\", as the cursor never reaches the element to run them.");
             }
 
             return (true, string.Empty);

@@ -240,7 +240,7 @@ Leaving `HoverFrames` out means the normal animation simply keeps playing under 
 
 **An empty hover animation falls back rather than freezing.** If every frame in `HoverFrames` is conditioned out, the element carries on with `Frames` instead of dropping to a still. The order of preference is `HoverFrames`, then `Frames`, then `TextureSourceRectangle`, so a hover animation can come and go with the game state without interrupting the idle loop.
 
-**`HoverFrames` alone makes an element hoverable.** In a page's `Background` or `Foreground`, an element with nothing else to offer is [transparent to the cursor](../page.md#background-and-foreground). A hover animation counts as something to offer, the same way a `HoverTextureSourceRectangle` does, so it will be reachable without needing a tooltip or an action.
+**`HoverFrames` alone makes an element hoverable.** In a page's `Background` or `Foreground`, an element with nothing else to offer is [transparent to the cursor](../page.md#background-and-foreground). A hover animation counts as something to offer, the same way a `HoverTextureSourceRectangle` does, so it will be reachable without needing a tooltip or an action. Setting [`IgnoreCursor`](../page.md#passing-the-cursor-through) takes that back, and logs a warning that the hover frames will never play.
 
 **Both animations restart on the swap.** The hover animation plays from its first frame when the cursor arrives, and the normal animation plays from its first frame when the cursor leaves. Each is a fresh cycle rather than one picked up wherever the other left it, so a one-shot reveal on hover works as written.
 
