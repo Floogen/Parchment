@@ -25,6 +25,15 @@
         IElementBuilder AddDivider();
         IElementBuilder AddPanel();
 
+        /// <summary>Adds a grid laying its children out across cells of a fixed size, left to right and then top to bottom.
+        /// The three arguments are the fields a grid cannot do without, so passing them here is what stops a grid failing registration for being incomplete.
+        /// </summary>
+        /// <param name="cellWidth">A cell's width, in unscaled pixels multiplied by the element's scale.</param>
+        /// <param name="cellHeight">A cell's height, in unscaled pixels multiplied by the element's scale.</param>
+        /// <param name="columns">How many cells sit side by side before the next row starts.</param>
+        /// <param name="rows">The most rows the grid draws, or null for as many as its children need. Cells past the last row are dropped.</param>
+        IElementBuilder AddGrid(int cellWidth, int cellHeight, int columns, int? rows = null);
+
         /// <summary>Adds the page's own number, filled in from its position in the book.</summary>
         IElementBuilder AddPageNumber();
 

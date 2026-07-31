@@ -75,6 +75,13 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder AddBanner(string text) { return Add("Banner").Text(text); }
         public IElementBuilder AddDivider() { return Add("Divider"); }
         public IElementBuilder AddPanel() { return Add("Panel"); }
+        public IElementBuilder AddGrid(int cellWidth, int cellHeight, int columns, int? rows = null)
+        {
+            IElementBuilder grid = Add("Grid").CellWidth(cellWidth).CellHeight(cellHeight).Columns(columns);
+
+            // Left unset rather than set to a default, so the grid stays as tall as its children need
+            return rows is int rowCount ? grid.Rows(rowCount) : grid;
+        }
         public IElementBuilder AddPageNumber() { return Add("PageNumber"); }
         public IElementBuilder AddImage(string texturePath) { return Add("Image").Texture(texturePath); }
         public IElementBuilder AddItemImage(string itemId) { return Add("Image").Item(itemId); }

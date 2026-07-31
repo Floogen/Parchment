@@ -64,6 +64,10 @@ Where an element appears doesn't change what it can do. A tooltip, an `Action` o
 
     The page's own number, filled in automatically.
 
+-   **[Grid](grid.md)** (`Grid`)
+
+    A container laying its children out across fixed-size cells.
+
 -   **[Input](input.md)** (`Input`)
 
     A text box the reader types into, for filtering a page against what they've typed.
@@ -91,7 +95,7 @@ Understood by [`Title`](title.md), [`Heading`](heading.md), [`Paragraph`](paragr
 
 ## Sprite fields
 
-Understood by [`Image`](image.md), [`Panel`](panel.md), [`Banner`](banner.md), [`Button`](button.md), [`Divider`](divider.md) and [`Input`](input.md).
+Understood by [`Image`](image.md), [`Panel`](panel.md), [`Grid`](grid.md), [`Banner`](banner.md), [`Button`](button.md), [`Divider`](divider.md) and [`Input`](input.md).
 
 --8<-- "sprite.md"
 

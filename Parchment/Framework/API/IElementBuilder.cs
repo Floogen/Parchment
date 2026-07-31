@@ -95,6 +95,21 @@ namespace Parchment.Framework.API
         IElementBuilder Height(int height);
         IElementBuilder Padding(int padding);
 
+        /// <summary>How many cells sit side by side in a Grid before the next row starts.</summary>
+        IElementBuilder Columns(int columns);
+
+        /// <summary>The most rows a Grid draws. Cells past the last row are dropped, the way a page drops content past its bottom.</summary>
+        IElementBuilder Rows(int rows);
+
+        /// <summary>A Grid cell's width, in unscaled pixels multiplied by the element's scale. The same for every cell, so one child can't resize the others.</summary>
+        IElementBuilder CellWidth(int cellWidth);
+
+        /// <summary>A Grid cell's height, in unscaled pixels multiplied by the element's scale.</summary>
+        IElementBuilder CellHeight(int cellHeight);
+
+        /// <summary>The space between a Grid's columns and rows, in unscaled pixels multiplied by the element's scale. Not applied outside the outermost cells, which is what Padding is for.</summary>
+        IElementBuilder CellSpacing(int columnSpacing, int rowSpacing);
+
         /// <summary>Extra space left below the element.</summary>
         IElementBuilder Spacing(int spacingAfter);
 

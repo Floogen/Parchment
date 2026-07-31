@@ -109,6 +109,11 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder Width(int width) { return Set("Width", width); }
         public IElementBuilder Height(int height) { return Set("Height", height); }
         public IElementBuilder Padding(int padding) { return Set("Padding", padding); }
+        public IElementBuilder Columns(int columns) { return Set("Columns", columns); }
+        public IElementBuilder Rows(int rows) { return Set("Rows", rows); }
+        public IElementBuilder CellWidth(int cellWidth) { return Set("CellWidth", cellWidth); }
+        public IElementBuilder CellHeight(int cellHeight) { return Set("CellHeight", cellHeight); }
+        public IElementBuilder CellSpacing(int columnSpacing, int rowSpacing) { return Set("ColumnSpacing", columnSpacing).Set("RowSpacing", rowSpacing); }
         public IElementBuilder Spacing(int spacingAfter) { return Set("SpacingAfter", spacingAfter); }
         public IElementBuilder Margin(int left, int right) { return Set("MarginLeft", left).Set("MarginRight", right); }
         public IElementBuilder Tooltip(string displayName, string description) { return Set("DisplayName", displayName).Set("Description", description); }

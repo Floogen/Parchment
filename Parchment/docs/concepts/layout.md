@@ -36,7 +36,13 @@ Both happen from the same field, which is almost always what you want. The excep
 
 An [`Image`](../reference/elements/image.md) with text on it separates them properly: `Alignment` places the picture, `TextAlignment` places the words on it.
 
-There's a `VerticalAlignment` too, but only for [placed elements](#placed-elements). A stacked element's vertical position is whatever the elements above it leave, so there's nothing for it to decide. Setting it on a stacked element logs an error to SMAPI and changes nothing, rather than failing quietly.
+There's a `VerticalAlignment` too, for [placed elements](#placed-elements) and for a [`Grid`](../reference/elements/grid.md)'s cells. It has no meaning in a stack, where an element's vertical position is whatever the elements above it leave, so setting it on a stacked element logs an error to SMAPI and changes nothing rather than failing quietly.
+
+## Grid cells
+
+A [`Grid`](../reference/elements/grid.md) is the third way elements are laid out, and the only one that puts them side by side. Its children fill cells of a declared size, left to right and then top to bottom, and a hidden child takes no cell so the ones after it close up.
+
+A cell is a box the child sits in rather than one it fills, so `Alignment` and `VerticalAlignment` anchor the child within its cell and `Position` nudges it from there. That's the same anchoring rule as placed elements, measured against one cell instead of the whole container.
 
 ## Placed elements
 

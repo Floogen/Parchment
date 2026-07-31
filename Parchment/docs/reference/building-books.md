@@ -82,6 +82,7 @@ You can only remove books your own mod registered. Books from content packs, and
 | `AddBanner(text)` | Shorthand for `Add("Banner").Text(text)`. |
 | `AddDivider()` | Shorthand for `Add("Divider")`. |
 | `AddPanel()` | Shorthand for `Add("Panel")`. |
+| `AddGrid(cellWidth, cellHeight, columns, rows)` | A [`Grid`](elements/grid.md), with the three fields it can't do without. `rows` is optional and caps its height. Four adjacent numbers, so name them: `AddGrid(20, 20, columns: 6)`. |
 | `AddPageNumber()` | The page's own [number](elements/page-number.md), filled in from its position. |
 | `AddImage(texturePath)` | Shorthand for `Add("Image").Texture(texturePath)`. |
 | `AddItemImage(itemId)` | An image drawn from an item's icon, using a qualified ID such as `"(O)24"`. |
@@ -129,6 +130,9 @@ Most methods are named after the field they set, so anything you've written in a
 | `Sizing(mode)` | `Sizing`, one of `"Fill"`, `"ShrinkToFit"`, `"Fixed"` |
 | `Width(width)` / `Height(height)` | `Width` and `Height`. `Width` is taken by a [`Panel`](elements/panel.md), [`Divider`](elements/divider.md), [`Banner`](elements/banner.md) or [`Input`](elements/input.md) with a `Fixed` `Sizing`, and by a [`Paragraph`](elements/paragraph.md) on its own. `Height` is a Panel's or an `Input`'s. |
 | `Padding(padding)` | `Padding` |
+| `Columns(columns)` / `Rows(rows)` | A [`Grid`](elements/grid.md)'s `Columns` and `Rows` |
+| `CellWidth(width)` / `CellHeight(height)` | A `Grid`'s `CellWidth` and `CellHeight` |
+| `CellSpacing(columnSpacing, rowSpacing)` | A `Grid`'s `ColumnSpacing` and `RowSpacing` |
 | `Scope(scope)` | A PageNumber's `Scope`, either `"Book"` or `"Chapter"` |
 | `Format(format)` | A PageNumber's `Format`, such as `"Page {0}"` |
 | `Spacing(spacingAfter)` | `SpacingAfter` |

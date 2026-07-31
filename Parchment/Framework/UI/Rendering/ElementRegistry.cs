@@ -61,6 +61,7 @@ namespace Parchment.Framework.UI.Rendering
             Register(ElementType.Divider, new DividerElementRenderer());
             Register(ElementType.PageNumber, new PageNumberElementRenderer());
             Register(ElementType.Input, new InputElementRenderer());
+            Register(ElementType.Grid, new GridElementRenderer());
         }
 
         public bool TryResolve(string key, out ElementRegistration registration)
