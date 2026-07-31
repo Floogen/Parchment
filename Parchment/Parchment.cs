@@ -87,6 +87,9 @@ namespace Parchment
             helper.Events.GameLoop.Saving += (sender, args) => variableManager.Save();
             helper.Events.GameLoop.ReturnedToTitle += (sender, args) => variableManager.Save();
 
+            // Global variables can be set with no book open, so attempt variable save once a second
+            helper.Events.GameLoop.OneSecondUpdateTicked += (sender, args) => variableManager.Save();
+
             // Register actions
             GameLocation.RegisterTileAction("PeacefulEnd.Parchment_OpenBook", MapActionHelper.HandleOpenBook);
 

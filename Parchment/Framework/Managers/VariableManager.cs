@@ -230,7 +230,9 @@ namespace Parchment.Framework.Managers
             return current.EqualsIgnoreCase(value);
         }
 
-        /// <summary>Writes the global values out, if any have moved since the last time. Save-scoped ones need no flush, as the game saves modData itself.</summary>
+        /// <summary>Writes the global values out, if any have moved since the last time. Save-scoped ones need no flush, as the game saves modData itself.
+        /// Called once a second as well as at the obvious moments, so a global set outside a book is never more than a second from disk. The dirty check makes the quiet case free.
+        /// </summary>
         public void Save()
         {
             if (_hasUnsavedGlobalValues is false)

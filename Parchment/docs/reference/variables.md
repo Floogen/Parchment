@@ -1,6 +1,6 @@
 # Variables
 
-A variable is a named value a book sets and reads back, and unlike a [session flag](../concepts/actions.md#session-flags) it **survives the book being closed**. That makes a book able to hold a setting, a bookmark or a choice the reader made three chapters ago.
+A variable is a named value a book sets and reads back, and unlike a [session flag](../concepts/actions.md#session-flags) it **survives the book being put down**. That makes a book able to hold a setting, a bookmark or a choice the reader made three chapters ago.
 
 Every variable has to be declared on the book before anything touches it. A declaration gives it a starting value, a type and a lifetime, and it means an action naming a variable the book never declared fails with a message rather than quietly storing a typo into a save.
 
@@ -126,6 +126,6 @@ if (api.TryGetVariable("{{ModId}}_Almanac", "showSpoilers", out string value) is
 
 **Clearing is a reset, not a removal.** `ClearVariable` puts the `Default` back. A declared variable always holds something, so there's no unset state to return to.
 
-**Global values are written when the book closes.** They're also written when the game saves and when you return to the title, so a crash mid-reading is the only way to lose one.
+**Global values are written within a second of changing.** Parchment checks once a second and writes only when something moved, on top of writing when the book closes, when the game saves and when you return to the title. A `Save` variable needs none of this, since it rides on the player and is committed with the next game save like any other progress.
 
 **A `Save` variable belongs to a player.** In multiplayer each farmer holds their own, so a condition evaluated against another player reads theirs rather than yours. `Global` variables are shared by everyone on that installation.
