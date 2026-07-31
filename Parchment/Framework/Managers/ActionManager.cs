@@ -61,43 +61,48 @@ namespace Parchment.Framework.Managers
 
         public bool GoToStart(string[] args, TriggerActionContext context, out string error)
         {
-            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            if (TryGetSkipAnimation(args, 1, out bool skipAnimation, out error) is false || TryGetBookMenu(out BookMenu bookMenu, out error) is false)
             {
                 return false;
             }
 
-            return bookMenu.TryJumpToPage(0, out error);
+            return bookMenu.TryJumpToPage(0, out error, skipAnimation);
         }
 
         public bool NextPage(string[] args, TriggerActionContext context, out string error)
         {
-            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            if (TryGetSkipAnimation(args, 1, out bool skipAnimation, out error) is false || TryGetBookMenu(out BookMenu bookMenu, out error) is false)
             {
                 return false;
             }
 
-            return bookMenu.TryTurnPage(forward: true, out error);
+            return bookMenu.TryTurnPage(forward: true, out error, skipAnimation);
         }
 
         public bool PreviousPage(string[] args, TriggerActionContext context, out string error)
         {
-            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            if (TryGetSkipAnimation(args, 1, out bool skipAnimation, out error) is false || TryGetBookMenu(out BookMenu bookMenu, out error) is false)
             {
                 return false;
             }
 
-            return bookMenu.TryTurnPage(forward: false, out error);
+            return bookMenu.TryTurnPage(forward: false, out error, skipAnimation);
         }
 
         /// <summary>Returns to wherever the reader came from, rather than to the spread before this one. Calling it again goes back a further step.</summary>
         public bool GoBack(string[] args, TriggerActionContext context, out string error)
         {
+            if (TryGetSkipAnimation(args, 1, out bool skipAnimation, out error) is false)
+            {
+                return false;
+            }
+
             if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
             {
                 return false;
             }
 
-            return bookMenu.TryGoBack(out error);
+            return bookMenu.TryGoBack(out error, skipAnimation);
         }
 
         public bool JumpToPage(string[] args, TriggerActionContext context, out string error)
@@ -107,12 +112,12 @@ namespace Parchment.Framework.Managers
                 return false;
             }
 
-            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            if (TryGetSkipAnimation(args, 2, out bool skipAnimation, out error) is false || TryGetBookMenu(out BookMenu bookMenu, out error) is false)
             {
                 return false;
             }
 
-            return bookMenu.TryJumpToPage(pageIndex, out error);
+            return bookMenu.TryJumpToPage(pageIndex, out error, skipAnimation);
         }
 
         public bool JumpToChapter(string[] args, TriggerActionContext context, out string error)
@@ -122,12 +127,12 @@ namespace Parchment.Framework.Managers
                 return false;
             }
 
-            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            if (TryGetSkipAnimation(args, 2, out bool skipAnimation, out error) is false || TryGetBookMenu(out BookMenu bookMenu, out error) is false)
             {
                 return false;
             }
 
-            return bookMenu.TryJumpToChapter(chapterId, out error);
+            return bookMenu.TryJumpToChapter(chapterId, out error, skipAnimation);
         }
 
         public bool JumpToChapterPage(string[] args, TriggerActionContext context, out string error)
@@ -142,12 +147,12 @@ namespace Parchment.Framework.Managers
                 return false;
             }
 
-            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            if (TryGetSkipAnimation(args, 3, out bool skipAnimation, out error) is false || TryGetBookMenu(out BookMenu bookMenu, out error) is false)
             {
                 return false;
             }
 
-            return bookMenu.TryJumpToChapterPage(chapterId, pageInChapter, out error);
+            return bookMenu.TryJumpToChapterPage(chapterId, pageInChapter, out error, skipAnimation);
         }
 
         public bool JumpToPageId(string[] args, TriggerActionContext context, out string error)
@@ -162,32 +167,32 @@ namespace Parchment.Framework.Managers
                 return false;
             }
 
-            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            if (TryGetSkipAnimation(args, 3, out bool skipAnimation, out error) is false || TryGetBookMenu(out BookMenu bookMenu, out error) is false)
             {
                 return false;
             }
 
-            return bookMenu.TryJumpToPageId(chapterId, pageId, out error);
+            return bookMenu.TryJumpToPageId(chapterId, pageId, out error, skipAnimation);
         }
 
         public bool FirstPage(string[] args, TriggerActionContext context, out string error)
         {
-            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            if (TryGetSkipAnimation(args, 1, out bool skipAnimation, out error) is false || TryGetBookMenu(out BookMenu bookMenu, out error) is false)
             {
                 return false;
             }
 
-            return bookMenu.TryJumpToFirstPage(out error);
+            return bookMenu.TryJumpToFirstPage(out error, skipAnimation);
         }
 
         public bool LastPage(string[] args, TriggerActionContext context, out string error)
         {
-            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            if (TryGetSkipAnimation(args, 1, out bool skipAnimation, out error) is false || TryGetBookMenu(out BookMenu bookMenu, out error) is false)
             {
                 return false;
             }
 
-            return bookMenu.TryJumpToLastPage(out error);
+            return bookMenu.TryJumpToLastPage(out error, skipAnimation);
         }
 
         public bool CloseBook(string[] args, TriggerActionContext context, out string error)
@@ -275,6 +280,12 @@ namespace Parchment.Framework.Managers
             error = null;
 
             return true;
+        }
+
+        /// <summary>Reads the optional trailing flag every navigation action ends with, which lands the reader on the target spread without playing the turn.</summary>
+        private bool TryGetSkipAnimation(string[] args, int index, out bool skipAnimation, out string error)
+        {
+            return ArgUtility.TryGetOptionalBool(args, index, out skipAnimation, out error, defaultValue: false, name: "bool skipAnimation");
         }
 
         private bool TryGetBookMenu(out BookMenu bookMenu, out string error)

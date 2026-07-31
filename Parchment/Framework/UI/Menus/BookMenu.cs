@@ -205,7 +205,7 @@ namespace Parchment.Framework.UI.Menus
         }
 
         // Public methods for action usage
-        public bool TryTurnPage(bool forward, out string error)
+        public bool TryTurnPage(bool forward, out string error, bool skipAnimation = false)
         {
             if (CurrentState is not MenuState.Ready)
             {
@@ -221,7 +221,7 @@ namespace Parchment.Framework.UI.Menus
                 return false;
             }
 
-            BeginPageTurn(targetSpread);
+            BeginPageTurn(targetSpread, skipAnimation);
             error = null;
 
             return true;
@@ -230,7 +230,7 @@ namespace Parchment.Framework.UI.Menus
         /// <summary>Returns to the spread the reader came from, dropping it from the history so a second call goes back a step further.
         /// Going back doesn't record a step of its own, so a book can't trap the reader bouncing between two spreads.
         /// </summary>
-        public bool TryGoBack(out string error)
+        public bool TryGoBack(out string error, bool skipAnimation = false)
         {
             if (CurrentState is not MenuState.Ready)
             {
@@ -249,7 +249,7 @@ namespace Parchment.Framework.UI.Menus
                     continue;
                 }
 
-                BeginPageTurn(previous.ChapterIndex, previous.Spread, recordHistory: false);
+                BeginPageTurn(previous.ChapterIndex, previous.Spread, recordHistory: false, skipAnimation: skipAnimation);
                 error = null;
 
                 return true;
@@ -259,7 +259,7 @@ namespace Parchment.Framework.UI.Menus
             return false;
         }
 
-        public bool TryJumpToChapter(string chapterId, out string error)
+        public bool TryJumpToChapter(string chapterId, out string error, bool skipAnimation = false)
         {
             if (CurrentState is not MenuState.Ready)
             {
@@ -275,7 +275,7 @@ namespace Parchment.Framework.UI.Menus
 
             if (chapterIndex != _currentChapterIndex || _currentSpread != 0)
             {
-                BeginPageTurn(chapterIndex, 0);
+                BeginPageTurn(chapterIndex, 0, skipAnimation: skipAnimation);
             }
 
             error = null;
@@ -283,7 +283,7 @@ namespace Parchment.Framework.UI.Menus
             return true;
         }
 
-        public bool TryJumpToPage(int pageIndex, out string error)
+        public bool TryJumpToPage(int pageIndex, out string error, bool skipAnimation = false)
         {
             if (CurrentState is not MenuState.Ready)
             {
@@ -302,7 +302,7 @@ namespace Parchment.Framework.UI.Menus
 
             if (chapterIndex != _currentChapterIndex || targetSpread != _currentSpread)
             {
-                BeginPageTurn(chapterIndex, targetSpread);
+                BeginPageTurn(chapterIndex, targetSpread, skipAnimation: skipAnimation);
             }
 
             error = null;
@@ -310,7 +310,7 @@ namespace Parchment.Framework.UI.Menus
             return true;
         }
 
-        public bool TryJumpToChapterPage(string chapterId, int pageInChapter, out string error)
+        public bool TryJumpToChapterPage(string chapterId, int pageInChapter, out string error, bool skipAnimation = false)
         {
             if (CurrentState is not MenuState.Ready)
             {
@@ -337,7 +337,7 @@ namespace Parchment.Framework.UI.Menus
 
             if (chapterIndex != _currentChapterIndex || targetSpread != _currentSpread)
             {
-                BeginPageTurn(chapterIndex, targetSpread);
+                BeginPageTurn(chapterIndex, targetSpread, skipAnimation: skipAnimation);
             }
 
             error = null;
@@ -345,12 +345,12 @@ namespace Parchment.Framework.UI.Menus
             return true;
         }
 
-        public bool TryJumpToPageId(string pageId, out string error)
+        public bool TryJumpToPageId(string pageId, out string error, bool skipAnimation = false)
         {
-            return TryJumpToPageId(null, pageId, out error);
+            return TryJumpToPageId(null, pageId, out error, skipAnimation);
         }
 
-        public bool TryJumpToPageId(string chapterId, string pageId, out string error)
+        public bool TryJumpToPageId(string chapterId, string pageId, out string error, bool skipAnimation = false)
         {
             if (CurrentState is not MenuState.Ready)
             {
@@ -381,17 +381,17 @@ namespace Parchment.Framework.UI.Menus
                 return false;
             }
 
-            return TryJumpToPage(pageIndex, out error);
+            return TryJumpToPage(pageIndex, out error, skipAnimation);
         }
 
-        public bool TryJumpToFirstPage(out string error)
+        public bool TryJumpToFirstPage(out string error, bool skipAnimation = false)
         {
-            return TryJumpToPage(GetChapter(_currentChapterIndex).FirstPageIndex, out error);
+            return TryJumpToPage(GetChapter(_currentChapterIndex).FirstPageIndex, out error, skipAnimation);
         }
 
-        public bool TryJumpToLastPage(out string error)
+        public bool TryJumpToLastPage(out string error, bool skipAnimation = false)
         {
-            return TryJumpToPage(GetChapter(_currentChapterIndex).LastPageIndex, out error);
+            return TryJumpToPage(GetChapter(_currentChapterIndex).LastPageIndex, out error, skipAnimation);
         }
 
         /// <summary>Positions the book on a page by its index within the whole book, before the menu is shown.</summary>
@@ -733,7 +733,8 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
-        private void BeginPageTurn(int targetChapterIndex, int targetSpread, bool recordHistory = true)
+        /// <param name="skipAnimation">Whether to land on the target spread immediately rather than playing the turn. Nothing is drawn turning and nothing is heard, since neither belongs to a swap the reader didn't watch happen.</param>
+        private void BeginPageTurn(int targetChapterIndex, int targetSpread, bool recordHistory = true, bool skipAnimation = false)
         {
             if (recordHistory)
             {
@@ -744,14 +745,22 @@ namespace Parchment.Framework.UI.Menus
             _pendingChapterIndex = targetChapterIndex;
             _pendingSpread = targetSpread;
 
-            SetMenuState(MenuState.Turning);
+            if (skipAnimation is false)
+            {
+                SetMenuState(MenuState.Turning);
 
-            PlaySound(_animation.TurnSound);
+                PlaySound(_animation.TurnSound);
+                return;
+            }
+
+            // The same landing the turn animation reaches when it finishes, and the same one a click skips to
+            CommitPageTurn();
+            SetMenuState(MenuState.Ready);
         }
 
-        private void BeginPageTurn(int targetSpread)
+        private void BeginPageTurn(int targetSpread, bool skipAnimation = false)
         {
-            BeginPageTurn(_currentChapterIndex, targetSpread);
+            BeginPageTurn(_currentChapterIndex, targetSpread, skipAnimation: skipAnimation);
         }
 
         private void BeginPageTurn(bool forward)
@@ -931,7 +940,12 @@ namespace Parchment.Framework.UI.Menus
             _animationFrame = 0;
 
             ClearHoverState();
-            ClearInputFocus();
+
+            // An input on the book's own layers is on screen whatever page is being read, so it keeps the keyboard through a turn rather than being dropped halfway. One on a page goes with the page, and a book that is shutting or closing drops focus whatever holds it
+            if (menuState is not MenuState.Ready and not MenuState.Turning || _focusedElement is null || Book.OwnsElement(_focusedElement) is false)
+            {
+                ClearInputFocus();
+            }
 
             // The book state is itself testable through CurrentBookState, so a transition can change what's visible. Refreshing here rather than waiting for the next tick keeps the swap in step with the animation it belongs to
             RefreshVisiblePages();

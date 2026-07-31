@@ -114,7 +114,7 @@ The text is watched rather than hooked to the keyboard, so **anything** that cha
 
 **Only one box has the keyboard.** Clicking a box focuses it, clicking anywhere else drops focus. While a box is focused every other key is taken over, so the chat hotkey, the book's own [keybinds](../../concepts/actions.md#running-actions-without-a-click) and other mods' hotkeys all stop firing until focus is dropped. Escape is the exception, leaving the box on the first press and closing the book on the second.
 
-**Focus doesn't survive a page turn.** Turning a page, shutting to the cover or closing the book all drop it, since the box the reader was typing into may no longer be on screen.
+**Focus follows the box, not the page.** A box on a page loses focus when that page is turned away from, since it's no longer on screen. One on the book's own [`Underlay` or `Overlay`](../book.md#fields) keeps it through a turn, which is what lets a search box stay live while the reader jumps between results. Shutting to the cover or closing the book drops focus either way.
 
 **The text is per reading session.** Closing the book empties every input. Nothing is saved, so a search box starts blank each time the book is opened.
 

@@ -68,22 +68,46 @@ These only work while a book is open. Elsewhere they fail with a message in the 
 
 | Action | Arguments | What it does |
 | --- | --- | --- |
-| `PeacefulEnd.Parchment_NextPage` | — | Turn forward one spread. |
-| `PeacefulEnd.Parchment_PreviousPage` | — | Turn back one spread. |
-| `PeacefulEnd.Parchment_GoBack` | — | Return to wherever the reader came from, crossing chapters if that's where they were. Calling it again goes back a further step. See [Going back](#going-back). |
-| `PeacefulEnd.Parchment_FirstPage` | — | Jump to the **current chapter's** first page. |
-| `PeacefulEnd.Parchment_LastPage` | — | Jump to the **current chapter's** last page. |
-| `PeacefulEnd.Parchment_JumpToPage` | `<pageIndex>` | Jump to a page by index, crossing chapters if needed. Indexes start at 0. |
-| `PeacefulEnd.Parchment_JumpToChapter` | `<chapterId>` | Jump to a chapter's first page. |
-| `PeacefulEnd.Parchment_JumpToChapterPage` | `<chapterId> <pageInChapter>` | Jump to a page counted from the start of a chapter. Indexes start at 0, so `0` is the same as `JumpToChapter`. |
-| `PeacefulEnd.Parchment_JumpToPageId` | `<pageId> [chapterId]` | Jump to a page by its `Id`, crossing chapters if needed. Pass a `chapterId` to only search that chapter. |
-| `PeacefulEnd.Parchment_GoToStart` | — | Jump to the book's very first page, whatever chapter you're in. |
+| `PeacefulEnd.Parchment_NextPage` | `[skipAnimation]` | Turn forward one spread. |
+| `PeacefulEnd.Parchment_PreviousPage` | `[skipAnimation]` | Turn back one spread. |
+| `PeacefulEnd.Parchment_GoBack` | `[skipAnimation]` | Return to wherever the reader came from, crossing chapters if that's where they were. Calling it again goes back a further step. See [Going back](#going-back). |
+| `PeacefulEnd.Parchment_FirstPage` | `[skipAnimation]` | Jump to the **current chapter's** first page. |
+| `PeacefulEnd.Parchment_LastPage` | `[skipAnimation]` | Jump to the **current chapter's** last page. |
+| `PeacefulEnd.Parchment_JumpToPage` | `<pageIndex> [skipAnimation]` | Jump to a page by index, crossing chapters if needed. Indexes start at 0. |
+| `PeacefulEnd.Parchment_JumpToChapter` | `<chapterId> [skipAnimation]` | Jump to a chapter's first page. |
+| `PeacefulEnd.Parchment_JumpToChapterPage` | `<chapterId> <pageInChapter> [skipAnimation]` | Jump to a page counted from the start of a chapter. Indexes start at 0, so `0` is the same as `JumpToChapter`. |
+| `PeacefulEnd.Parchment_JumpToPageId` | `<pageId> [chapterId] [skipAnimation]` | Jump to a page by its `Id`, crossing chapters if needed. Pass a `chapterId` to only search that chapter. |
+| `PeacefulEnd.Parchment_GoToStart` | `[skipAnimation]` | Jump to the book's very first page, whatever chapter you're in. |
 | `PeacefulEnd.Parchment_ViewCover` | — | Shut the book to its cover without leaving the menu. Works on any book, whatever its `ExitToCover` is set to. Fails when the book is already shut. See [Cover view](../reference/book.md#cover-view). |
 | `PeacefulEnd.Parchment_CloseBook` | — | Close the book. |
 | `PeacefulEnd.Parchment_SetInput` | `<inputId> <text>` | Replace an [`Input`](../reference/elements/input.md) element's text. Everything past the ID counts as the text, so a phrase needs no quoting. |
 | `PeacefulEnd.Parchment_ClearInput` | `<inputId>` | Empty an `Input`. The same as `SetInput` with no text, spelled so a clear button reads as one. |
 | `PeacefulEnd.Parchment_SetFlag` | `<flag>...` | Set one or more [session flags](#session-flags). |
 | `PeacefulEnd.Parchment_ClearFlag` | `<flag>...` | Clear one or more session flags. |
+
+### Skipping the turn
+
+Every action that moves the reader takes an optional trailing `skipAnimation`. Pass `true` and the book lands on the target spread on the spot, with no page turning between:
+
+```json
+"Action": "PeacefulEnd.Parchment_JumpToPageId results true"
+```
+
+Use it where the turn would read as a delay rather than as a page being turned: swapping a browse view for a search result, returning to where the reader was after they clear a filter, or any jump that happens without the reader clicking anything.
+
+Since it's always last, an action with optional arguments before it needs those filled in first. `JumpToPageId` searches the whole book when its `chapterId` is omitted, so reaching `skipAnimation` on it means naming a chapter or passing an explicit `null`:
+
+```json
+"Action": "PeacefulEnd.Parchment_JumpToPageId mushrooms foraging true"
+```
+
+Nothing is heard either. The turn sound belongs to a page being turned, and a swap the reader didn't watch happen has nothing to announce.
+
+!!! note "A search box keeps the keyboard"
+    An [`Input`](../reference/elements/input.md) on the book's own `Underlay` or `Overlay` holds keyboard focus through a page turn, skipped or not, since it's on screen whatever page is being read. A reader who triggers a jump by typing carries on typing. One on a page loses focus with the page, and shutting or closing the book drops it whatever holds it.
+
+!!! note "`ViewCover` and `CloseBook` aren't included"
+    Neither is a page turn. They play the book's shut and close animations, which are the book's own rather than the page's, and skipping those would need a different field on [`Animation`](../reference/book.md#animation).
 
 ### Scope
 

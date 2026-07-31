@@ -24,6 +24,23 @@ namespace Parchment.Framework.Models
 
         public ElementRenderContext? LastLayoutContext;
 
+        // Everything on the book's own layers, for asking whether an element belongs to the book rather than to a page
+        private readonly List<Element> _layerElements;
+
+        /// <summary>Whether this element sits on the book's own layers rather than on a page, which is what decides if it survives a page turn.</summary>
+        public bool OwnsElement(Element element)
+        {
+            foreach (Element layerElement in _layerElements)
+            {
+                if (ReferenceEquals(layerElement, element) is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>Every Input element on the book's own layers carrying a text changed action. A search box usually lives here rather than on a page, so this is the list that matters most.</summary>
         public List<Element> TextChangedActionElements { get; }
 
@@ -41,6 +58,10 @@ namespace Parchment.Framework.Models
             FrameActionElements = new List<Element>();
             AnimationHelper.CollectFrameActionElements(Underlay, FrameActionElements);
             AnimationHelper.CollectFrameActionElements(Overlay, FrameActionElements);
+
+            _layerElements = new List<Element>();
+            Page.CollectElements(Underlay, _ => true, _layerElements);
+            Page.CollectElements(Overlay, _ => true, _layerElements);
 
             TextChangedActionElements = new List<Element>();
             Page.CollectElements(Underlay, Page.HasTextChangedActions, TextChangedActionElements);
