@@ -47,6 +47,16 @@ Most describe the open book, so they only work while a book is open (otherwise t
 | `PeacefulEnd.Parchment_CurrentBookId` | `<bookId>` | The open book has this `Id`. |
 | `PeacefulEnd.Parchment_CurrentBookState` | `<state>` | The book is in this state. See [Book states](#book-states). |
 
+### Page tags
+
+These read a page's [`Tags`](../reference/page.md#tags), the keywords a page carries so other pages can find it. Matching ignores case.
+
+| Query | Arguments | True when |
+| --- | --- | --- |
+| `PeacefulEnd.Parchment_CurrentPageHasTag` | `<tag>...` | Either page on screen carries any of the tags. |
+| `PeacefulEnd.Parchment_PageHasTag` | `<pageId> <tag>...` | The named page carries any of the tags, wherever it sits in the book. |
+| `PeacefulEnd.Parchment_PageTagMatchesInput` | `<pageId> <inputId>` | What's typed into an [`Input`](../reference/elements/input.md) appears in any of the named page's tags. An empty input matches every tagged page, and a page with no tags never matches. |
+
 ### Reader input
 
 These read what the reader has typed into an [`Input`](../reference/elements/input.md) element. Unlike the rest, they don't need a book open, since the text lasts for the reading session.

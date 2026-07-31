@@ -17,6 +17,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<ElementBuilder> _elements = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _background = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _foreground = new List<ElementBuilder>();
+        private readonly List<string> _tags = new List<string>();
         private readonly List<(string Action, string? Condition)> _onView = new List<(string Action, string? Condition)>();
         private readonly List<(string Keybind, string Action, string? Condition)> _onKeyPress = new List<(string Keybind, string Action, string? Condition)>();
         private readonly BookBuilder? _owner;
@@ -33,6 +34,13 @@ namespace Parchment.Framework.API.Builders
         public IPageBuilder Set(string field, object? value)
         {
             _fields.Add((field, value));
+
+            return this;
+        }
+
+        public IPageBuilder Tag(string tag)
+        {
+            _tags.Add(tag);
 
             return this;
         }
@@ -203,6 +211,11 @@ namespace Parchment.Framework.API.Builders
                 }
 
                 data.Foreground = foreground;
+            }
+
+            if (_tags.Count > 0)
+            {
+                data.Tags = new List<string>(_tags);
             }
 
             if (_onView.Count > 0)

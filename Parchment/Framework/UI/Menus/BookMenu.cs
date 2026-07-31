@@ -162,6 +162,25 @@ namespace Parchment.Framework.UI.Menus
             return pageIndex == GetLeftPageIndex() || pageIndex == GetRightPageIndex();
         }
 
+        /// <summary>The data behind a page, found by its ID across the whole book. Null when no page carries that ID.</summary>
+        public PageData? FindPageData(string pageId)
+        {
+            int pageIndex = FindPageIndex(pageId, chapterFilter: -1);
+
+            return pageIndex < 0 ? null : _pages[pageIndex].Data;
+        }
+
+        /// <summary>Whether either page on screen carries a tag.</summary>
+        public bool IsOnPageTagged(string tag)
+        {
+            return HasTag(GetLeftPageIndex(), tag) || HasTag(GetRightPageIndex(), tag);
+        }
+
+        private bool HasTag(int pageIndex, string tag)
+        {
+            return pageIndex < _pages.Count && _pages[pageIndex] is not null && _pages[pageIndex].Data.HasTag(tag);
+        }
+
         public bool IsOnPage(string pageId)
         {
             return string.Equals(GetPageId(GetLeftPageIndex()), pageId, StringComparison.OrdinalIgnoreCase) || string.Equals(GetPageId(GetRightPageIndex()), pageId, StringComparison.OrdinalIgnoreCase);

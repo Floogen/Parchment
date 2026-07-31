@@ -20,6 +20,7 @@ A page is a stack of elements. Two consecutive pages make a spread. Page 0 and 1
 | --- | --- | --- | --- |
 | `Id` <span class="req">required</span> | `string` | — | An identifier for the page, unique within the book. Actions and conditions can refer to a page by ID, which survives inserting pages in a way that a page number doesn't. |
 | `ChapterId` <span class="opt">optional</span> | `string` | — | The chapter this page belongs to. Pages sharing a value belong to the same chapter and **must be listed consecutively**. See [Chapters](#chapters). |
+| `Tags` <span class="opt">optional</span> | list of `string` | empty list | Keywords describing what's on the page, never shown to the reader. A contents entry or a search box matches against them. See [Tags](#tags). |
 | `Elements` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | The page's content, stacked top to bottom in order. |
 | `Background` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **behind** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. They can carry a tooltip or an action, see [Background and foreground](#background-and-foreground). |
 | `Foreground` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **over** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. They can carry a tooltip or an action, see [Background and foreground](#background-and-foreground). |
@@ -81,6 +82,54 @@ Each chapter's spreads start fresh, so a chapter with an odd number of pages end
     A chapter is derived from where its pages sit in the list, not declared separately. If pages with the same `ChapterId` appear in two separate runs, they become two chapters and only the first is reachable by ID. Parchment logs a warning when this happens.
 
 ---
+
+## Tags
+
+`Tags` are keywords a page carries for other pages to find it by. Nothing draws them, so they're free to hold terms the page's own text doesn't use, including alternative spellings and words a reader would search for but an author wouldn't write.
+
+```json title="A page describing its own subject"
+{
+  "Id": "mushrooms",
+  "ChapterId": "foraging",
+  "Tags": [ "mushroom", "fungus", "morel", "chanterelle", "cave" ],
+  "Elements": [ ... ]
+}
+```
+
+Three queries read them, all matching case-insensitively:
+
+| Query | Arguments | True when |
+| --- | --- | --- |
+| `PeacefulEnd.Parchment_CurrentPageHasTag` | `<tag>...` | Either page on screen carries any of the tags. |
+| `PeacefulEnd.Parchment_PageHasTag` | `<pageId> <tag>...` | The named page carries any of the tags, wherever it is in the book. |
+| `PeacefulEnd.Parchment_PageTagMatchesInput` | `<pageId> <inputId>` | What's typed into an [`Input`](elements/input.md) appears in any of the named page's tags. |
+
+`CurrentPageHasTag` suits something that follows the reader, such as a book [`Overlay`](book.md#fields) marker that only appears on recipe pages. The other two take a page ID, so an entry on a contents page can ask about the page it links to rather than the page it sits on.
+
+### A searchable contents page
+
+`PageTagMatchesInput` is the pairing an index wants. Each entry hides itself when the reader's search doesn't match the page it points at:
+
+```json
+{
+  "Id": "contents",
+  "Elements": [
+    { "Type": "Input", "InputId": "search", "TexturePath": "{{ModId}}/box", "Placeholder": "Search..." },
+    {
+      "Type": "Button",
+      "TexturePath": "{{ModId}}/button",
+      "Text": "Mushrooms",
+      "Action": "PeacefulEnd.Parchment_JumpToPageId mushrooms",
+      "Condition": "PeacefulEnd.Parchment_PageTagMatchesInput mushrooms search"
+    }
+  ]
+}
+```
+
+An empty search box matches every **tagged** page, so the full contents shows until the reader types. A page with no tags at all never matches, which is the one asymmetry worth remembering: tag every page you want listed, even if only with its own name.
+
+!!! note "Tags aren't searched across the book for you"
+    Each entry names the page it asks about. There's no query that returns "every page matching this text", since a condition can only show or hide an element that already exists. See [the note on filtering](elements/input.md#filtering-a-list) for why a long list still has to fit the page.
 
 ## On view
 

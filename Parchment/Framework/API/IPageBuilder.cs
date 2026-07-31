@@ -39,6 +39,9 @@
         IElementBuilder AddButton(string text, string action);
 
         /// <summary>Runs a trigger action each time this page becomes visible.</summary>
+        /// <summary>Adds a keyword describing what is on the page, for a contents entry or a search box to match against. Calling this more than once builds a list. Never shown to the reader.</summary>
+        IPageBuilder Tag(string tag);
+
         IPageBuilder OnView(string action);
 
         /// <summary>Runs a trigger action each time this page becomes visible and the game state query passes.</summary>

@@ -86,6 +86,7 @@ You can only remove books your own mod registered. Books from content packs, and
 | `AddImage(texturePath)` | Shorthand for `Add("Image").Texture(texturePath)`. |
 | `AddItemImage(itemId)` | An image drawn from an item's icon, using a qualified ID such as `"(O)24"`. |
 | `AddButton(text, action)` | A button running a [trigger action](../concepts/actions.md) when clicked. |
+| `Tag(tag)` | Adds a keyword for a contents entry or search box to match against. Call it more than once to build a list. |
 | `OnView(action)` | Runs a trigger action each time the page becomes visible. |
 | `OnView(action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
 | `OnKeyPress(keybind, action)` | Runs a trigger action when the key is pressed while the page is visible, taking the key over from the menu and from the book's own binds. |

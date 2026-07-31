@@ -21,6 +21,33 @@ namespace Parchment.Framework.Models.Data
         /// </summary>
         public string? ChapterId { get; set; }
 
+        /// <summary>Keywords describing what is on this page, matched by the Parchment_PageHasTag, Parchment_CurrentPageHasTag and Parchment_PageTagMatchesInput queries.
+        /// Never shown to the reader, so they exist for a contents page or a search box to filter against rather than as anything the page displays. Matching ignores case.
+        /// </summary>
+        public List<string>? Tags { get; set; }
+
+        /// <summary>Whether this page carries a tag, ignoring case.</summary>
+        public bool HasTag(string? tag)
+        {
+            return string.IsNullOrWhiteSpace(tag) is false && Tags is not null && Tags.Any(pageTag => string.Equals(pageTag, tag, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>Whether any of this page's tags contains the given text, ignoring case. Empty text matches a page with any tag at all, which is what leaves an untouched search box showing everything.</summary>
+        public bool HasTagMatching(string? text)
+        {
+            if (Tags is null || Tags.Count is 0)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(text) is true)
+            {
+                return true;
+            }
+
+            return Tags.Any(pageTag => string.IsNullOrWhiteSpace(pageTag) is false && pageTag.Contains(text, StringComparison.OrdinalIgnoreCase));
+        }
+
         public List<ElementData> Elements { get; set; } = new List<ElementData>();
 
         /// <summary>
@@ -55,6 +82,11 @@ namespace Parchment.Framework.Models.Data
             if (string.IsNullOrWhiteSpace(Id))
             {
                 return (false, $"\"Id\" is required.");
+            }
+
+            if (Tags is not null && Tags.Any(string.IsNullOrWhiteSpace))
+            {
+                return (false, $"\"Tags\" contains an empty entry.");
             }
 
             var elementsIsValidData = ElementValidationHelper.ValidateElements(Elements);

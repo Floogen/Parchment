@@ -1,3 +1,4 @@
+using Parchment.Framework.Models.Data;
 using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
 using StardewValley;
@@ -34,6 +35,10 @@ namespace Parchment.Framework.Managers
         public const string CURRENT_CHAPTER_ID = "PeacefulEnd.Parchment_CurrentChapterId";
         public const string CURRENT_BOOK_ID = "PeacefulEnd.Parchment_CurrentBookId";
 
+        public const string CURRENT_PAGE_HAS_TAG = "PeacefulEnd.Parchment_CurrentPageHasTag";
+        public const string PAGE_HAS_TAG = "PeacefulEnd.Parchment_PageHasTag";
+        public const string PAGE_TAG_MATCHES_INPUT = "PeacefulEnd.Parchment_PageTagMatchesInput";
+
         public const string INPUT_MATCHES = "PeacefulEnd.Parchment_InputMatches";
         public const string INPUT_EQUALS = "PeacefulEnd.Parchment_InputEquals";
         public const string HAS_INPUT_TEXT = "PeacefulEnd.Parchment_HasInputText";
@@ -64,6 +69,10 @@ namespace Parchment.Framework.Managers
             GameStateQuery.Register(CURRENT_PAGE_ID, CurrentPageId);
             GameStateQuery.Register(CURRENT_CHAPTER_ID, CurrentChapterId);
             GameStateQuery.Register(CURRENT_BOOK_ID, CurrentBookId);
+
+            GameStateQuery.Register(CURRENT_PAGE_HAS_TAG, CurrentPageHasTag);
+            GameStateQuery.Register(PAGE_HAS_TAG, PageHasTag);
+            GameStateQuery.Register(PAGE_TAG_MATCHES_INPUT, PageTagMatchesInput);
 
             GameStateQuery.Register(INPUT_MATCHES, InputMatches);
             GameStateQuery.Register(INPUT_EQUALS, InputEquals);
@@ -260,6 +269,82 @@ namespace Parchment.Framework.Managers
             }
 
             return bookMenu.Book.Data.Id.EqualsIgnoreCase(bookId);
+        }
+
+        /// <summary>Whether either page on screen carries any of the given tags.</summary>
+        private bool CurrentPageHasTag(string[] query, GameStateQueryContext context)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu) is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(query, 1, out string _, out string error, name: "string tag") is false)
+            {
+                return false;
+            }
+
+            for (int index = 1; index < query.Length; index++)
+            {
+                if (bookMenu.IsOnPageTagged(query[index]) is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether a named page carries any of the given tags. The page is looked up across the whole book, so a contents entry can ask about a page the reader isn't on.</summary>
+        private bool PageHasTag(string[] query, GameStateQueryContext context)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu) is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(query, 1, out string pageId, out string error, name: "string pageId") is false)
+            {
+                return false;
+            }
+
+            if (bookMenu.FindPageData(pageId) is not PageData pageData)
+            {
+                return false;
+            }
+
+            for (int index = 2; index < query.Length; index++)
+            {
+                if (pageData.HasTag(query[index]) is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether the text typed into an input appears in any of a named page's tags, which is what a searchable contents page filters its entries with.
+        /// An empty input matches every tagged page, so an untouched search box leaves the whole contents showing. A page with no tags never matches.
+        /// </summary>
+        private bool PageTagMatchesInput(string[] query, GameStateQueryContext context)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu) is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(query, 1, out string pageId, out string error, name: "string pageId") is false || ArgUtility.TryGet(query, 2, out string inputId, out error, name: "string inputId") is false)
+            {
+                return false;
+            }
+
+            if (bookMenu.FindPageData(pageId) is not PageData pageData)
+            {
+                return false;
+            }
+
+            return pageData.HasTagMatching(Parchment.inputManager.GetText(inputId));
         }
 
         /// <summary>Whether the text typed into an input appears in the given text, which is what a search box filters a list with.
