@@ -27,6 +27,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<string> _actions = new List<string>();
         private readonly List<string> _hoverActions = new List<string>();
         private readonly List<string> _submitActions = new List<string>();
+        private readonly List<string> _textChangedActions = new List<string>();
 
         public string ElementType { get { return _elementType; } }
 
@@ -88,6 +89,15 @@ namespace Parchment.Framework.API.Builders
 
             return this;
         }
+
+        public IElementBuilder TextChangedAction(string action)
+        {
+            _textChangedActions.Add(action);
+
+            return this;
+        }
+
+        public IElementBuilder TextChangedDelay(float textChangedDelay) { return Set("TextChangedDelay", textChangedDelay); }
 
         public IElementBuilder InputId(string inputId) { return Set("InputId", inputId); }
         public IElementBuilder Placeholder(string placeholder) { return Set("Placeholder", placeholder); }
@@ -241,19 +251,32 @@ namespace Parchment.Framework.API.Builders
                 }
             }
 
-            if (_submitActions.Count > 0)
+            if (_submitActions.Count > 0 || _textChangedActions.Count > 0)
             {
                 if (data is not InputElementData inputData)
                 {
-                    error = $"[{_elementType}] submit actions can only be added to an Input";
+                    error = $"[{_elementType}] submit and text changed actions can only be added to an Input";
                     return false;
                 }
 
-                inputData.SubmitAction = _submitActions[0];
-
-                if (_submitActions.Count > 1)
+                if (_submitActions.Count > 0)
                 {
-                    inputData.SubmitActions = _submitActions.GetRange(1, _submitActions.Count - 1);
+                    inputData.SubmitAction = _submitActions[0];
+
+                    if (_submitActions.Count > 1)
+                    {
+                        inputData.SubmitActions = _submitActions.GetRange(1, _submitActions.Count - 1);
+                    }
+                }
+
+                if (_textChangedActions.Count > 0)
+                {
+                    inputData.TextChangedAction = _textChangedActions[0];
+
+                    if (_textChangedActions.Count > 1)
+                    {
+                        inputData.TextChangedActions = _textChangedActions.GetRange(1, _textChangedActions.Count - 1);
+                    }
                 }
             }
 

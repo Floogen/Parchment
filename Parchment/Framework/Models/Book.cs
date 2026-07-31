@@ -24,6 +24,9 @@ namespace Parchment.Framework.Models
 
         public ElementRenderContext? LastLayoutContext;
 
+        /// <summary>Every Input element on the book's own layers carrying a text changed action. A search box usually lives here rather than on a page, so this is the list that matters most.</summary>
+        public List<Element> TextChangedActionElements { get; }
+
         /// <summary>Every element on the book's own layers carrying a frame action, gathered once. The book's layers are on screen whatever page is being read, so these are dispatched alongside the visible pages' own.</summary>
         public List<Element> FrameActionElements { get; }
 
@@ -38,6 +41,10 @@ namespace Parchment.Framework.Models
             FrameActionElements = new List<Element>();
             AnimationHelper.CollectFrameActionElements(Underlay, FrameActionElements);
             AnimationHelper.CollectFrameActionElements(Overlay, FrameActionElements);
+
+            TextChangedActionElements = new List<Element>();
+            Page.CollectElements(Underlay, Page.HasTextChangedActions, TextChangedActionElements);
+            Page.CollectElements(Overlay, Page.HasTextChangedActions, TextChangedActionElements);
         }
 
         private List<Chapter> CreateChapters()

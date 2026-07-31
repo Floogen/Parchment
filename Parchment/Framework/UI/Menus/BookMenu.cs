@@ -1333,6 +1333,89 @@ namespace Parchment.Framework.UI.Menus
             return hasRunAny;
         }
 
+        /// <summary>Runs the text changed actions of any Input whose text has stopped moving for its TextChangedDelay.
+        /// The text is polled rather than hooked off typing, so a clear button or a SetInput action counts as a change the same as a keystroke does.
+        /// </summary>
+        private void DispatchTextChangedActions(float elapsedMilliseconds)
+        {
+            if (CurrentState is not MenuState.Ready and not MenuState.Turning)
+            {
+                return;
+            }
+
+            bool hasRunAny = DispatchTextChangedActions(Book.TextChangedActionElements, elapsedMilliseconds);
+
+            if (CurrentState is MenuState.Ready or MenuState.Turning)
+            {
+                hasRunAny |= DispatchPageTextChangedActions(GetLeftPageIndex(), elapsedMilliseconds);
+            }
+
+            if (CurrentState is MenuState.Ready or MenuState.Turning)
+            {
+                hasRunAny |= DispatchPageTextChangedActions(GetRightPageIndex(), elapsedMilliseconds);
+            }
+
+            if (hasRunAny is true)
+            {
+                RefreshVisiblePages();
+            }
+        }
+
+        private bool DispatchPageTextChangedActions(int pageIndex, float elapsedMilliseconds)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return false;
+            }
+
+            return DispatchTextChangedActions(_pages[pageIndex].TextChangedActionElements, elapsedMilliseconds);
+        }
+
+        private bool DispatchTextChangedActions(IReadOnlyList<Element> textChangedActionElements, float elapsedMilliseconds)
+        {
+            bool hasRunAny = false;
+
+            foreach (Element element in textChangedActionElements)
+            {
+                if (element.IsVisible is false || element.Data is not InputElementData inputData)
+                {
+                    continue;
+                }
+
+                string currentText = Parchment.inputManager.GetText(inputData.InputId);
+
+                if (string.Equals(element.LastSeenInputText, currentText, StringComparison.Ordinal) is false)
+                {
+                    // The first look records the text without arming anything, so a book doesn't run its text changed actions the moment it opens
+                    bool hasSeenBefore = element.LastSeenInputText is not null;
+
+                    element.LastSeenInputText = currentText;
+                    element.TextChangedDelayRemaining = hasSeenBefore ? inputData.TextChangedDelay : null;
+
+                    continue;
+                }
+
+                if (element.TextChangedDelayRemaining is not float delayRemaining)
+                {
+                    continue;
+                }
+
+                delayRemaining -= elapsedMilliseconds;
+                if (delayRemaining > 0f)
+                {
+                    element.TextChangedDelayRemaining = delayRemaining;
+                    continue;
+                }
+
+                element.TextChangedDelayRemaining = null;
+
+                RunActions(inputData.GetTextChangedActions(), element, "text changed action");
+                hasRunAny = true;
+            }
+
+            return hasRunAny;
+        }
+
         private void UpdateConditionTimer()
         {
             _conditionRefreshTimer++;
@@ -1583,6 +1666,8 @@ namespace Parchment.Framework.UI.Menus
 
             // Every tick rather than on the condition interval, as a frame shorter than that interval would otherwise be stepped over without ever being seen
             DispatchFrameActions();
+
+            DispatchTextChangedActions(elapsedMilliseconds);
 
             // Tracked in every state, since an action a keybind ran may have started an animation the reader is now holding the button through
             UpdateForceCloseHold(elapsedMilliseconds);

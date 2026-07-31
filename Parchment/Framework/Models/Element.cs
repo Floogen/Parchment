@@ -89,6 +89,12 @@ namespace Parchment.Framework.Models
             }
         }
 
+        /// <summary>The input text this element was last seen holding, which is how a change is told apart from the text sitting still. Null until the element has been looked at once, so a book doesn't count its own starting text as a change.</summary>
+        public string? LastSeenInputText { get; set; }
+
+        /// <summary>How long is left before this input's text changed actions run, in milliseconds, or null when nothing is waiting to run. Each change puts it back to the input's TextChangedDelay.</summary>
+        public float? TextChangedDelayRemaining { get; set; }
+
         /// <summary>Whether this element currently has keyboard focus. Only an Input takes focus, and only one element in the book holds it at a time.</summary>
         public bool IsFocused { get; set; }
 

@@ -33,6 +33,9 @@ A text box the reader types into. What they type is held for as long as the book
 | `TextScale` <span class="opt">optional</span> | `number` | `1` | The text's scale, independent of `Scale`, which sizes the frame. |
 | `SubmitAction` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) run when the reader presses enter. |
 | `SubmitActions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order on enter. Combined with `SubmitAction` rather than replacing it. |
+| `TextChangedAction` <span class="opt">optional</span> | `string` | — | A trigger action run once the text has stopped changing. See [Reacting to typing](#reacting-to-typing). |
+| `TextChangedActions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order once the text settles. Combined with `TextChangedAction` rather than replacing it. |
+| `TextChangedDelay` <span class="opt">optional</span> | `number` | `250` | How long the text has to sit still before the text changed actions run, in milliseconds. Each change restarts the wait. |
 
 `Text` is the box's **starting** text rather than its label. The reader can edit it, and clearing the box doesn't bring it back.
 
@@ -84,6 +87,28 @@ Paired with [`JumpToPageId`](../../concepts/actions.md#addressing-a-page) that g
 ```
 
 The text is substituted already quoted, so a typed phrase stays a single argument. See [Passing input text](../../concepts/actions.md#passing-input-text).
+
+## Reacting to typing
+
+Conditions already keep up with the reader on their own, so a list filtered with `Parchment_InputMatches` needs nothing here. `TextChangedAction` is for the work that shouldn't happen on every keystroke: setting a flag, jumping to a results page, anything with a cost.
+
+```json
+{
+  "Type": "Input",
+  "InputId": "search",
+  "TexturePath": "{{ModId}}/box",
+  "Placeholder": "Search...",
+  "TextChangedAction": "PeacefulEnd.Parchment_SetFlag searching",
+  "TextChangedDelay": 250
+}
+```
+
+The wait restarts on every change, so typing a word runs the actions once, when the reader pauses. `TextChangedDelay: 0` runs them on the next tick after each keystroke instead.
+
+The text is watched rather than hooked to the keyboard, so **anything** that changes it counts, including [`Parchment_SetInput`](../../concepts/actions.md#parchments-actions) and a clear button. That's what lets a clear button reset whatever the search put in place, without the book having to run the same actions from two places.
+
+!!! note "The starting text isn't a change"
+    An input's authored `Text` is recorded the first time the element is looked at, without running anything, so a book doesn't fire its text changed actions the moment it opens.
 
 ## Gotchas
 

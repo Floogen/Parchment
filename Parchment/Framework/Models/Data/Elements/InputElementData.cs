@@ -48,6 +48,19 @@ namespace Parchment.Framework.Models.Data.Elements
         /// </summary>
         public int? Height { get; set; }
 
+        /// <summary>A trigger action to run once the reader stops typing. Shorthand for a single-entry <see cref="TextChangedActions"/>, and when both are given this one runs first.</summary>
+        public string? TextChangedAction { get; set; }
+
+        /// <summary>The trigger actions to run, in order, once the reader stops typing. Combined with <see cref="TextChangedAction"/> rather than replacing it.
+        /// These wait for <see cref="TextChangedDelay"/> to pass without another change, so they run once for a typed word rather than once per letter. Clearing the input through an action counts as a change too.
+        /// </summary>
+        public List<string>? TextChangedActions { get; set; }
+
+        /// <summary>How long the text has to sit still before <see cref="TextChangedActions"/> run, in milliseconds. Each change restarts the wait.
+        /// Lower feels more immediate at the cost of running the actions part way through a word, and 0 runs them on the very next tick after each keystroke.
+        /// </summary>
+        public float TextChangedDelay { get; set; } = 250f;
+
         /// <summary>A trigger action to run when the reader presses enter. Shorthand for a single-entry <see cref="SubmitActions"/>, and when both are given this one runs first.</summary>
         public string? SubmitAction { get; set; }
 
@@ -59,6 +72,12 @@ namespace Parchment.Framework.Models.Data.Elements
 
         /// <summary>Whether this input has at least one submit action, from either <see cref="SubmitAction"/> or <see cref="SubmitActions"/>.</summary>
         internal bool HasSubmitActions => HasAny(SubmitAction, SubmitActions);
+
+        /// <summary>Whether this input has at least one text changed action, from either <see cref="TextChangedAction"/> or <see cref="TextChangedActions"/>.</summary>
+        internal bool HasTextChangedActions => HasAny(TextChangedAction, TextChangedActions);
+
+        /// <summary>Every text changed action on this input, <see cref="TextChangedAction"/> first and then <see cref="TextChangedActions"/> in order, skipping empty entries.</summary>
+        public IEnumerable<string> GetTextChangedActions() => Combine(TextChangedAction, TextChangedActions);
 
         /// <summary>Every submit action on this input, <see cref="SubmitAction"/> first and then <see cref="SubmitActions"/> in order, skipping empty entries.</summary>
         public IEnumerable<string> GetSubmitActions() => Combine(SubmitAction, SubmitActions);
@@ -73,6 +92,16 @@ namespace Parchment.Framework.Models.Data.Elements
             if (SubmitActions is not null && SubmitActions.Any(string.IsNullOrWhiteSpace))
             {
                 return (false, $"\"SubmitActions\" contains an empty entry.");
+            }
+
+            if (TextChangedActions is not null && TextChangedActions.Any(string.IsNullOrWhiteSpace))
+            {
+                return (false, $"\"TextChangedActions\" contains an empty entry.");
+            }
+
+            if (TextChangedDelay < 0f)
+            {
+                return (false, $"\"TextChangedDelay\" cannot be negative.");
             }
 
             if (MaxLength is int maximumLength && maximumLength <= 0)

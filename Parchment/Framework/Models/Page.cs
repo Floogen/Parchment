@@ -40,6 +40,9 @@ namespace Parchment.Framework.Models
 
         public ElementRenderContext? LastLayoutContext;
 
+        /// <summary>Every Input element on this page carrying a text changed action, gathered once for the same reason as <see cref="FrameActionElements"/>: they are polled every tick.</summary>
+        public List<Element> TextChangedActionElements { get; }
+
         /// <summary>Every element on this page carrying a frame action, gathered once at construction. Frame actions are dispatched every tick, so this is what keeps a page with none from walking its whole element tree sixty times a second.</summary>
         public List<Element> FrameActionElements { get; }
 
@@ -55,6 +58,33 @@ namespace Parchment.Framework.Models
             AnimationHelper.CollectFrameActionElements(Elements, FrameActionElements);
             AnimationHelper.CollectFrameActionElements(Background, FrameActionElements);
             AnimationHelper.CollectFrameActionElements(Foreground, FrameActionElements);
+
+            TextChangedActionElements = new List<Element>();
+            CollectElements(Elements, HasTextChangedActions, TextChangedActionElements);
+            CollectElements(Background, HasTextChangedActions, TextChangedActionElements);
+            CollectElements(Foreground, HasTextChangedActions, TextChangedActionElements);
+        }
+
+        /// <summary>Whether an element is an Input with something to run when its text settles.</summary>
+        public static bool HasTextChangedActions(Element element)
+        {
+            return element.Data is InputElementData inputData && inputData.HasTextChangedActions is true;
+        }
+
+        /// <summary>Walks element lists and their nested lists, gathering everything the predicate accepts. Safe to do once, as conditions only toggle an element's visibility rather than replacing the element.</summary>
+        public static void CollectElements(IReadOnlyList<Element> elements, Func<Element, bool> predicate, List<Element> results)
+        {
+            foreach (Element element in elements)
+            {
+                if (predicate(element) is true)
+                {
+                    results.Add(element);
+                }
+
+                CollectElements(element.Children, predicate, results);
+                CollectElements(element.Background, predicate, results);
+                CollectElements(element.Foreground, predicate, results);
+            }
         }
 
         /// <summary>

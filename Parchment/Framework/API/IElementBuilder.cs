@@ -73,6 +73,13 @@ namespace Parchment.Framework.API
         /// <summary>Adds a trigger action to run when the reader presses enter in an Input. Calling this more than once builds a list run in order.</summary>
         IElementBuilder SubmitAction(string action);
 
+        /// <summary>Adds a trigger action to run once an Input's text has stopped changing for its TextChangedDelay. Calling this more than once builds a list run in order.
+        /// The wait restarts on every change, so a typed word runs them once rather than once per letter.</summary>
+        IElementBuilder TextChangedAction(string action);
+
+        /// <summary>How long an Input's text has to sit still before its text changed actions run, in milliseconds. Defaults to 250.</summary>
+        IElementBuilder TextChangedDelay(float textChangedDelay);
+
         /// <summary>Sets the sound played when the element is clicked.</summary>
         IElementBuilder Sound(string sound);
 
