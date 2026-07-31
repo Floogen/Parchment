@@ -32,6 +32,10 @@ namespace Parchment.Framework.Managers
         public const string SET_FLAG = "PeacefulEnd.Parchment_SetFlag";
         public const string CLEAR_FLAG = "PeacefulEnd.Parchment_ClearFlag";
 
+        public const string SET_VARIABLE = "PeacefulEnd.Parchment_SetVariable";
+        public const string CLEAR_VARIABLE = "PeacefulEnd.Parchment_ClearVariable";
+        public const string TOGGLE_VARIABLE = "PeacefulEnd.Parchment_ToggleVariable";
+
         public ActionManager(IMonitor monitor, IModHelper helper) : base(monitor, helper)
         {
             RegisterAll();
@@ -57,6 +61,10 @@ namespace Parchment.Framework.Managers
 
             TriggerActionManager.RegisterAction(SET_FLAG, SetFlag);
             TriggerActionManager.RegisterAction(CLEAR_FLAG, ClearFlag);
+
+            TriggerActionManager.RegisterAction(SET_VARIABLE, SetVariable);
+            TriggerActionManager.RegisterAction(CLEAR_VARIABLE, ClearVariable);
+            TriggerActionManager.RegisterAction(TOGGLE_VARIABLE, ToggleVariable);
         }
 
         public bool GoToStart(string[] args, TriggerActionContext context, out string error)
@@ -275,6 +283,78 @@ namespace Parchment.Framework.Managers
             for (int index = 1; index < args.Length; index++)
             {
                 Parchment.flagManager.Clear(args[index]);
+            }
+
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Sets a variable the open book declares. Everything past the ID counts as the value, so a phrase needs no quoting.</summary>
+        public bool SetVariable(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string variableId, out error, name: "string variableId") is false)
+            {
+                return false;
+            }
+
+            if (TryGetCurrentBookId(out string bookId, out error) is false)
+            {
+                return false;
+            }
+
+            return Parchment.variableManager.TrySet(bookId, variableId, string.Join(" ", args.Skip(2)), out error);
+        }
+
+        /// <summary>Returns one or more variables to their declared defaults. A declared variable has no absent state, so this resets rather than removes.</summary>
+        public bool ClearVariable(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string _, out error, name: "string variableId") is false || TryGetCurrentBookId(out string bookId, out error) is false)
+            {
+                return false;
+            }
+
+            for (int index = 1; index < args.Length; index++)
+            {
+                if (Parchment.variableManager.TryClear(bookId, args[index], out error) is false)
+                {
+                    return false;
+                }
+            }
+
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Flips one or more Boolean variables, which is what a checkbox needs rather than a pair of conditioned SetVariable buttons.</summary>
+        public bool ToggleVariable(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string _, out error, name: "string variableId") is false || TryGetCurrentBookId(out string bookId, out error) is false)
+            {
+                return false;
+            }
+
+            for (int index = 1; index < args.Length; index++)
+            {
+                if (Parchment.variableManager.TryToggle(bookId, args[index], out error) is false)
+                {
+                    return false;
+                }
+            }
+
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>The book a variable action is speaking about. Variables belong to a book, so these fail with no book open rather than guessing.</summary>
+        private bool TryGetCurrentBookId(out string bookId, out string error)
+        {
+            if (Parchment.variableManager.TryGetCurrentBookId(out bookId) is false)
+            {
+                error = "no book is open, and a variable belongs to the book that declares it";
+                return false;
             }
 
             error = null;

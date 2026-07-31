@@ -84,6 +84,9 @@ These only work while a book is open. Elsewhere they fail with a message in the 
 | `PeacefulEnd.Parchment_ClearInput` | `<inputId>` | Empty an `Input`. The same as `SetInput` with no text, spelled so a clear button reads as one. |
 | `PeacefulEnd.Parchment_SetFlag` | `<flag>...` | Set one or more [session flags](#session-flags). |
 | `PeacefulEnd.Parchment_ClearFlag` | `<flag>...` | Clear one or more session flags. |
+| `PeacefulEnd.Parchment_SetVariable` | `<variableId> <value>` | Set a [variable](../reference/variables.md) the open book declares. Everything past the ID counts as the value. |
+| `PeacefulEnd.Parchment_ClearVariable` | `<variableId>...` | Return one or more variables to their declared `Default`. |
+| `PeacefulEnd.Parchment_ToggleVariable` | `<variableId>...` | Flip one or more `Boolean` variables. |
 
 ### Skipping the turn
 
@@ -200,6 +203,20 @@ Both actions take a list, so `PeacefulEnd.Parchment_ClearFlag leverPulled doorOp
 
 Flags are shared across books, so a name set by one book is visible to another opened afterwards in the same session. Prefix them with your mod's ID if that matters to you.
 
+## Variables
+
+Where a flag is a name that lasts the reading, a [variable](../reference/variables.md) is a named value that outlives it. A book declares its variables up front, then sets them with `SetVariable`, `ClearVariable` and `ToggleVariable` and reads them back with `%Variable:id%` or [`PeacefulEnd.Parchment_HasVariable`](conditions.md#variables).
+
+```json title="content.json"
+{
+  "Type": "Button",
+  "Text": "Show spoilers: %Variable:showSpoilers%",
+  "Action": "PeacefulEnd.Parchment_ToggleVariable showSpoilers"
+}
+```
+
+Unlike flags, variables are per book and have to be declared. See [Variables](../reference/variables.md) for the declaration and what it buys you.
+
 ## Tokens
 
 A token is a placeholder replaced with something the book knows at the moment it's needed. They work in an action, resolved just before it runs, and in an element's [`Text`](../reference/elements/index.md), resolved as it's laid out. The same token means the same thing in both.
@@ -210,6 +227,7 @@ A token is a placeholder replaced with something the book knows at the moment it
 | `%Input:someId%` | The text in the input with that `InputId`, from any element. |
 | `%Item%` | The qualified item ID the element is showing. Only valid inside a [`Grid`](../reference/elements/grid.md#source) result cell. |
 | `%Item.Something%` | A property of that item. See [Item properties](#item-properties). |
+| `%Variable:someId%` | The current value of one of the open book's [variables](../reference/variables.md). |
 | `%GridDisplayed:someId%` | How many cells a grid is currently showing. |
 | `%GridMatched:someId%` | How many candidates matched, which is larger than the above once the matches outnumber the cells. |
 | `%GridTotal:someId%` | How many candidates the grid has before any filtering. |

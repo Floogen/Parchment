@@ -73,6 +73,8 @@ namespace Parchment.Framework.Utilities.Helpers
                     return ResolveInput(match, source, argument, element, quoteValues);
                 case "item":
                     return ResolveItem(match, source, property, element, quoteValues);
+                case "variable":
+                    return ResolveVariable(match, source, argument, quoteValues);
                 case "griddisplayed":
                 case "gridmatched":
                 case "gridtotal":
@@ -131,6 +133,28 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return Format(ItemPropertyResolver.Resolve(property, element.AssignedItemData, element.AssignedItem) ?? string.Empty, quoteValues);
+        }
+
+        private static string ResolveVariable(Match match, string source, string variableId, bool quoteValues)
+        {
+            if (string.IsNullOrWhiteSpace(variableId) is true)
+            {
+                Parchment.monitor.LogOnce($"'{source}' uses {match.Value} without naming a variable. Use %Variable:yourVariableId% instead.", LogLevel.Warn);
+                return match.Value;
+            }
+
+            if (Parchment.variableManager.TryGetCurrentBookId(out string bookId) is false)
+            {
+                return match.Value;
+            }
+
+            if (Parchment.variableManager.TryGet(bookId, variableId, out string value, out string error) is false)
+            {
+                Parchment.monitor.LogOnce($"'{source}' reads the variable '{variableId}', but {error}.", LogLevel.Warn);
+                return match.Value;
+            }
+
+            return Format(value, quoteValues);
         }
 
         private static string ResolveGridCount(Match match, string source, string name, string gridId)

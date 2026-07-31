@@ -1,4 +1,5 @@
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Data.Variables;
 using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
 using StardewValley;
@@ -41,6 +42,8 @@ namespace Parchment.Framework.Managers
 
         public const string HAS_FLAG = "PeacefulEnd.Parchment_HasFlag";
 
+        public const string HAS_VARIABLE = "PeacefulEnd.Parchment_HasVariable";
+
         public const string INPUT_MATCHES = "PeacefulEnd.Parchment_InputMatches";
         public const string INPUT_EQUALS = "PeacefulEnd.Parchment_InputEquals";
         public const string HAS_INPUT_TEXT = "PeacefulEnd.Parchment_HasInputText";
@@ -77,6 +80,8 @@ namespace Parchment.Framework.Managers
             GameStateQuery.Register(PAGE_TAG_MATCHES_INPUT, PageTagMatchesInput);
 
             GameStateQuery.Register(HAS_FLAG, HasFlag);
+
+            GameStateQuery.Register(HAS_VARIABLE, HasVariable);
 
             GameStateQuery.Register(INPUT_MATCHES, InputMatches);
             GameStateQuery.Register(INPUT_EQUALS, InputEquals);
@@ -362,6 +367,43 @@ namespace Parchment.Framework.Managers
             for (int index = 1; index < query.Length; index++)
             {
                 if (Parchment.flagManager.Has(query[index]) is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether one of the open book's variables currently holds any of the given values, compared as the type it was declared with.
+        /// Needs a book open, as a variable belongs to the book that declares it.
+        /// </summary>
+        private bool HasVariable(string[] query, GameStateQueryContext context)
+        {
+            if (ArgUtility.TryGet(query, 1, out string variableId, out string error, name: "string variableId") is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(query, 2, out string _, out error, name: "string value") is false)
+            {
+                return false;
+            }
+
+            if (Parchment.variableManager.TryGetCurrentBookId(out string bookId) is false)
+            {
+                return false;
+            }
+
+            if (Parchment.variableManager.TryGetDeclaration(bookId, variableId, out VariableData declaration, out string declarationError) is false)
+            {
+                Parchment.monitor.LogOnce($"A condition asks about the variable '{variableId}', but {declarationError}.", LogLevel.Warn);
+                return false;
+            }
+
+            for (int index = 2; index < query.Length; index++)
+            {
+                if (Parchment.variableManager.Matches(bookId, declaration, query[index]) is true)
                 {
                     return true;
                 }

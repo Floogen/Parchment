@@ -1648,6 +1648,9 @@ namespace Parchment.Framework.UI.Menus
             Parchment.inputManager.ClearAll();
             Parchment.flagManager.ClearAll();
 
+            // Variables do survive, so the global ones are written out here rather than waiting for the next save
+            Parchment.variableManager.Save();
+
             base.cleanupBeforeExit();
         }
 
@@ -1658,6 +1661,7 @@ namespace Parchment.Framework.UI.Menus
             ClearInputFocus();
             Parchment.inputManager.ClearAll();
             Parchment.flagManager.ClearAll();
+            Parchment.variableManager.Save();
 
             base.emergencyShutDown();
         }

@@ -32,6 +32,7 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 | `Animation` <span class="opt">optional</span> | [`Animation`](#animation) | *see below* | Animation timings and sounds. |
 | `Layout` <span class="opt">optional</span> | [`Layout`](#layout) | *see below* | The page margins. |
 | `OnKeyPress` <span class="opt">optional</span> | list of [`keybinds`](#on-key-press) | empty list | Keys running actions on every page of the book. A page binding the same key takes it over. See [On key press](#on-key-press). |
+| `Variables` <span class="opt">optional</span> | list of [`variables`](variables.md) | empty list | Named values the book sets and reads back, which survive the book being closed. See [Variables](variables.md). |
 | `StartOnCover` <span class="opt">optional</span> | `boolean` | `false` | Whether the book arrives shut and holds on its cover until the reader clicks it open. See [Cover view](#cover-view). |
 | `ExitToCover` <span class="opt">optional</span> | `boolean` | `false` | Whether closing the book shuts it in place first, leaving its cover on screen, rather than leaving the menu. See [Cover view](#cover-view). |
 

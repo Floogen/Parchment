@@ -113,6 +113,28 @@ namespace Parchment.Framework.API
             return TryOpenBookAtPageId(bookId, chapterId, pageId);
         }
 
+        public bool TryGetVariable(string bookId, string variableId, out string value)
+        {
+            if (Parchment.variableManager.TryGet(bookId, variableId, out value, out string error) is false)
+            {
+                Parchment.monitor.Log($"{_modId} failed to read the variable \"{variableId}\", because {error}.", LogLevel.Warn);
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool TrySetVariable(string bookId, string variableId, string value, out string error)
+        {
+            if (Parchment.variableManager.TrySet(bookId, variableId, value, out error) is false)
+            {
+                Parchment.monitor.Log($"{_modId} failed to set the variable \"{variableId}\", because {error}.", LogLevel.Warn);
+                return false;
+            }
+
+            return true;
+        }
+
         public bool TryGetBookBounds(out Rectangle bounds)
         {
             return TryGetBounds(menu => menu.GetBookScreenBounds(), out bounds);

@@ -28,6 +28,12 @@ public interface IParchmentApi
 
     /// <summary>Gets whether a book with the given ID is loaded, from any source.</summary>
     bool HasBook(string bookId);
+
+    /// <summary>Reads a variable a book declares.</summary>
+    bool TryGetVariable(string bookId, string variableId, out string value);
+
+    /// <summary>Sets a variable a book declares.</summary>
+    bool TrySetVariable(string bookId, string variableId, string value, out string error);
 }
 ```
 
@@ -94,6 +100,22 @@ if (parchment.HasBook("someone.Else_Book") is true)
     parchment.TryOpenBook("someone.Else_Book");
 }
 ```
+
+## Reading a book's variables
+
+`TryGetVariable` and `TrySetVariable` reach the [variables](variables.md) a book declares, which is how a settings page in a book ends up in your own config file. Values are text whatever the variable's declared type, so parse them on the way out.
+
+```csharp
+if (parchment.TryGetVariable("{{ModId}}_Almanac", "showSpoilers", out string value) is true)
+{
+    this.Config.ShowSpoilers = bool.Parse(value);
+    this.Helper.WriteConfig(this.Config);
+}
+```
+
+`TrySetVariable` fails when the book declares no variable by that name, when the value doesn't suit the declared type or `AllowedValues`, or when a `Save`-scoped variable is set with no save loaded. The reason comes back in `error` and is logged.
+
+Variables don't reach Content Patcher, so a pack's other patches can't see one. This API is the bridge for a C# mod, not for a content pack.
 
 ## Building a book
 

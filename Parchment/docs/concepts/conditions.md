@@ -65,6 +65,14 @@ These read a page's [`Tags`](../reference/page.md#tags), the keywords a page car
 
 Flags are set and cleared by `PeacefulEnd.Parchment_SetFlag` and `PeacefulEnd.Parchment_ClearFlag`, and all of them are dropped when the book closes. Like the input queries, this one needs no book open.
 
+### Variables
+
+| Query | Arguments | True when |
+| --- | --- | --- |
+| `PeacefulEnd.Parchment_HasVariable` | `<variableId> <value>...` | One of the open book's [variables](../reference/variables.md) holds any of the values. |
+
+Values are compared as the type the variable was declared with, so a `Number` variable holding `9` matches `9.0` where a `Text` one wouldn't. This one **does** need a book open, since a variable belongs to the book that declares it, and it returns false with a logged message when the book declares no variable by that name.
+
 ### Reader input
 
 These read what the reader has typed into an [`Input`](../reference/elements/input.md) element. Unlike the rest, they don't need a book open, since the text lasts for the reading session.

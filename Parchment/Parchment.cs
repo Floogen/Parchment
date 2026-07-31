@@ -49,6 +49,7 @@ namespace Parchment
         internal static InputManager inputManager;
         internal static QueryManager queryManager;
         internal static TileManager tileManager;
+        internal static VariableManager variableManager;
 
         public override void Entry(IModHelper helper)
         {
@@ -64,6 +65,7 @@ namespace Parchment
             inputManager = new InputManager(monitor, helper);
             queryManager = new QueryManager(monitor, helper);
             tileManager = new TileManager(monitor, helper);
+            variableManager = new VariableManager(monitor, helper);
 
             try
             {
@@ -82,6 +84,8 @@ namespace Parchment
             // Hook into the required events
             helper.Events.Content.AssetRequested += OnAssetRequested;
             helper.Events.Input.ButtonPressed += OnButtonPressed;
+            helper.Events.GameLoop.Saving += (sender, args) => variableManager.Save();
+            helper.Events.GameLoop.ReturnedToTitle += (sender, args) => variableManager.Save();
 
             // Register actions
             GameLocation.RegisterTileAction("PeacefulEnd.Parchment_OpenBook", MapActionHelper.HandleOpenBook);
