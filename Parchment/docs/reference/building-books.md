@@ -136,7 +136,8 @@ Most methods are named after the field they set, so anything you've written in a
 | `Source(itemQuery)` | Fills a `Grid`'s cells from an item query. See [Source](elements/grid.md#source). |
 | `SourceFilter(inputId)` | The [`Input`](elements/input.md) narrowing those candidates. |
 | `SourceCondition(perItemCondition)` | A game state query each candidate must pass. |
-| `SourceOrder(order)` | `"DisplayName"`, `"ItemId"` or `"None"`. |
+| `SourceOrder(order)` | The [item property](../concepts/actions.md#item-properties) the candidates are sorted by, such as `"Name"` or `"Price"`, or `"None"`. |
+| `SourceOrderDescending(descending)` | Reverses that order. |
 | `SourceCount(count)` | How many cells the results fill, when the grid has no `Rows`. |
 | `AddSourceTemplate(elementType)` | The element each cell is built from. Returns **the template's** builder. |
 | `Scope(scope)` | A PageNumber's `Scope`, either `"Book"` or `"Chapter"` |

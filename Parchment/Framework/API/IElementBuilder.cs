@@ -116,8 +116,11 @@ namespace Parchment.Framework.API
         /// <summary>A game state query each candidate must pass, evaluated with that item in context, such as "ITEM_CATEGORY Target -4".</summary>
         IElementBuilder SourceCondition(string perItemCondition);
 
-        /// <summary>What a Grid's candidates are sorted by: "DisplayName", "ItemId" or "None".</summary>
+        /// <summary>The item property a Grid's candidates are sorted by, named as the %Item.Something% token names it, such as "Name", "Category" or "Price". Pass "None" to leave them in the item query's own order.</summary>
         IElementBuilder SourceOrder(string order);
+
+        /// <summary>Reverses a Grid's order, so the highest price or the last name comes first. Candidates that can't answer the property still sort last.</summary>
+        IElementBuilder SourceOrderDescending(bool descending);
 
         /// <summary>How many cells a Grid's results fill. When left out, the grid's Columns and Rows decide.</summary>
         IElementBuilder SourceCount(int count);

@@ -227,15 +227,15 @@ The grid tokens read a [`Grid`](../reference/elements/grid.md) by its `Id`, foun
 
 Inside a result cell, `%Item%` on its own is the qualified ID, and a dot reaches one of the item's properties:
 
-| Token | Gives |
-| --- | --- |
-| `%Item.Id%` | The unqualified ID, `128` rather than `(O)128`. |
-| `%Item.Name%` | The display name, translated. |
-| `%Item.InternalName%` | The internal name, which never translates. |
-| `%Item.Description%` | The description. |
-| `%Item.Type%` | The object type, such as `Fish` or `Arch`. |
-| `%Item.Category%` | The category **name**, such as `Fish`, rather than the number behind it. |
-| `%Item.Price%` | The sale price. |
+| Token | Gives | Sorts as |
+| --- | --- | --- |
+| `%Item.Id%` | The unqualified ID, `128` rather than `(O)128`. | text |
+| `%Item.Name%` | The display name, translated. | text |
+| `%Item.InternalName%` | The internal name, which never translates. | text |
+| `%Item.Description%` | The description. | text |
+| `%Item.Type%` | The object type, such as `Fish` or `Arch`. | text |
+| `%Item.Category%` | The category **name**, such as `Fish`, rather than the number behind it. | text |
+| `%Item.Price%` | The sale price. | number |
 
 ```json
 {
@@ -246,6 +246,8 @@ Inside a result cell, `%Item%` on its own is the qualified ID, and a dot reaches
   ]
 }
 ```
+
+The same names are what a [`Grid`](../reference/elements/grid.md#ordering)'s `Source` orders by, and the last column is how each one compares when it does. `Id` sorts as text rather than as a number, since a mod's item is as likely to be `Bob.Cool_Sword` as it is to be `128`.
 
 The list is fixed rather than reaching into the item for whatever it happens to have. That keeps these names Parchment's to keep: a game update that renames something underneath one of them is a fix here rather than a break in your book. Ask for something not on the list and the token is left in place, with the accepted names logged.
 

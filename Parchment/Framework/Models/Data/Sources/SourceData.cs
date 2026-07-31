@@ -1,5 +1,6 @@
 using Parchment.Framework.Models.Data.Elements;
-using Parchment.Framework.Models.Enums;
+using Parchment.Framework.Utilities.Helpers;
+using System;
 
 namespace Parchment.Framework.Models.Data.Sources
 {
@@ -8,6 +9,9 @@ namespace Parchment.Framework.Models.Data.Sources
     /// </summary>
     public class SourceData : BaseModel
     {
+        /// <summary>The <see cref="OrderBy"/> value that leaves the candidates in whatever order the item query returned them.</summary>
+        public const string NoOrder = "None";
+
         /// <summary>The item query supplying the candidates, such as "ALL_ITEMS (O)". Resolved once and cached, so this cost is paid on load rather than on a keystroke.</summary>
         public string ItemQuery { get; set; } = "ALL_ITEMS (O)";
 
@@ -17,8 +21,13 @@ namespace Parchment.Framework.Models.Data.Sources
         /// <summary>The InputId whose text narrows the candidates. When null the results are unfiltered, which is a plain paged list of everything the query returned.</summary>
         public string? InputId { get; set; }
 
-        /// <summary>What the candidates are sorted by before they are handed to the cells.</summary>
-        public ResultOrder OrderBy { get; set; } = ResultOrder.DisplayName;
+        /// <summary>The item property the candidates are sorted by before they are handed to the cells, named as the %Item.Something% token names it. Defaults to the item query's own order, which is what the query paid for rather than a sort on top of it.
+        /// A candidate that can't answer the property sorts last, whichever direction the rest are going.
+        /// </summary>
+        public string OrderBy { get; set; } = NoOrder;
+
+        /// <summary>Reverses the order, so the highest price or the last name comes first.</summary>
+        public bool OrderDescending { get; set; }
 
         /// <summary>How many cells the candidates fill. When null the grid's Columns and Rows decide, which is the usual way to say it.</summary>
         public int? Count { get; set; }
@@ -41,6 +50,11 @@ namespace Parchment.Framework.Models.Data.Sources
             if (Count is int count && count <= 0)
             {
                 return (false, $"\"Count\" must be positive.");
+            }
+
+            if (string.IsNullOrWhiteSpace(OrderBy) is false && string.Equals(OrderBy, NoOrder, StringComparison.OrdinalIgnoreCase) is false && ItemPropertyResolver.IsKnown(OrderBy) is false)
+            {
+                return (false, $"\"OrderBy\" of '{OrderBy}' is not an item property Parchment knows. Try one of: {string.Join(", ", ItemPropertyResolver.GetNames())}, or \"{NoOrder}\".");
             }
 
             var templateIsValidData = Template.IsValid();

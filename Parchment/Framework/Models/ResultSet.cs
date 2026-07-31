@@ -4,8 +4,10 @@ using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Internal;
+using StardewValley.ItemTypeDefinitions;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace Parchment.Framework.Models
@@ -129,6 +131,8 @@ namespace Parchment.Framework.Models
                 return;
             }
 
+            string? orderProperty = GetOrderProperty(out ItemPropertyKind orderKind);
+
             foreach (ItemQueryResult result in results)
             {
                 if (result.Item is null || string.IsNullOrWhiteSpace(result.Item.QualifiedItemId))
@@ -136,18 +140,76 @@ namespace Parchment.Framework.Models
                     continue;
                 }
 
-                _candidates.Add(new ResultCandidate(result.Item.QualifiedItemId, result.Item.DisplayName ?? string.Empty));
+                var sortKey = ResolveSortKey(result.Item, orderProperty, orderKind);
+
+                _candidates.Add(new ResultCandidate(result.Item.QualifiedItemId, result.Item.DisplayName ?? string.Empty, sortKey.Text, sortKey.Number));
             }
 
-            switch (_data.OrderBy)
+            Sort(orderProperty, orderKind);
+        }
+
+        /// <summary>The property the candidates are ordered by, or null when they are left in the item query's order. An unknown name orders nothing, as validation has already rejected the book that asked for it.</summary>
+        private string? GetOrderProperty(out ItemPropertyKind kind)
+        {
+            kind = ItemPropertyKind.Text;
+
+            if (string.IsNullOrWhiteSpace(_data.OrderBy) is true || string.Equals(_data.OrderBy, SourceData.NoOrder, StringComparison.OrdinalIgnoreCase) is true)
             {
-                case ResultOrder.DisplayName:
-                    _candidates = _candidates.OrderBy(candidate => candidate.DisplayName, StringComparer.OrdinalIgnoreCase).ToList();
-                    break;
-                case ResultOrder.ItemId:
-                    _candidates = _candidates.OrderBy(candidate => candidate.QualifiedItemId, StringComparer.OrdinalIgnoreCase).ToList();
-                    break;
+                return null;
             }
+
+            return ItemPropertyResolver.TryGetKind(_data.OrderBy, out kind) is true ? _data.OrderBy : null;
+        }
+
+        /// <summary>What one candidate sorts by, read off the item while the query still has it in hand. Both halves are null when the property had nothing to give, which is what sends the candidate to the end.</summary>
+        private static (string? Text, double? Number) ResolveSortKey(ISalable salable, string? orderProperty, ItemPropertyKind kind)
+        {
+            if (orderProperty is null)
+            {
+                return (null, null);
+            }
+
+            ParsedItemData? itemData = ItemRegistry.GetData(salable.QualifiedItemId);
+            if (itemData is null)
+            {
+                return (null, null);
+            }
+
+            // A query can hand back something salable that isn't an Item, which leaves the properties needing one unanswered rather than throwing
+            string? value = ItemPropertyResolver.Resolve(orderProperty, itemData, salable as Item);
+            if (string.IsNullOrEmpty(value) is true)
+            {
+                return (null, null);
+            }
+
+            if (kind is ItemPropertyKind.Number)
+            {
+                return double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out double number) is true ? (null, number) : (null, null);
+            }
+
+            return (value, null);
+        }
+
+        private void Sort(string? orderProperty, ItemPropertyKind kind)
+        {
+            if (orderProperty is null || _candidates is null)
+            {
+                return;
+            }
+
+            // Candidates that couldn't answer the property go last whichever direction the rest are going, so reversing the order doesn't bring a wall of blanks to the front
+            IOrderedEnumerable<ResultCandidate> ordered = _candidates.OrderBy(candidate => candidate.HasSortKey is true ? 0 : 1);
+
+            if (kind is ItemPropertyKind.Number)
+            {
+                ordered = _data.OrderDescending is true ? ordered.ThenByDescending(candidate => candidate.SortNumber) : ordered.ThenBy(candidate => candidate.SortNumber);
+            }
+            else
+            {
+                ordered = _data.OrderDescending is true ? ordered.ThenByDescending(candidate => candidate.SortText, StringComparer.OrdinalIgnoreCase) : ordered.ThenBy(candidate => candidate.SortText, StringComparer.OrdinalIgnoreCase);
+            }
+
+            _candidates = ordered.ToList();
         }
 
         private readonly struct ResultCandidate
@@ -155,10 +217,18 @@ namespace Parchment.Framework.Models
             public string QualifiedItemId { get; }
             public string DisplayName { get; }
 
-            public ResultCandidate(string qualifiedItemId, string displayName)
+            /// <summary>What this candidate sorts by, resolved once alongside the item query rather than on every comparison. Only one of the two is ever set, and neither is when the item couldn't answer the property.</summary>
+            public string? SortText { get; }
+            public double? SortNumber { get; }
+
+            public bool HasSortKey => SortText is not null || SortNumber is not null;
+
+            public ResultCandidate(string qualifiedItemId, string displayName, string? sortText, double? sortNumber)
             {
                 QualifiedItemId = qualifiedItemId;
                 DisplayName = displayName;
+                SortText = sortText;
+                SortNumber = sortNumber;
             }
         }
     }

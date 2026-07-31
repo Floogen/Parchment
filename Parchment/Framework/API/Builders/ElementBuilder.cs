@@ -3,9 +3,9 @@ using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Data.Sources;
-using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Rendering;
+using Parchment.Framework.Utilities.Helpers;
 using System;
 using System.Collections.Generic;
 
@@ -36,6 +36,7 @@ namespace Parchment.Framework.API.Builders
         private string? _sourceInputId;
         private string? _sourceCondition;
         private string? _sourceOrder;
+        private bool _sourceOrderDescending;
         private int? _sourceCount;
         private ElementBuilder? _sourceTemplate;
 
@@ -149,6 +150,13 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder SourceOrder(string order)
         {
             _sourceOrder = order;
+
+            return this;
+        }
+
+        public IElementBuilder SourceOrderDescending(bool descending)
+        {
+            _sourceOrderDescending = descending;
 
             return this;
         }
@@ -390,16 +398,16 @@ namespace Parchment.Framework.API.Builders
                     return false;
                 }
 
-                var source = new SourceData() { ItemQuery = _sourceItemQuery ?? "ALL_ITEMS (O)", InputId = _sourceInputId, PerItemCondition = _sourceCondition, Count = _sourceCount, Template = templateElement };
+                var source = new SourceData() { ItemQuery = _sourceItemQuery ?? "ALL_ITEMS (O)", InputId = _sourceInputId, PerItemCondition = _sourceCondition, Count = _sourceCount, OrderDescending = _sourceOrderDescending, Template = templateElement };
                 if (_sourceOrder is not null)
                 {
-                    if (Enum.TryParse(_sourceOrder, ignoreCase: true, out ResultOrder order) is false)
+                    if (string.Equals(_sourceOrder, SourceData.NoOrder, StringComparison.OrdinalIgnoreCase) is false && ItemPropertyResolver.IsKnown(_sourceOrder) is false)
                     {
-                        error = $"[{_elementType}] '{_sourceOrder}' is not a valid result order";
+                        error = $"[{_elementType}] '{_sourceOrder}' is not an item property that can be ordered by. Try one of: {string.Join(", ", ItemPropertyResolver.GetNames())}, or \"{SourceData.NoOrder}\"";
                         return false;
                     }
 
-                    source.OrderBy = order;
+                    source.OrderBy = _sourceOrder;
                 }
 
                 gridData.Source = source;

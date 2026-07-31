@@ -90,7 +90,7 @@ Without `Rows`, the grid is exactly as tall as its children need and grows a row
     "ItemQuery": "ALL_ITEMS (O)",
     "PerItemCondition": "ITEM_CATEGORY Target -4",
     "InputId": "search",
-    "OrderBy": "DisplayName",
+    "OrderBy": "Name",
     "Template": {
       "Type": "Image",
       "Scale": 3,
@@ -108,8 +108,29 @@ Without `Rows`, the grid is exactly as tall as its children need and grows a row
 | `ItemQuery` <span class="opt">optional</span> | `string` | `ALL_ITEMS (O)` | The item query supplying the candidates. Resolved once and cached, so this is paid on load rather than per keystroke. |
 | `PerItemCondition` <span class="opt">optional</span> | `string` | — | A game state query each candidate must pass, evaluated with that item in context. Category filters belong here. |
 | `InputId` <span class="opt">optional</span> | `string` | — | The input whose text narrows the candidates. Without one the grid is an unfiltered list. |
-| `OrderBy` <span class="opt">optional</span> | `DisplayName` \| `ItemId` \| `None` | `DisplayName` | How the candidates are sorted before they reach the cells. `None` is the registry's own order. |
+| `OrderBy` <span class="opt">optional</span> | [`item property`](../../concepts/actions.md#item-properties) \| `None` | `None` | The property the candidates are sorted by before they reach the cells. `None` leaves them in the item query's own order. See [Ordering](#ordering). |
+| `OrderDescending` <span class="opt">optional</span> | `bool` | `false` | Reverses the order, so the highest price or the last name comes first. |
 | `Count` <span class="opt">optional</span> | `int?` | `Columns × Rows` | How many cells the candidates fill. Needed only when the grid has no `Rows`. |
+
+### Ordering
+
+`OrderBy` takes any of the [item properties](../../concepts/actions.md#item-properties) the `%Item.Something%` token reaches, so `"Name"`, `"Category"` and `"Price"` are all valid. It defaults to `"None"`, which leaves the candidates in whatever order the item query handed back, so a grid sorts only when it asks to.
+
+```json title="content.json"
+"Source": {
+  "ItemQuery": "ALL_ITEMS (O)",
+  "OrderBy": "Price",
+  "OrderDescending": true,
+  "Template": { "Type": "Image", "Scale": 3, "Alignment": "Center" }
+}
+```
+
+Each property declares how it compares, so `Price` sorts as a number (9 before 1000) while `Name` and the rest sort as text, ignoring case. The [item properties table](../../concepts/actions.md#item-properties) says which is which.
+
+Sorting happens once, when the item query is resolved, rather than on each keystroke. A grid ordering 1,000 items pays for it on load and the filter then walks an already-sorted list.
+
+!!! note "Items that can't answer go last"
+    An item with no category, or a price that isn't a number, sorts to the end. `OrderDescending` doesn't move them, so reversing the order never brings a wall of blank-looking cells to the front.
 
 ### How a cell gets its item
 
