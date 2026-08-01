@@ -267,7 +267,7 @@ namespace Parchment.Framework.UI.Menus
 
             ApplyBook(book);
 
-            CarryAnimationTiming(previousBook, book);
+            CarryElementState(previousBook, book);
 
             RestoreReadingPosition(previousPageId, previousChapterIndex, previousSpread);
             RefreshVisiblePages();
@@ -277,13 +277,13 @@ namespace Parchment.Framework.UI.Menus
             return true;
         }
 
-        /// <summary>Hands the rebuilt book's elements the animation clocks their counterparts were running on, so a refresh doesn't replay every animation from its first frame.
+        /// <summary>Hands the rebuilt book's elements the clocks their counterparts were running on, so a refresh doesn't replay every animation from its first frame or take away something that was only just put up.
         /// A fresh element has no way to know it replaced one mid-cycle, since <see cref="AnimationHelper.RefreshActiveFrames"/> stamps a start time whenever the active frames appear, and on a new element they always do.
         /// </summary>
-        private static void CarryAnimationTiming(Book previousBook, Book book)
+        private static void CarryElementState(Book previousBook, Book book)
         {
-            CarryAnimationTiming(previousBook.Underlay, book.Underlay);
-            CarryAnimationTiming(previousBook.Overlay, book.Overlay);
+            CarryElementState(previousBook.Underlay, book.Underlay);
+            CarryElementState(previousBook.Overlay, book.Overlay);
 
             // Paired by position, so a rebuild that added or removed pages carries what it can and lets the rest start fresh
             int pageCount = Math.Min(previousBook.Pages.Count, book.Pages.Count);
@@ -299,16 +299,16 @@ namespace Parchment.Framework.UI.Menus
                     continue;
                 }
 
-                CarryAnimationTiming(previousPage.Elements, page.Elements);
-                CarryAnimationTiming(previousPage.Background, page.Background);
-                CarryAnimationTiming(previousPage.Foreground, page.Foreground);
+                CarryElementState(previousPage.Elements, page.Elements);
+                CarryElementState(previousPage.Background, page.Background);
+                CarryElementState(previousPage.Foreground, page.Foreground);
             }
         }
 
-        /// <summary>Walks two element lists together, carrying the timing across wherever the pair lines up.
+        /// <summary>Walks two element lists together, carrying the state across wherever the pair lines up.
         /// Position is what pairs them, since an element isn't required to carry an Id, and a pair that does carry differing ones is taken as a mismatch rather than trusted.
         /// </summary>
-        private static void CarryAnimationTiming(IReadOnlyList<Element> previousElements, IReadOnlyList<Element> elements)
+        private static void CarryElementState(IReadOnlyList<Element> previousElements, IReadOnlyList<Element> elements)
         {
             int elementCount = Math.Min(previousElements.Count, elements.Count);
 
@@ -325,12 +325,16 @@ namespace Parchment.Framework.UI.Menus
                 element.AnimationStartedAt = previousElement.AnimationStartedAt;
                 element.HoverAnimationStartedAt = previousElement.HoverAnimationStartedAt;
 
+                // Carried too, or a refresh in the same breath as a ShowElement would take the element straight back down
+                element.ShownAt = previousElement.ShownAt;
+                element.IsVisible = previousElement.IsVisible;
+
                 // Mapped rather than copied, or the first frame of every animation would run its actions again on each refresh
                 element.LastPlayedFrame = MapPlayedFrame(previousElement, element);
 
-                CarryAnimationTiming(previousElement.Children, element.Children);
-                CarryAnimationTiming(previousElement.Background, element.Background);
-                CarryAnimationTiming(previousElement.Foreground, element.Foreground);
+                CarryElementState(previousElement.Children, element.Children);
+                CarryElementState(previousElement.Background, element.Background);
+                CarryElementState(previousElement.Foreground, element.Foreground);
             }
         }
 
