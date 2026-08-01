@@ -157,7 +157,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             int caretWidth = Math.Max(1, (int)(2f * inputLayout.TextScale));
             int caretX = Math.Min(textBounds.X + (int)textWidth, textBounds.Right - caretWidth);
 
-            spriteBatch.Draw(Game1.staminaRect, new Rectangle(caretX, textBounds.Y, caretWidth, (int)inputLayout.LineHeight), element.TextColor);
+            spriteBatch.Draw(Game1.staminaRect, new Rectangle(caretX, textBounds.Y, caretWidth, (int)inputLayout.LineHeight), element.TextColor * element.DrawAlpha);
         }
 
         public override Rectangle GetContentBounds(Element element, Rectangle bounds)

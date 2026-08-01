@@ -86,6 +86,14 @@ namespace Parchment.Framework.API
         /// <summary>A game state query deciding whether the element appears.</summary>
         IElementBuilder Condition(string condition);
 
+        /// <summary>How long the element stays up once shown, in seconds. Setting this makes the element a timed one: it starts hidden and only appears when a ShowElement action names it, so it needs an Id too.
+        /// Showing it again while it's up restarts the count rather than stacking another on.
+        /// </summary>
+        IElementBuilder Lifetime(float lifetime);
+
+        /// <summary>How long the element holds before it starts fading, in seconds, reaching nothing at the end of its Lifetime. Left alone, it holds the whole time and then goes at once.</summary>
+        IElementBuilder FadeAfter(float fadeAfter);
+
         /// <summary>Lets the cursor pass straight through the element to whatever sits beneath it, leaving it unhoverable and unclickable.
         /// It doesn't carry down, so a decorative container can let the cursor through while the elements inside it stay reachable.
         /// Registration fails when the element also carries a click or hover action, or when its type has to be clickable to work at all, such as an Input.

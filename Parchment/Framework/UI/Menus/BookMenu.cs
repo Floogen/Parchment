@@ -163,6 +163,40 @@ namespace Parchment.Framework.UI.Menus
             DetermineHotspotPositions();
         }
 
+        /// <summary>Puts up an element that has been waiting on a ShowElement, restarting its <see cref="ElementData.Lifetime"/> from now.
+        /// Showing one that's already up restarts it rather than adding a second, so repeated presses extend it instead of stacking.
+        /// </summary>
+        public bool TryShowElement(string elementId, out string error)
+        {
+            double shownAt = AnimationHelper.GetAnimationTime();
+            bool hasShownAny = false;
+
+            foreach (Element element in Book.FindElementsById(elementId))
+            {
+                if (element.Data.Lifetime is null)
+                {
+                    continue;
+                }
+
+                element.ShownAt = shownAt;
+                element.IsVisible = true;
+                hasShownAny = true;
+            }
+
+            if (hasShownAny is false)
+            {
+                error = $"the book '{Book.Data.Id}' has no element with the ID '{elementId}' carrying a \"Lifetime\", which is what an element needs to be shown this way";
+                return false;
+            }
+
+            // The element it belongs to may have been sized out of the layout while it was away
+            Book.InvalidateLayout();
+
+            error = null;
+
+            return true;
+        }
+
         /// <summary>Takes the callback that rebuilds this book, handed over by the builder that opened it.</summary>
         public void SetRefreshCallback(Action? onRefresh)
         {

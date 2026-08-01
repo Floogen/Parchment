@@ -136,7 +136,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             // A frame offset is a plain screen-space shift applied after the origin compensation, so rotation and the frame scale don't turn it into an arc
             Vector2 frameOffset = AnimationHelper.GetFrameOffset(activeFrame, imageLayout.DrawScale);
 
-            spriteBatch.Draw(element.Texture, drawPosition + frameOffset, frameRectangle, element.TintColor, imageLayout.Rotation, imageLayout.Origin, frameScale, data.SpriteEffects, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, drawPosition + frameOffset, frameRectangle, element.TintColor * element.DrawAlpha, imageLayout.Rotation, imageLayout.Origin, frameScale, data.SpriteEffects, LAYER_DEPTH);
 
             if (imageLayout.WrappedText is null)
             {

@@ -15,6 +15,9 @@ namespace Parchment.Framework.Utilities.Helpers
     {
         public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale)
         {
+            // Every text element draws through here, so this is the only place text has to be told about a fade
+            Color fadedColor = textColor * element.DrawAlpha;
+
             float currentY = bounds.Y;
             foreach (WrappedLine line in wrappedText.Lines)
             {
@@ -26,7 +29,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 if (line.Text.Length > 0)
                 {
                     float lineX = AlignmentHelper.GetAlignedX(bounds, line.Size.X, element.Data.Alignment);
-                    element.Font.DrawString(spriteBatch, line.Text, new Vector2(lineX, currentY), textColor, scale);
+                    element.Font.DrawString(spriteBatch, line.Text, new Vector2(lineX, currentY), fadedColor, scale);
                 }
 
                 currentY += line.Size.Y;

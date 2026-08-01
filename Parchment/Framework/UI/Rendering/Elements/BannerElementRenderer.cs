@@ -107,12 +107,12 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return;
             }
 
-            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), bannerLayout.LeftSource, element.TintColor, 0f, Vector2.Zero, data.Scale, SpriteEffects.None, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), bannerLayout.LeftSource, element.TintColor * element.DrawAlpha, 0f, Vector2.Zero, data.Scale, SpriteEffects.None, LAYER_DEPTH);
 
             Rectangle middleDestination = new Rectangle(bounds.X + bannerLayout.CapWidth, bounds.Y, bounds.Width - bannerLayout.CapWidth * 2, bounds.Height);
-            spriteBatch.Draw(element.Texture, middleDestination, bannerLayout.MiddleSource, element.TintColor, 0f, Vector2.Zero, SpriteEffects.None, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, middleDestination, bannerLayout.MiddleSource, element.TintColor * element.DrawAlpha, 0f, Vector2.Zero, SpriteEffects.None, LAYER_DEPTH);
 
-            spriteBatch.Draw(element.Texture, new Vector2(bounds.Right - bannerLayout.CapWidth, bounds.Y), bannerLayout.RightSource, element.TintColor, 0f, Vector2.Zero, data.Scale, SpriteEffects.None, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, new Vector2(bounds.Right - bannerLayout.CapWidth, bounds.Y), bannerLayout.RightSource, element.TintColor * element.DrawAlpha, 0f, Vector2.Zero, data.Scale, SpriteEffects.None, LAYER_DEPTH);
 
             Rectangle textBounds = new Rectangle(
                 bounds.X + bannerLayout.CapWidth + bannerLayout.Padding + bannerLayout.Offset.X,

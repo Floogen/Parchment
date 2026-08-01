@@ -229,6 +229,8 @@ Most methods are named after the field they set, so anything you've written in a
 | `Sound(sound)` | `Sound` |
 | `Condition(condition)` | `Condition` |
 | `IgnoreCursor(ignoreCursor)` | `IgnoreCursor`. The argument is optional and defaults to `true`. |
+| `Lifetime(lifetime)` | `Lifetime` |
+| `FadeAfter(fadeAfter)` | `FadeAfter` |
 | `Sizing(mode)` | `Sizing`, one of `"Fill"`, `"ShrinkToFit"`, `"Fixed"` |
 | `Width(width)` / `Height(height)` | `Width` and `Height`. `Width` is taken by a [`Panel`](elements/panel.md), [`Divider`](elements/divider.md), [`Banner`](elements/banner.md) or [`Input`](elements/input.md) with a `Fixed` `Sizing`, and by a [`Paragraph`](elements/paragraph.md) on its own. `Height` is a Panel's or an `Input`'s. |
 | `Padding(padding)` | `Padding` |

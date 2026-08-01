@@ -76,6 +76,16 @@ namespace Parchment.Framework.Models.Data.Elements
         /// <summary>A game state query determining whether this element appears. When null, the element always appears. Checked periodically while the book is open.</summary>
         public string? Condition { get; set; }
 
+        /// <summary>How long the element stays up once shown, in seconds. An element with this set starts hidden and only appears when a ShowElement action names it, so it comes and goes rather than being part of the page.
+        /// Showing it again while it's still up restarts the count rather than stacking another one on.
+        /// </summary>
+        public float? Lifetime { get; set; }
+
+        /// <summary>How long the element holds at full strength before it starts fading, in seconds, reaching nothing at the end of its <see cref="Lifetime"/>.
+        /// Left out, it holds for the whole lifetime and then goes at once.
+        /// </summary>
+        public float? FadeAfter { get; set; }
+
         /// <summary>Whether the cursor passes straight through this element to whatever sits beneath it, leaving it unhoverable and unclickable.
         /// It doesn't carry down, so a decorative container can let the cursor through while its children and its own layers stay reachable.
         /// This is what makes an element transparent in a list that is hit-tested whatever it holds, such as <see cref="PageData.Elements"/> or a book's Underlay and Overlay.
@@ -148,6 +158,34 @@ namespace Parchment.Framework.Models.Data.Elements
             if (SpacingAfter < 0)
             {
                 return (false, $"\"SpacingAfter\" cannot be negative.");
+            }
+
+            if (Lifetime is float lifetime && lifetime <= 0f)
+            {
+                return (false, $"\"Lifetime\" must be above zero, as an element that expires the moment it appears would never be seen.");
+            }
+
+            if (FadeAfter is float fadeAfter)
+            {
+                if (Lifetime is not float fadeLifetime)
+                {
+                    return (false, $"\"FadeAfter\" needs a \"Lifetime\" to fade towards.");
+                }
+
+                if (fadeAfter < 0f)
+                {
+                    return (false, $"\"FadeAfter\" cannot be negative.");
+                }
+
+                if (fadeAfter >= fadeLifetime)
+                {
+                    return (false, $"\"FadeAfter\" of {fadeAfter} must be below \"Lifetime\" of {fadeLifetime}, or the fade would have no time to run.");
+                }
+            }
+
+            if (Lifetime is not null && string.IsNullOrWhiteSpace(Id) is true)
+            {
+                return (false, $"\"Lifetime\" needs an \"Id\", as a ShowElement action has no other way to name the element.");
             }
 
             if (IgnoreCursor && IsAlwaysInteractive)

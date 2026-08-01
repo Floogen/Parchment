@@ -23,6 +23,11 @@ namespace Parchment.Framework.Models
 
         public bool IsVisible { get; set; } = true;
 
+        /// <summary>When a ShowElement action last put this element up, in the same clock the animations run on. Null until something does,
+        /// which is what keeps an element with a <see cref="ElementData.Lifetime"/> out of the way until it's wanted.
+        /// </summary>
+        public double? ShownAt { get; set; }
+
         public string? DisplayName { get; set; }
         public string? Description { get; set; }
 
@@ -113,6 +118,52 @@ namespace Parchment.Framework.Models
 
         /// <summary>Whether this element currently has keyboard focus. Only an Input takes focus, and only one element in the book holds it at a time.</summary>
         public bool IsFocused { get; set; }
+
+        /// <summary>Whether an element on a timer is still within it. Always true for one without a <see cref="ElementData.Lifetime"/>, which is every element that stays put.</summary>
+        public bool IsWithinLifetime
+        {
+            get
+            {
+                if (Data.Lifetime is not float lifetime)
+                {
+                    return true;
+                }
+
+                // Never shown, so it's waiting rather than expired
+                if (ShownAt is not double shownAt)
+                {
+                    return false;
+                }
+
+                return AnimationHelper.GetAnimationTime() - shownAt < lifetime * 1000d;
+            }
+        }
+
+        /// <summary>How strongly to draw the element, being one for everything that isn't partway through fading out.
+        /// Read at draw time rather than stored, so the fade runs at the frame rate instead of stepping on the condition refresh.
+        /// </summary>
+        public float DrawAlpha
+        {
+            get
+            {
+                if (Data.Lifetime is not float lifetime || Data.FadeAfter is not float fadeAfter || ShownAt is not double shownAt)
+                {
+                    return 1f;
+                }
+
+                double elapsed = (AnimationHelper.GetAnimationTime() - shownAt) / 1000d;
+
+                if (elapsed <= fadeAfter)
+                {
+                    return 1f;
+                }
+
+                // IsValid keeps FadeAfter below Lifetime, so this can't divide by zero
+                float remaining = (float)(1d - ((elapsed - fadeAfter) / (lifetime - fadeAfter)));
+
+                return Math.Clamp(remaining, 0f, 1f);
+            }
+        }
 
         /// <summary>Whether this element does anything when the cursor reaches it, whether that is a tooltip, an action or a swap to hover art.
         /// Absolutely positioned layers such as <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/> use this so purely decorative art passes the cursor through to whatever sits under it.

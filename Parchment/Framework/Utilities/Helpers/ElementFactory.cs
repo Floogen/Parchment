@@ -104,7 +104,8 @@ namespace Parchment.Framework.Utilities.Helpers
             {
                 DisplayName = displayName,
                 Description = description,
-                IsVisible = isVisible,
+                // An element on a timer waits to be shown, whatever its condition says
+                IsVisible = isVisible && data.Lifetime is null,
                 Results = data is GridElementData sourceGrid && sourceGrid.Source is not null ? new ResultSet(sourceGrid.Source) : null,
                 Font = font,
                 TextColor = ResolveTextColor(data) ?? Game1.textColor,

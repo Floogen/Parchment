@@ -36,6 +36,7 @@ namespace Parchment.Framework.Managers
         public const string CLEAR_SEEN = "PeacefulEnd.Parchment_ClearSeen";
 
         public const string REFRESH_BOOK = "PeacefulEnd.Parchment_RefreshBook";
+        public const string SHOW_ELEMENT = "PeacefulEnd.Parchment_ShowElement";
 
         public const string SET_VARIABLE = "PeacefulEnd.Parchment_SetVariable";
         public const string CLEAR_VARIABLE = "PeacefulEnd.Parchment_ClearVariable";
@@ -72,6 +73,7 @@ namespace Parchment.Framework.Managers
             TriggerActionManager.RegisterAction(CLEAR_SEEN, ClearSeen);
 
             TriggerActionManager.RegisterAction(REFRESH_BOOK, RefreshBook);
+            TriggerActionManager.RegisterAction(SHOW_ELEMENT, ShowElement);
 
             TriggerActionManager.RegisterAction(SET_VARIABLE, SetVariable);
             TriggerActionManager.RegisterAction(CLEAR_VARIABLE, ClearVariable);
@@ -226,6 +228,22 @@ namespace Parchment.Framework.Managers
             }
 
             return bookMenu.TryRunRefreshCallback(out error);
+        }
+
+        /// <summary>Puts up an element that's waiting on its Lifetime, which is how something appears in response to what the reader did rather than sitting on the page.</summary>
+        public bool ShowElement(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string elementId, out error, name: "string elementId") is false)
+            {
+                return false;
+            }
+
+            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            {
+                return false;
+            }
+
+            return bookMenu.TryShowElement(elementId, out error);
         }
 
         public bool CloseBook(string[] args, TriggerActionContext context, out string error)

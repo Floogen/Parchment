@@ -91,6 +91,37 @@ namespace Parchment.Framework.Models
         }
 
         /// <summary>Forces the next draw to lay the book's own layers out again.</summary>
+        /// <summary>Finds every element in the book carrying an ID, wherever it sits. A timed element can be placed anywhere, so this looks past the pages on screen rather than only at them.
+        /// All matches are returned rather than the first, so an ID reused across pages brings up the same thing on each of them.
+        /// </summary>
+        public IEnumerable<Element> FindElementsById(string elementId)
+        {
+            foreach (Element element in FindElementsById(Underlay, elementId)) { yield return element; }
+            foreach (Element element in FindElementsById(Overlay, elementId)) { yield return element; }
+
+            foreach (Page page in Pages)
+            {
+                foreach (Element element in FindElementsById(page.Background, elementId)) { yield return element; }
+                foreach (Element element in FindElementsById(page.Elements, elementId)) { yield return element; }
+                foreach (Element element in FindElementsById(page.Foreground, elementId)) { yield return element; }
+            }
+        }
+
+        private static IEnumerable<Element> FindElementsById(IReadOnlyList<Element> elements, string elementId)
+        {
+            foreach (Element element in elements)
+            {
+                if (string.Equals(element.Data.Id, elementId, StringComparison.OrdinalIgnoreCase) is true)
+                {
+                    yield return element;
+                }
+
+                foreach (Element child in FindElementsById(element.Children, elementId)) { yield return child; }
+                foreach (Element child in FindElementsById(element.Background, elementId)) { yield return child; }
+                foreach (Element child in FindElementsById(element.Foreground, elementId)) { yield return child; }
+            }
+        }
+
         public void InvalidateLayout()
         {
             LastLayoutContext = null;

@@ -90,6 +90,7 @@ These only work while a book is open, apart from `MarkSeen`, `ClearSeen` and the
 | `PeacefulEnd.Parchment_ClearVariable` | `<bookId> <variableId>...` | Return one or more of a book's variables to their declared `Default`. |
 | `PeacefulEnd.Parchment_ToggleVariable` | `<bookId> <variableId>...` | Flip one or more `Boolean` variables. |
 | `PeacefulEnd.Parchment_IncrementVariable` | `<bookId> <variableId> [amount]` | Move a `Number` variable by `amount`, which defaults to `1`. Negative steps down. |
+| `PeacefulEnd.Parchment_ShowElement` | `<elementId>` | Put up an element carrying a `Lifetime`. See [Timed elements](#timed-elements). |
 | `PeacefulEnd.Parchment_RefreshBook` | | Ask the open book to rebuild itself. Only works for a [book built in C#](../reference/building-books.md#refreshing-an-open-book) whose builder was given an `OnRefresh`. |
 
 ### Skipping the turn
@@ -185,6 +186,30 @@ A duplicate `Id` resolves to the first match in book order, which is why the opt
 ```
 
 Both of these land on a spread rather than a single page. Asking for the right-hand page of a spread shows that spread, so `JumpToChapterPage rites 1` and `JumpToChapterPage rites 0` look the same.
+
+## Timed elements
+
+An element with a `Lifetime` isn't part of the page. It starts hidden, appears when `ShowElement` names it and takes itself away when its time is up. Any type can do this, so it suits a warning bubble, a stamp that lands on a completed page or an icon that flashes up to confirm something:
+
+```json title="content.json"
+{
+  "Id": "noSlotsBubble",
+  "Type": "Banner",
+  "Text": "{{i18n: bookmarks.full}}",
+  "Lifetime": 3,
+  "FadeAfter": 2,
+  "IgnoreCursor": true
+}
+```
+
+That holds for two seconds, fades over the third and goes. Pressing again while it's still up restarts the three seconds rather than putting up a second one.
+
+!!! tip "Set `IgnoreCursor` on anything drawn over the page"
+    A timed element sitting over the page would otherwise take the clicks meant for whatever is under it, including the button that brought it up.
+
+A `Condition` still applies alongside the timer, and both have to pass, so a timed element can be tied to where the reader is as well as to how long it has been up. `ShowElement` finds the element wherever it sits, so an ID used on several pages brings it up on each of them.
+
+---
 
 ## Session flags
 
