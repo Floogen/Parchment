@@ -30,12 +30,11 @@
         /// </summary>
         IVariableBuilder AddVariable(string variableId);
 
-        /// <summary>Runs a trigger action when the given keybind is pressed on any page of this book, taking the button over from the menu.
-        /// A page binding the same button wins, and this is left alone while that page is on screen.</summary>
-        IBookBuilder OnKeyPress(string keybind, string action);
-
-        /// <summary>The same, gated by a game state query checked at the moment the button is pressed.</summary>
-        IBookBuilder OnKeyPress(string keybind, string action, string condition);
+        /// <summary>Adds a keybind pressed on any page of this book and returns its builder, taking the button over from the menu.
+        /// A page binding the same button wins, and this is left alone while that page is on screen.
+        /// At least one Action is required, and a keybind without one is reported when the book is registered.
+        /// </summary>
+        IKeybindBuilder OnKeyPress(string keybind);
 
         /// <summary>Validates the book and registers it. Registered books are added to Data/PeacefulEnd.Parchment/Books before content
         /// packs are applied, so Content Patcher can still edit them. Registering the same book ID again replaces your earlier registration.</summary>

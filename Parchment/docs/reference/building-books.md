@@ -64,8 +64,7 @@ You can only remove books your own mod registered. Books from content packs, and
 | `AddUnderlay(type)` | Adds an element drawn behind the book sprite. |
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
 | `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. |
-| `OnKeyPress(keybind, action)` | Runs a trigger action when the key is pressed on any page of the book. A page binding the same key takes it over. |
-| `OnKeyPress(keybind, action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
+| `OnKeyPress(keybind)` | Adds a key pressed on any page of the book and returns its [keybind builder](#the-keybind-builder). A page binding the same key takes it over. |
 | `TryRegister(out error)` | Validates and registers the book. |
 | `TryOpen(out error)` | Validates and opens the book without registering it. |
 
@@ -91,8 +90,25 @@ You can only remove books your own mod registered. Books from content packs, and
 | `Tag(tag)` | Adds a keyword for a contents entry or search box to match against. Call it more than once to build a list. |
 | `OnView(action)` | Runs a trigger action each time the page becomes visible. |
 | `OnView(action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
-| `OnKeyPress(keybind, action)` | Runs a trigger action when the key is pressed while the page is visible, taking the key over from the menu and from the book's own binds. |
-| `OnKeyPress(keybind, action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
+| `OnKeyPress(keybind)` | Adds a key pressed while the page is visible and returns its [keybind builder](#the-keybind-builder), taking the key over from the menu and from the book's own binds. |
+
+## The keybind builder
+
+`OnKeyPress` returns this, on the book builder and on the page builder alike. It reaches everything [`OnKeyPress`](book.md#on-key-press) offers, and follows the same rule as `AddPage` and the `Add` element methods: it hands back the new keybind's builder rather than the thing you called it on.
+
+| Method | Sets |
+| --- | --- |
+| `Set(field, value)` | Any keybind field by name. |
+| `Action(action)` | Adds one action. Call it more than once to run several in order, and at least one is required. |
+| `Condition(condition)` | `Condition` |
+| `Sound(sound)` | `Sound` |
+| `SuppressDefault(suppressDefault)` | `SuppressDefault`. The argument is optional and defaults to `true`. |
+
+```cs title="Going back, and remembering that the reader knows how"
+book.OnKeyPress("Escape").Action("PeacefulEnd.Parchment_GoBack").Action($"PeacefulEnd.Parchment_SetVariable {BOOK_ID} seenEscapeHint true").Sound("shwip");
+```
+
+That pairs with a hint drawn only while the variable is false, which the reader dismisses by doing the thing it describes. A `Global` [variable](variables.md) makes it once per player rather than once per save.
 
 ## The variable builder
 

@@ -19,7 +19,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<ElementBuilder> _foreground = new List<ElementBuilder>();
         private readonly List<string> _tags = new List<string>();
         private readonly List<(string Action, string? Condition)> _onView = new List<(string Action, string? Condition)>();
-        private readonly List<(string Keybind, string Action, string? Condition)> _onKeyPress = new List<(string Keybind, string Action, string? Condition)>();
+        private readonly List<KeybindBuilder> _onKeyPress = new List<KeybindBuilder>();
         private readonly BookBuilder? _owner;
 
         public string PageId { get { return _pageId; } }
@@ -101,18 +101,12 @@ namespace Parchment.Framework.API.Builders
             return this;
         }
 
-        public IPageBuilder OnKeyPress(string keybind, string action)
+        public IKeybindBuilder OnKeyPress(string keybind)
         {
-            _onKeyPress.Add((keybind, action, null));
+            var keybindBuilder = new KeybindBuilder(keybind);
+            _onKeyPress.Add(keybindBuilder);
 
-            return this;
-        }
-
-        public IPageBuilder OnKeyPress(string keybind, string action, string condition)
-        {
-            _onKeyPress.Add((keybind, action, condition));
-
-            return this;
+            return keybindBuilder;
         }
 
         public IPageBuilder RemoveLast()
@@ -239,9 +233,16 @@ namespace Parchment.Framework.API.Builders
             if (_onKeyPress.Count > 0)
             {
                 var keybinds = new List<KeybindData>();
-                foreach (var keybind in _onKeyPress)
+
+                foreach (KeybindBuilder keybindBuilder in _onKeyPress)
                 {
-                    keybinds.Add(new KeybindData() { Keybind = keybind.Keybind, Condition = keybind.Condition, Actions = new List<string>() { keybind.Action } });
+                    if (keybindBuilder.TryBuild(out KeybindData keybind, out error) is false)
+                    {
+                        error = $"keybind \"{keybindBuilder.Keybind}\": {error}";
+                        return false;
+                    }
+
+                    keybinds.Add(keybind);
                 }
 
                 data.OnKeyPress = keybinds;
