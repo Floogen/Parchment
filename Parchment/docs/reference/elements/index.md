@@ -91,7 +91,7 @@ Every element understands these, whatever its type.
 
 Understood by [`Title`](title.md), [`Heading`](heading.md), [`Paragraph`](paragraph.md), [`Banner`](banner.md), [`Button`](button.md), [`Image`](image.md) and [`Input`](input.md).
 
-Any element's `Text` can carry [tokens](../../concepts/actions.md#tokens), placeholders replaced with something the book knows as the element is laid out.
+Any element's `Text` can carry [tokens](../../concepts/actions.md#tokens), placeholders replaced with something the book knows as the element is laid out. That covers Parchment's own `%Token%` forms and the game's `[Token]` [tokenizable strings](../../concepts/actions.md#game-tokens).
 
 --8<-- "text-content.md"
 

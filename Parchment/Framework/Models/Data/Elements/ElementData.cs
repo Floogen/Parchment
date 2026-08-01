@@ -24,6 +24,12 @@ namespace Parchment.Framework.Models.Data.Elements
         /// To override these behavior, simply set Description to an empty string (not null / not omitted)
         /// </summary>
         public string? Description { get; set; }
+
+        /// <summary>Whether the game's [Token] tokenizable strings are resolved in this element's text, alongside Parchment's own %Token% forms.
+        /// Set it to false when the text carries square brackets meant as ordinary punctuation, which the game would otherwise try to read as a token.
+        /// </summary>
+        public bool ParseTokenizableStrings { get; set; } = true;
+
         public abstract ElementType Type { get; }
 
         /// <summary>Where the element sits within the width available to it, and where each line of its text sits within the element.

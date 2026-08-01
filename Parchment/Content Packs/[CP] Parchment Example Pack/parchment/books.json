@@ -546,7 +546,7 @@
                     },
                     {
                       "Type": "Paragraph",
-                      "Text": "Much detail",
+                      "Text": "Example tokenizable strings: [FarmName] Farm. You've taken [FarmerStat stepsTaken] steps so far.",
                       "Alignment": "Center",
                       "SpacingAfter": 32
                     },

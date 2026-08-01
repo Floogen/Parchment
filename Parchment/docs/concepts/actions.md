@@ -281,7 +281,15 @@ Setting a variable doesn't rewrite anything by itself. A [`Condition`](condition
 
 ## Tokens
 
-A token is a placeholder replaced with something the book knows at the moment it's needed. They work in an action, resolved just before it runs, and in an element's [`Text`](../reference/elements/index.md), resolved as it's laid out. The same token means the same thing in both.
+A token is a placeholder replaced with something the book knows at the moment it's needed. They work in three places, and mean the same thing in each:
+
+| Where | Resolved |
+| --- | --- |
+| An `Action` or `HoverAction` | Just before the action runs. |
+| An element's [`Text`](../reference/elements/index.md) | As the element is laid out. |
+| An element's `DisplayName` and `Description` | As the cursor arrives, then again alongside conditions while it rests there. |
+
+These are Parchment's own tokens. Text and tooltips also understand the game's [tokenizable strings](#game-tokens), which are written in square brackets instead.
 
 | Token | Means |
 | --- | --- |
@@ -347,7 +355,53 @@ The list is fixed rather than reaching into the item for whatever it happens to 
 In an **action** a value is substituted already quoted, so a typed phrase arrives as one argument rather than several, and quotes the reader typed are dropped since trigger actions have no way to escape them. In **text** it's substituted as-is.
 
 !!! warning "Text tokens cost a relayout"
-    A token in text changes what the element measures, so the page is laid out again whenever one resolves differently. That's fine at typing speed, and worth thinking about if you ever point a token at something that changes every tick.
+    A token in text changes what the element measures, so the page is laid out again whenever one resolves differently. That's fine at typing speed, and worth thinking about if you ever point a token at something that changes every tick, such as `[FarmerStat stepsTaken]` while the player is walking.
+
+### Game tokens
+
+The game has a placeholder vocabulary of its own, written in square brackets, and any element's `Text`, `DisplayName` and `Description` understand it alongside Parchment's:
+
+```json title="A paragraph using game tokens"
+{
+  "Type": "Paragraph",
+  "Text": "Welcome to [FarmName] Farm. You've taken [FarmerStat stepsTaken] steps so far."
+}
+```
+
+The full list is on the wiki:
+
+> **[Modding: Tokenizable strings](https://stardewvalleywiki.com/Modding:Tokenizable_strings)**
+
+Parchment resolves its own tokens first, so one can be an argument to a game token. That's the same order [Content Patcher](https://stardewvalleywiki.com/Modding:Content_Patcher)'s `{{ }}` tokens expand in:
+
+```json title="A Grid result cell naming its item through the game"
+{
+  "Type": "Heading",
+  "Text": "[ItemName %Item%]"
+}
+```
+
+A value a Parchment token substitutes is always literal text. Square brackets in it are dropped rather than parsed, so an entry someone typed into an [`Input`](../reference/elements/input.md) can't turn itself into a token.
+
+A game token that picks at random, such as `[PositiveAdjective]`, settles on one value per element rather than rerolling. Text is re-resolved several times a second, and a token that answered differently each time would relayout the page with every answer.
+
+A tooltip works the same way, which is often where a game token earns its place:
+
+```json title="A decorative element with a tooltip the save fills in"
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/plaque",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 32, "Height": 32 },
+  "DisplayName": "[FarmName] Farm",
+  "Description": "Founded in [Season]. [FarmerStat stepsTaken] steps walked since."
+}
+```
+
+!!! warning "Square brackets are token syntax"
+    Text using brackets as ordinary punctuation, such as `see [fig. 1]`, is handed to the game as a token attempt. The game logs what it rejected and Parchment keeps your text as it was, so nothing is lost beyond a line in the log. Set `ParseTokenizableStrings: false` on the element to turn the pass off entirely.
+
+!!! note "Actions are the game's to parse"
+    Game tokens resolve in text only. An `Action` is handed to the game whole, and the game parses whichever of the action's arguments accept them. Resolving one early would split a value containing a space into several arguments.
 
 ## Combining with conditions
 

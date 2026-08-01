@@ -84,6 +84,10 @@ namespace Parchment.Framework.UI.Menus
 
         private Element? _hoveredElement;
 
+        // The hovered element's tooltip with its tokens resolved. Held here rather than resolved in the draw, which runs every frame while a tooltip is only worth resolving when something about it could have moved
+        private string? _hoveredDisplayName;
+        private string? _hoveredDescription;
+
         private Element? _focusedElement;
         private InputTextSubscriber? _focusedInput;
 
@@ -1071,6 +1075,8 @@ namespace Parchment.Framework.UI.Menus
 
             RefreshPageConditions(GetLeftPageIndex());
             RefreshPageConditions(GetRightPageIndex());
+
+            RefreshHoverText();
         }
 
         private void RefreshPageConditions(int pageIndex)
@@ -1137,11 +1143,42 @@ namespace Parchment.Framework.UI.Menus
 
             if (_hoveredElement is null)
             {
+                RefreshHoverText();
                 return;
             }
 
             _hoveredElement.IsHovered = true;
             RunHoverActions(_hoveredElement);
+
+            // Last, so a tooltip reading a variable one of those actions set shows the new value rather than the one it replaced
+            RefreshHoverText();
+        }
+
+        /// <summary>Resolves the tokens in the hovered element's tooltip, from the same vocabulary an element's text uses.
+        /// Refreshed on cursor entry and then alongside conditions, so a value that moves while the cursor rests on the element is followed rather than frozen at the moment it arrived.
+        /// </summary>
+        private void RefreshHoverText()
+        {
+            if (_hoveredElement is null)
+            {
+                _hoveredDisplayName = null;
+                _hoveredDescription = null;
+
+                return;
+            }
+
+            _hoveredDisplayName = ResolveHoverText(_hoveredElement.DisplayName, _hoveredElement);
+            _hoveredDescription = ResolveHoverText(_hoveredElement.Description, _hoveredElement);
+        }
+
+        private static string? ResolveHoverText(string? text, Element element)
+        {
+            if (string.IsNullOrEmpty(text) is true)
+            {
+                return text;
+            }
+
+            return TokenHelper.Resolve(text, element, quoteValues: false);
         }
 
         /// <summary>Runs an element's click actions in order, from <see cref="ElementData.Action"/> and then <see cref="ElementData.Actions"/>.
@@ -2282,15 +2319,15 @@ namespace Parchment.Framework.UI.Menus
 
             base.draw(b);
 
-            if (CurrentState is (MenuState.Ready or MenuState.Cover) && _hoveredElement is not null && (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false || string.IsNullOrEmpty(_hoveredElement.Description) is false))
+            if (CurrentState is (MenuState.Ready or MenuState.Cover) && _hoveredElement is not null && (string.IsNullOrEmpty(_hoveredDisplayName) is false || string.IsNullOrEmpty(_hoveredDescription) is false))
             {
-                if (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false && string.IsNullOrEmpty(_hoveredElement.Description) is true)
+                if (string.IsNullOrEmpty(_hoveredDisplayName) is false && string.IsNullOrEmpty(_hoveredDescription) is true)
                 {
-                    drawHoverText(b, _hoveredElement.DisplayName, Game1.smallFont);
+                    drawHoverText(b, _hoveredDisplayName, Game1.smallFont);
                 }
                 else
                 {
-                    drawHoverText(b, _hoveredElement.Description, Game1.smallFont, boldTitleText: _hoveredElement.DisplayName);
+                    drawHoverText(b, _hoveredDescription, Game1.smallFont, boldTitleText: _hoveredDisplayName);
                 }
             }
 
