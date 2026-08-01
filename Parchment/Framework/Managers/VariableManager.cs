@@ -1,3 +1,4 @@
+using Parchment.Framework.API.Builders;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Variables;
 using Parchment.Framework.Models.Enums;
@@ -78,11 +79,32 @@ namespace Parchment.Framework.Managers
         {
             declaration = null!;
 
-            if (TryGetBookData(bookId, out BookData bookData) is false)
+            if (TryGetBookData(bookId, out BookData bookData) is true)
             {
-                error = $"no book with the ID \"{bookId}\" is loaded or open";
+                return TryGetDeclarationFrom(bookData, bookId, variableId, out declaration, out error);
+            }
+
+            // A book being assembled right now isn't in the asset and isn't on screen, but it can already have declared what it's being asked about
+            if (Parchment.bookManager.TryGetLiveBuilder(bookId, out BookBuilder builder) is true)
+            {
+                if (builder.TryGetVariableDeclaration(variableId, out declaration) is true)
+                {
+                    error = null!;
+
+                    return true;
+                }
+
+                error = DescribeMissingWhileBuilding(bookId, variableId, builder.GetVariableIds());
                 return false;
             }
+
+            error = $"no book with the ID \"{bookId}\" is loaded, open or being built";
+            return false;
+        }
+
+        private static bool TryGetDeclarationFrom(BookData bookData, string bookId, string variableId, out VariableData declaration, out string error)
+        {
+            declaration = null!;
 
             if (bookData.Variables is null || bookData.Variables.Count is 0)
             {
@@ -92,7 +114,7 @@ namespace Parchment.Framework.Managers
 
             if (bookData.Variables.FirstOrDefault(variable => variable.Id.EqualsIgnoreCase(variableId)) is not VariableData match)
             {
-                error = $"the book \"{bookId}\" declares no variable named \"{variableId}\". It declares: {string.Join(", ", bookData.Variables.Select(variable => variable.Id))}";
+                error = DescribeMissingVariable(bookId, variableId, bookData.Variables.Select(variable => variable.Id));
                 return false;
             }
 
@@ -100,6 +122,29 @@ namespace Parchment.Framework.Managers
             error = null!;
 
             return true;
+        }
+
+        /// <summary>Explains a name that didn't resolve against a book still being assembled, where "it isn't declared" is only true of the moment it was asked.
+        /// A builder is a recipe read in the order it's written, so a variable declared further down the same method genuinely doesn't exist yet, and the fix is to move the declaration above whatever reads it.
+        /// </summary>
+        private static string DescribeMissingWhileBuilding(string bookId, string variableId, IEnumerable<string> declaredIds)
+        {
+            var declared = declaredIds.ToList();
+            string declaredSoFar = declared.Count is 0 ? "nothing has been declared on it yet" : $"so far it declares: {string.Join(", ", declared)}";
+
+            return $"the book \"{bookId}\" hasn't declared \"{variableId}\" yet. It's still being built, and a variable is only readable after the AddVariable that declares it, so move that declaration above whatever reads it ({declaredSoFar})";
+        }
+
+        private static string DescribeMissingVariable(string bookId, string variableId, IEnumerable<string> declaredIds)
+        {
+            var declared = declaredIds.ToList();
+
+            if (declared.Count is 0)
+            {
+                return $"the book \"{bookId}\" declares no variables";
+            }
+
+            return $"the book \"{bookId}\" declares no variable named \"{variableId}\". It declares: {string.Join(", ", declared)}";
         }
 
         /// <summary>The variable's current value for a player, or its default when nothing has set it yet. A declared variable always answers with something.</summary>

@@ -145,6 +145,8 @@ A book [built in code](building-books.md) declares its variables through `AddVar
 book.AddVariable("units").Type("Text").Default("metric").Scope("Global").AllowedValue("metric").AllowedValue("imperial");
 ```
 
+A variable answers as soon as it's declared, so a book can read its own variables while it assembles itself, before `TryRegister` or `TryOpen` is reached. Declaring is still what makes it findable, so put `AddVariable` above whatever reads it.
+
 Everything after that works exactly as it does for a book from a content pack. The variable is keyed by the book's `Id`, so a book built in code and a book in a content pack sharing an ID would share values, which is one more reason to prefix book IDs with your mod's unique ID.
 
 !!! note "A `TryOpen` book keeps its variables to itself"

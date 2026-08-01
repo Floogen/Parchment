@@ -120,7 +120,7 @@ None of those are worth treating as a problem, so log at `Trace` rather than `Wa
 | `AddPage(pageId, chapterId)` | Adds a page belonging to a chapter. Pages sharing a chapter must be added together. |
 | `AddUnderlay(type)` | Adds an element drawn behind the book sprite. |
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
-| `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. |
+| `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. Readable straight away, before the book is registered or opened. |
 | `OnKeyPress(keybind)` | Adds a key pressed on any page of the book and returns its [keybind builder](#the-keybind-builder). A page binding the same key takes it over. |
 | `OnRefresh(onRefresh)` | What to run when the book is asked to rebuild. See [Refreshing an open book](#refreshing-an-open-book). |
 | `TryRegister(out error)` | Validates and registers the book. |

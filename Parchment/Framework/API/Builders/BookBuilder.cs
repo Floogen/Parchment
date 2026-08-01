@@ -172,6 +172,38 @@ namespace Parchment.Framework.API.Builders
             return true;
         }
 
+        /// <summary>Builds just one of the declared variables, for reading a declaration off a book that hasn't been registered or opened yet.
+        /// Only the named variable is built, so this says nothing about whether the book as a whole is valid.
+        /// </summary>
+        internal bool TryGetVariableDeclaration(string variableId, out VariableData declaration)
+        {
+            foreach (VariableBuilder variableBuilder in _variables)
+            {
+                if (string.Equals(variableBuilder.VariableId, variableId, StringComparison.OrdinalIgnoreCase) is false)
+                {
+                    continue;
+                }
+
+                if (variableBuilder.TryBuild(out declaration, out _) is true)
+                {
+                    return true;
+                }
+            }
+
+            declaration = null!;
+
+            return false;
+        }
+
+        /// <summary>Every variable ID the recipe declares, for reporting what a book offers when a name doesn't resolve.</summary>
+        internal IEnumerable<string> GetVariableIds()
+        {
+            foreach (VariableBuilder variableBuilder in _variables)
+            {
+                yield return variableBuilder.VariableId;
+            }
+        }
+
         /// <summary>Creates a fresh data object from the recipe, then runs the same validation content pack books go through.</summary>
         internal bool TryBuildValidated(out BookData book, out string error)
         {

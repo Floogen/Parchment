@@ -46,6 +46,10 @@ namespace Parchment.Framework.Managers
         // built data, so every asset load produces a fresh graph and Content Patcher's edits can't accumulate on the registered original.
         private readonly Dictionary<string, Dictionary<string, BookBuilder>> _modIdToRegisteredBooks = new Dictionary<string, Dictionary<string, BookBuilder>>(StringComparer.OrdinalIgnoreCase);
 
+        // Every builder handed out by CreateBook, keyed by the book ID it was created for. A book being assembled right now isn't in the asset yet,
+        // so this is what lets its variable declarations answer before the terminal call that would put it there.
+        private readonly Dictionary<string, BookBuilder> _bookIdToLiveBuilder = new Dictionary<string, BookBuilder>(StringComparer.OrdinalIgnoreCase);
+
         // Whether the books asset has been loaded at least once, so registrations made before then don't need to invalidate it
         private bool _hasLoadedBooks = false;
         private bool _hasPendingBookReload = false;
@@ -264,6 +268,31 @@ namespace Parchment.Framework.Managers
             return true;
         }
 
+        /// <summary>Records a builder against the book ID it was created for, so what it declares can be found before it's registered or opened.
+        /// Keyed by book ID, so a mod rebuilding the same book replaces its earlier builder rather than stacking up another one.
+        /// </summary>
+        public void TrackLiveBuilder(BookBuilder builder)
+        {
+            if (string.IsNullOrWhiteSpace(builder.BookId) is true)
+            {
+                return;
+            }
+
+            // A book ID another mod already registered stays theirs, so a builder can't answer for a book it doesn't own
+            if (TryGetOwningModId(builder.BookId, out string owningModId) is true && owningModId.EqualsIgnoreCase(builder.ModId) is false)
+            {
+                return;
+            }
+
+            _bookIdToLiveBuilder[builder.BookId] = builder;
+        }
+
+        /// <summary>The most recent builder created for a book ID, whether or not anything has been done with it yet.</summary>
+        public bool TryGetLiveBuilder(string bookId, out BookBuilder builder)
+        {
+            return _bookIdToLiveBuilder.TryGetValue(bookId, out builder!);
+        }
+
         /// <summary>Removes a book previously registered by the given mod. A mod can only remove its own books.</summary>
         public bool TryUnregisterBook(string modId, string bookId, out string error)
         {
@@ -278,6 +307,8 @@ namespace Parchment.Framework.Managers
                 error = $"{modId} hasn't registered a book with the ID \"{bookId}\"";
                 return false;
             }
+
+            _bookIdToLiveBuilder.Remove(bookId);
 
             RefreshBooksAsset();
             error = string.Empty;

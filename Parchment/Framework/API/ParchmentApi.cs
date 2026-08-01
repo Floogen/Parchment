@@ -18,7 +18,12 @@ namespace Parchment.Framework.API
 
         public IBookBuilder CreateBook(string bookId)
         {
-            return new BookBuilder(_modId, bookId);
+            var builder = new BookBuilder(_modId, bookId);
+
+            // Tracked up front, so a book that reads its own variables while assembling itself finds what it has already declared
+            Parchment.bookManager.TrackLiveBuilder(builder);
+
+            return builder;
         }
 
         public bool TryUnregisterBook(string bookId, out string error)
