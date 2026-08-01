@@ -1,4 +1,6 @@
-﻿namespace Parchment.Framework.API
+﻿using System;
+
+namespace Parchment.Framework.API
 {
     /// <summary>Builds a book in code. Obtained from <see cref="IParchmentApi.CreateBook"/>, then registered or opened through its own methods.</summary>
     public interface IBookBuilder
@@ -36,6 +38,12 @@
         /// </summary>
         IKeybindBuilder OnKeyPress(string keybind);
 
+        /// <summary>What to run when something asks this book to rebuild itself, being the PeacefulEnd.Parchment_RefreshBook action or a call to TryRefresh.
+        /// Assemble a fresh builder from your current state inside the callback and call TryRefresh on that one, as this builder holds the values it was already given.
+        /// Only takes effect on a book opened with TryOpen, since a registered book comes from the books asset rather than from a builder.
+        /// </summary>
+        IBookBuilder OnRefresh(Action onRefresh);
+
         /// <summary>Validates the book and registers it. Registered books are added to Data/PeacefulEnd.Parchment/Books before content
         /// packs are applied, so Content Patcher can still edit them. Registering the same book ID again replaces your earlier registration.</summary>
         /// <param name="error">Why the book was rejected, when this returns false.</param>
@@ -45,5 +53,11 @@
         /// route for a book whose contents are assembled fresh each time it's read.</summary>
         /// <param name="error">Why the book couldn't be opened, when this returns false.</param>
         bool TryOpen(out string error);
+
+        /// <summary>Rebuilds this book and swaps it into the menu the reader already has open, keeping them on the page they were reading.
+        /// A builder holds the values it was given rather than recomputing them, so assemble a fresh builder from your own current state and refresh with that one.
+        /// Flags, input text and seen pages are left alone, as this replaces the book inside the open menu rather than putting up a new one.</summary>
+        /// <param name="error">Why the book couldn't be refreshed, when this returns false. Nothing being open, something else being open and the book being mid-animation all report here rather than throwing.</param>
+        bool TryRefresh(out string error);
     }
 }

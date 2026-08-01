@@ -35,6 +35,8 @@ namespace Parchment.Framework.Managers
         public const string MARK_SEEN = "PeacefulEnd.Parchment_MarkSeen";
         public const string CLEAR_SEEN = "PeacefulEnd.Parchment_ClearSeen";
 
+        public const string REFRESH_BOOK = "PeacefulEnd.Parchment_RefreshBook";
+
         public const string SET_VARIABLE = "PeacefulEnd.Parchment_SetVariable";
         public const string CLEAR_VARIABLE = "PeacefulEnd.Parchment_ClearVariable";
         public const string TOGGLE_VARIABLE = "PeacefulEnd.Parchment_ToggleVariable";
@@ -67,6 +69,8 @@ namespace Parchment.Framework.Managers
 
             TriggerActionManager.RegisterAction(MARK_SEEN, MarkSeen);
             TriggerActionManager.RegisterAction(CLEAR_SEEN, ClearSeen);
+
+            TriggerActionManager.RegisterAction(REFRESH_BOOK, RefreshBook);
 
             TriggerActionManager.RegisterAction(SET_VARIABLE, SetVariable);
             TriggerActionManager.RegisterAction(CLEAR_VARIABLE, ClearVariable);
@@ -207,6 +211,19 @@ namespace Parchment.Framework.Managers
             }
 
             return bookMenu.TryJumpToLastPage(out error, skipAnimation);
+        }
+
+        /// <summary>Asks the open book to rebuild itself. Only a book opened from C# can, and only when its builder was given an OnRefresh callback,
+        /// as rebuilding means re-running the mod's own generating code. A book out of the books asset reports that plainly rather than appearing to work.
+        /// </summary>
+        public bool RefreshBook(string[] args, TriggerActionContext context, out string error)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu, out error) is false)
+            {
+                return false;
+            }
+
+            return bookMenu.TryRunRefreshCallback(out error);
         }
 
         public bool CloseBook(string[] args, TriggerActionContext context, out string error)

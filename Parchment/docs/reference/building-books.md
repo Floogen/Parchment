@@ -53,6 +53,63 @@ parchment.TryUnregisterBook("you.CampingGuide", out string error);
 
 You can only remove books your own mod registered. Books from content packs, and from other mods, are left alone.
 
+## Refreshing an open book
+
+A builder holds the values you gave it, not the code that produced them. `AddParagraph(fish.DisplayName)` stored the *string*, so rebuilding the same builder produces the same book however much the world has moved on. To change what a reader is looking at, assemble a **fresh** builder from your current state and hand that to `TryRefresh`:
+
+```csharp title="Responding to a setting the reader just changed"
+private void RefreshLogbook()
+{
+    IBookBuilder book = BuildLogbook();
+
+    if (book.TryRefresh(out string error) is false)
+    {
+        Monitor.Log($"Couldn't refresh the logbook, because {error}.", LogLevel.Trace);
+    }
+}
+```
+
+The reader keeps their place. Parchment notes the page they were on and returns them to it by ID, so a rebuild that adds or removes pages doesn't move them. When that page is gone entirely they land at the same position in the book instead.
+
+Flags, input text and seen pages all survive, since the book is swapped inside the open menu rather than a new one being put up. Nothing reopens, so there's no open animation.
+
+### Refreshing from inside the book
+
+A button in the book can ask for the rebuild itself, without your mod watching for the click. Hand the builder an `OnRefresh` when you open it:
+
+```csharp
+book.OnRefresh(RefreshLogbook);
+```
+
+Then `PeacefulEnd.Parchment_RefreshBook` runs it:
+
+```csharp
+settingsPage.AddButton("Show fish names", $"PeacefulEnd.Parchment_ToggleVariable {BOOK_ID} forceFishNames")
+    .Action("PeacefulEnd.Parchment_RefreshBook");
+```
+
+!!! warning "Put the refresh last"
+    Actions run in the order they're given, and the rebuild reads whatever the state is at the moment it runs. A refresh placed before the `ToggleVariable` would rebuild against the old value.
+
+The callback carries over each time, so the builder you pass to `TryRefresh` doesn't need its own `OnRefresh` unless you want to replace it. A refresh asking for another refresh while it's still running is ignored rather than recursing.
+
+The action reports plainly when the open book has no callback, which is every book from a content pack.
+
+| Returns false when | |
+| --- | --- |
+| Nothing is open | Or the open menu isn't a book |
+| A different book is open | Compared by book ID |
+| The book is mid-animation | Opening, turning, closing or going to its cover |
+| The rebuilt book is invalid | The same validation `TryOpen` runs |
+
+None of those are worth treating as a problem, so log at `Trace` rather than `Warn` unless you know the book should have been open.
+
+!!! tip "Conditions are often enough"
+    A refresh rebuilds everything. When the change is only *which* of a few known things to show, a [`Condition`](../concepts/conditions.md) on each variant is lighter and updates on its own within a few ticks. Reach for `TryRefresh` when the page count, ordering or content genuinely can't be known ahead of time.
+
+!!! warning "Registered books refresh differently"
+    `TryRefresh` is for books opened with `TryOpen`. A registered book comes from the books asset, so `TryRegister` plus an asset invalidation is how it updates, and a book edited while it's being read is reloaded when the reader closes it rather than under them.
+
 ## The book builder
 
 | Method | What it does |
@@ -65,8 +122,10 @@ You can only remove books your own mod registered. Books from content packs, and
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
 | `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. |
 | `OnKeyPress(keybind)` | Adds a key pressed on any page of the book and returns its [keybind builder](#the-keybind-builder). A page binding the same key takes it over. |
+| `OnRefresh(onRefresh)` | What to run when the book is asked to rebuild. See [Refreshing an open book](#refreshing-an-open-book). |
 | `TryRegister(out error)` | Validates and registers the book. |
 | `TryOpen(out error)` | Validates and opens the book without registering it. |
+| `TryRefresh(out error)` | Rebuilds and swaps into the open book, keeping the reader's page. See [Refreshing an open book](#refreshing-an-open-book). |
 
 ## The page builder
 

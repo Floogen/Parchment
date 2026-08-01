@@ -22,6 +22,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<ElementBuilder> _overlay = new List<ElementBuilder>();
         private readonly List<VariableBuilder> _variables = new List<VariableBuilder>();
         private readonly List<KeybindBuilder> _onKeyPress = new List<KeybindBuilder>();
+        private Action? _onRefresh;
 
         public string BookId { get { return _bookId; } }
 
@@ -41,6 +42,13 @@ namespace Parchment.Framework.API.Builders
         }
 
         public IBookBuilder Sprite(string spritePath) { return Set("SpritePath", spritePath); }
+
+        public IBookBuilder OnRefresh(Action onRefresh)
+        {
+            _onRefresh = onRefresh;
+
+            return this;
+        }
 
         public IKeybindBuilder OnKeyPress(string keybind)
         {
@@ -120,7 +128,46 @@ namespace Parchment.Framework.API.Builders
             }
 
             var book = new Book(bookData, Parchment.bookManager.ElementRegistry, Parchment.bookManager.FontResolver);
-            Game1.activeClickableMenu = new BookMenu(book);
+            var bookMenu = new BookMenu(book);
+
+            bookMenu.SetRefreshCallback(_onRefresh);
+            Game1.activeClickableMenu = bookMenu;
+
+            return true;
+        }
+
+        public bool TryRefresh(out string error)
+        {
+            if (Game1.activeClickableMenu is not BookMenu bookMenu)
+            {
+                error = "no book is open";
+                return false;
+            }
+
+            if (string.Equals(bookMenu.Book.Data.Id, _bookId, StringComparison.OrdinalIgnoreCase) is false)
+            {
+                error = $"the open book is \"{bookMenu.Book.Data.Id}\" rather than \"{_bookId}\"";
+                return false;
+            }
+
+            if (TryBuildValidated(out BookData bookData, out error) is false)
+            {
+                Parchment.monitor.Log($"{_modId} failed to refresh the book \"{_bookId}\", because {error}.", LogLevel.Warn);
+                return false;
+            }
+
+            var book = new Book(bookData, Parchment.bookManager.ElementRegistry, Parchment.bookManager.FontResolver);
+
+            if (bookMenu.TryRefreshBook(book, out error) is false)
+            {
+                return false;
+            }
+
+            // Carried over so the next refresh runs this builder's callback rather than the one the book was first opened with
+            if (_onRefresh is not null)
+            {
+                bookMenu.SetRefreshCallback(_onRefresh);
+            }
 
             return true;
         }

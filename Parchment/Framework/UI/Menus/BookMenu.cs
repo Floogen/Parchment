@@ -24,7 +24,7 @@ namespace Parchment.Framework.UI.Menus
 {
     public class BookMenu : IClickableMenu
     {
-        public Book Book { get; }
+        public Book Book { get; private set; }
 
         /// <summary>Covering shuts the book but stays in the menu, landing in Cover. Closing shuts it and leaves.</summary>
         public enum MenuState { Sliding, Opening, Ready, Turning, Covering, Cover, Closing }
@@ -42,9 +42,9 @@ namespace Parchment.Framework.UI.Menus
         private const float BOOK_LAYER_DEPTH = 0.86f;
         private const float CURL_LAYER_DEPTH = 0.99f;
 
-        private readonly BookAppearanceData _appearance;
-        private readonly PageCurlData _pageCurl;
-        private readonly BookAnimationData _animation;
+        private BookAppearanceData _appearance;
+        private PageCurlData _pageCurl;
+        private BookAnimationData _animation;
 
         // Adjust this for GSQ refresh rate check
         private const int CONDITION_REFRESH_INTERVAL = 6;
@@ -56,10 +56,10 @@ namespace Parchment.Framework.UI.Menus
         private bool _isExitButtonSuppressed = false;
 
         private readonly List<Rectangle> _openFrames = new List<Rectangle>();
-        private readonly List<Rectangle> _closeFrames = new List<Rectangle>();
+        private List<Rectangle> _closeFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageCurlFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageTurnFrames = new List<Rectangle>();
-        private readonly List<Rectangle> _pageTurnFramesReversed = new List<Rectangle>();
+        private List<Rectangle> _pageTurnFramesReversed = new List<Rectangle>();
 
         private Vector2 _currentPosition;
         private Vector2 _startPosition;
@@ -68,8 +68,8 @@ namespace Parchment.Framework.UI.Menus
         private Rectangle _previousPageHotspot;
         private Rectangle _nextPageHotspot;
 
-        private readonly Color _bookTintColor;
-        private readonly List<Page> _pages;
+        private Color _bookTintColor;
+        private List<Page> _pages;
 
         private int _currentChapterIndex = 0;
         private int _pendingChapterIndex;
@@ -99,12 +99,33 @@ namespace Parchment.Framework.UI.Menus
 
         private readonly bool _previousHudState;
 
+        /// <summary>What the owning mod runs when something asks the book to rebuild itself, set through the builder's OnRefresh. Null for a book with nothing to rebuild from, such as one out of the books asset.</summary>
+        private Action? _onRefresh;
+
+        // Guards against a refresh callback whose own actions ask for another refresh, which would otherwise recurse until the stack ran out
+        private bool _isRefreshing = false;
+
         public BookMenu(Book book) : base((int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).X, (int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).Y, 1280, 720, showUpperRightCloseButton: false)
         {
             Vector2 topLeft = Utility.getTopLeftPositionForCenteringOnScreen(base.width, base.height);
             base.xPositionOnScreen = (int)topLeft.X;
             base.yPositionOnScreen = (int)topLeft.Y;
 
+            ApplyBook(book);
+
+            // Cache HUD state
+            _previousHudState = Game1.displayHUD;
+            Game1.displayHUD = false;
+
+            DetermineSlidePositions();
+            DetermineHotspotPositions();
+        }
+
+        /// <summary>Takes on a book, being everything the menu reads out of <see cref="Models.Data.BookData"/> rather than out of the reader's session.
+        /// Shared by the constructor and <see cref="TryRefreshBook"/>, so a refreshed book is set up exactly as a freshly opened one is.
+        /// </summary>
+        private void ApplyBook(Book book)
+        {
             Book = book;
             _bookTintColor = ResolveBookTintColor(book.Data);
             _pages = book.Pages;
@@ -117,29 +138,125 @@ namespace Parchment.Framework.UI.Menus
             _bookGrayscaleTexture = string.IsNullOrWhiteSpace(_appearance.GrayscaleTexturePath) ? null : Parchment.modHelper.GameContent.Load<Texture2D>(_appearance.GrayscaleTexturePath);
             _pageCurlTexture = Parchment.modHelper.GameContent.Load<Texture2D>(_pageCurl.TexturePath);
 
+            _openFrames.Clear();
             for (int frameIndex = 0; frameIndex < _appearance.OpenFrameCount; frameIndex++)
             {
                 _openFrames.Add(new Rectangle(_appearance.FrameWidth * frameIndex, 0, _appearance.FrameWidth, _appearance.FrameHeight));
             }
             _closeFrames = Enumerable.Reverse(_openFrames).ToList();
 
+            _pageCurlFrames.Clear();
             for (int frameIndex = 0; frameIndex < _pageCurl.FrameCount; frameIndex++)
             {
                 _pageCurlFrames.Add(new Rectangle(_pageCurl.FrameWidth * frameIndex, 0, _pageCurl.FrameWidth, _pageCurl.FrameHeight));
             }
 
+            _pageTurnFrames.Clear();
             for (int frameIndex = _appearance.OpenFrameCount; frameIndex < _appearance.OpenFrameCount + _appearance.TurnFrameCount; frameIndex++)
             {
                 _pageTurnFrames.Add(new Rectangle(_appearance.FrameWidth * frameIndex, 0, _appearance.FrameWidth, _appearance.FrameHeight));
             }
             _pageTurnFramesReversed = Enumerable.Reverse(_pageTurnFrames).ToList();
 
-            // Cache HUD state
-            _previousHudState = Game1.displayHUD;
-            Game1.displayHUD = false;
-
             DetermineSlidePositions();
             DetermineHotspotPositions();
+        }
+
+        /// <summary>Takes the callback that rebuilds this book, handed over by the builder that opened it.</summary>
+        public void SetRefreshCallback(Action? onRefresh)
+        {
+            _onRefresh = onRefresh;
+        }
+
+        /// <summary>Asks the owning mod to rebuild the book, which it does by assembling a fresh builder and calling TryRefresh on it.
+        /// The rebuild is the mod's own work, as a builder holds the values it was given rather than the code that produced them, so Parchment has nothing to recompute on its behalf.
+        /// </summary>
+        public bool TryRunRefreshCallback(out string error)
+        {
+            if (_onRefresh is null)
+            {
+                error = $"the book '{Book.Data.Id}' has no refresh callback, which is set through the C# builder's OnRefresh";
+                return false;
+            }
+
+            if (_isRefreshing is true)
+            {
+                error = "a refresh is already running";
+                return false;
+            }
+
+            _isRefreshing = true;
+
+            try
+            {
+                _onRefresh();
+            }
+            finally
+            {
+                _isRefreshing = false;
+            }
+
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Swaps in a rebuilt version of the book the reader already has open, keeping them where they were.
+        /// This is how content generated in C# responds to something changing under it, as a builder recipe holds the values it was given rather than recomputing them.
+        /// The reader is returned to the page they were on by its ID, falling back to the same position when the page is gone and to the start when even that is out of range.
+        /// Session state (flags, input text, seen pages) is untouched, as this replaces the book inside the living menu rather than putting up a new one.
+        /// </summary>
+        public bool TryRefreshBook(Book book, out string error)
+        {
+            if (CurrentState is not MenuState.Ready)
+            {
+                error = "the book isn't ready, as it's still opening, turning or closing";
+                return false;
+            }
+
+            if (book.Pages.Count is 0)
+            {
+                error = "the rebuilt book has no pages";
+                return false;
+            }
+
+            string? previousPageId = GetPageId(GetLeftPageIndex()) ?? GetPageId(GetRightPageIndex());
+            int previousChapterIndex = _currentChapterIndex;
+            int previousSpread = _currentSpread;
+
+            // Dropped before the pages behind it are, as the element it points at is about to be thrown away
+            SetHoveredElement(null);
+            ClearInputFocus();
+
+            ApplyBook(book);
+
+            RestoreReadingPosition(previousPageId, previousChapterIndex, previousSpread);
+            RefreshVisiblePages();
+
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Puts the reader back where they were after a refresh, preferring the page they were reading over the position it happened to sit at.</summary>
+        private void RestoreReadingPosition(string? pageId, int chapterIndex, int spread)
+        {
+            if (pageId is not null)
+            {
+                int pageIndex = FindPageIndex(pageId, chapterFilter: -1);
+
+                if (pageIndex >= 0)
+                {
+                    _currentChapterIndex = Book.GetChapterIndexForPage(pageIndex);
+                    _currentSpread = (pageIndex - GetChapter(_currentChapterIndex).FirstPageIndex) / 2;
+
+                    return;
+                }
+            }
+
+            // The page is gone, so the same place in the book is the next best thing
+            _currentChapterIndex = Math.Clamp(chapterIndex, 0, Book.Chapters.Count - 1);
+            _currentSpread = Math.Clamp(spread, 0, GetSpreadCount() - 1);
         }
 
         // Public methods for game state queries

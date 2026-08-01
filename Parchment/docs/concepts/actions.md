@@ -89,6 +89,7 @@ These only work while a book is open, apart from `MarkSeen`, `ClearSeen` and the
 | `PeacefulEnd.Parchment_SetVariable` | `<bookId> <variableId> <value>` | Set a [variable](../reference/variables.md) a book declares. Everything past the variable ID counts as the value. |
 | `PeacefulEnd.Parchment_ClearVariable` | `<bookId> <variableId>...` | Return one or more of a book's variables to their declared `Default`. |
 | `PeacefulEnd.Parchment_ToggleVariable` | `<bookId> <variableId>...` | Flip one or more `Boolean` variables. |
+| `PeacefulEnd.Parchment_RefreshBook` | | Ask the open book to rebuild itself. Only works for a [book built in C#](../reference/building-books.md#refreshing-an-open-book) whose builder was given an `OnRefresh`. |
 
 ### Skipping the turn
 
@@ -220,6 +221,23 @@ Where a flag is a name that lasts the reading, a [variable](../reference/variabl
 Every variable action names the book that declares it, so they work from `Data/TriggerActions` as readily as from a button inside the book. The `%Variable:id%` token is the exception, since it only appears inside a book's text and takes that book as read.
 
 Unlike flags, variables are per book and have to be declared. See [Variables](../reference/variables.md) for the declaration and what it buys you.
+
+### Making the page respond
+
+Setting a variable doesn't rewrite anything by itself. A [`Condition`](conditions.md#variables) on each element is what makes a page respond, and it does so within a few ticks of the click:
+
+```json title="content.json"
+{
+  "Type": "Paragraph",
+  "Text": "{{i18n: spoiler.pufferfish}}",
+  "Condition": "PeacefulEnd.Parchment_HasVariable {{ModId}}_Almanac showSpoilers true"
+}
+```
+
+!!! warning "A content pack can't rebuild a page"
+    Conditions are the whole story for a pack, so write out every variant and let them decide which shows. The [`Variables` token](../reference/variables.md#reading-one-from-content-patcher) reaches patches on Content Patcher's next context update, and an open menu pauses the clock that runs on, so a patch keyed on a variable won't re-apply while the book is being read.
+
+    `PeacefulEnd.Parchment_RefreshBook` doesn't help here either. Rebuilding means re-running the code that generated the pages, which only a C# book has.
 
 ## Tokens
 
