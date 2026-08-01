@@ -201,7 +201,7 @@ Most methods are named after the field they set, so anything you've written in a
 | Method | Sets |
 | --- | --- |
 | `Set(field, value)` | Any [element field](elements/index.md) by name. |
-| `WithId(id)` | `Id` |
+| `WithId(id)` | `Id`. Needed by anything that names the element later, such as `ShowElement`. |
 | `Text(text)` | `Text` |
 | `Alignment(alignment)` | `Alignment`, one of `"Left"`, `"Center"`, `"Right"` |
 | `VerticalAlignment(alignment)` | `VerticalAlignment`, one of `"Top"`, `"Center"`, `"Bottom"`. Only used on a placed element |

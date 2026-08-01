@@ -185,7 +185,7 @@ namespace Parchment.Framework.Models.Data.Elements
 
             if (Lifetime is not null && string.IsNullOrWhiteSpace(Id) is true)
             {
-                return (false, $"\"Lifetime\" needs an \"Id\", as a ShowElement action has no other way to name the element.");
+                return (false, $"\"Lifetime\" needs an \"Id\" (set through WithId in code), as a ShowElement action has no other way to name the element.");
             }
 
             if (IgnoreCursor && IsAlwaysInteractive)

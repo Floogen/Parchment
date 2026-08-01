@@ -6,6 +6,9 @@ namespace Parchment.Framework.API
         /// <summary>The element's type name.</summary>
         string ElementType { get; }
 
+        /// <summary>The element's ID, or empty when it hasn't been given one. Unlike the other builders an element is created without an ID, since most never need one, so this reports what WithId set rather than what the element was made with.</summary>
+        string ElementId { get; }
+
         /// <summary>Sets any field on the element by name, for anything the methods below don't cover. Fields that don't exist on this
         /// element type are reported when the book is registered, along with the ones that do.</summary>
         IElementBuilder Set(string field, object? value);

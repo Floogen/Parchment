@@ -39,8 +39,13 @@ namespace Parchment.Framework.API.Builders
         private bool _sourceOrderDescending;
         private int? _sourceCount;
         private ElementBuilder? _sourceTemplate;
+        private string _elementId = string.Empty;
 
         public string ElementType { get { return _elementType; } }
+        public string ElementId { get { return _elementId; } }
+
+        /// <summary>How the element is named in a build error, being its type on its own until it has an ID to go with it.</summary>
+        private string Label { get { return string.IsNullOrWhiteSpace(_elementId) ? _elementType : $"{_elementType} \"{_elementId}\""; } }
 
         internal ElementBuilder(string elementType)
         {
@@ -50,6 +55,12 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder Set(string field, object? value)
         {
             _fields.Add((field, value));
+
+            // Tracked here rather than in WithId, so an ID set through Set is reported the same way
+            if (string.Equals(field, "Id", StringComparison.OrdinalIgnoreCase) is true)
+            {
+                _elementId = value as string ?? string.Empty;
+            }
 
             return this;
         }
@@ -323,7 +334,7 @@ namespace Parchment.Framework.API.Builders
             {
                 if (data is not InputElementData inputData)
                 {
-                    error = $"[{_elementType}] submit and text changed actions can only be added to an Input";
+                    error = $"[{Label}] submit and text changed actions can only be added to an Input";
                     return false;
                 }
 
@@ -352,14 +363,14 @@ namespace Parchment.Framework.API.Builders
             {
                 if (ModelBinder.TrySet(data, field.Field, field.Value, out string fieldError) is false)
                 {
-                    error = $"[{_elementType}] {fieldError}";
+                    error = $"[{Label}] {fieldError}";
                     return false;
                 }
             }
 
             if (_hasOrphanFrameModifier is true)
             {
-                error = $"[{_elementType}] FrameOffset or FrameAction was called before any frame was added";
+                error = $"[{Label}] FrameOffset or FrameAction was called before any frame was added";
                 return false;
             }
 
@@ -367,7 +378,7 @@ namespace Parchment.Framework.API.Builders
             {
                 if (data is not ImageElementData imageData)
                 {
-                    error = $"[{_elementType}] frames can only be added to an Image";
+                    error = $"[{Label}] frames can only be added to an Image";
                     return false;
                 }
 
@@ -386,13 +397,13 @@ namespace Parchment.Framework.API.Builders
             {
                 if (data is not GridElementData gridData)
                 {
-                    error = $"[{_elementType}] a source can only be added to a Grid";
+                    error = $"[{Label}] a source can only be added to a Grid";
                     return false;
                 }
 
                 if (_sourceTemplate is null)
                 {
-                    error = $"[{_elementType}] a source needs a template, added through AddSourceTemplate";
+                    error = $"[{Label}] a source needs a template, added through AddSourceTemplate";
                     return false;
                 }
 
@@ -406,7 +417,7 @@ namespace Parchment.Framework.API.Builders
                 {
                     if (string.Equals(_sourceOrder, SourceData.NoOrder, StringComparison.OrdinalIgnoreCase) is false && ItemPropertyResolver.IsKnown(_sourceOrder) is false)
                     {
-                        error = $"[{_elementType}] '{_sourceOrder}' is not an item property that can be ordered by. Try one of: {string.Join(", ", ItemPropertyResolver.GetNames())}, or \"{SourceData.NoOrder}\"";
+                        error = $"[{Label}] '{_sourceOrder}' is not an item property that can be ordered by. Try one of: {string.Join(", ", ItemPropertyResolver.GetNames())}, or \"{SourceData.NoOrder}\"";
                         return false;
                     }
 
@@ -420,7 +431,7 @@ namespace Parchment.Framework.API.Builders
             {
                 if (data is not IContainer container)
                 {
-                    error = $"[{_elementType}] children can only be added to a container such as a Panel";
+                    error = $"[{Label}] children can only be added to a container such as a Panel";
                     return false;
                 }
 
@@ -442,7 +453,7 @@ namespace Parchment.Framework.API.Builders
             {
                 if (data is not ILayeredContainer layeredContainer)
                 {
-                    error = $"[{_elementType}] a background or foreground can only be added to a layered container such as a Panel";
+                    error = $"[{Label}] a background or foreground can only be added to a layered container such as a Panel";
                     return false;
                 }
 
