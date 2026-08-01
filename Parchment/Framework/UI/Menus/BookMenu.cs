@@ -113,16 +113,17 @@ namespace Parchment.Framework.UI.Menus
 
             ApplyBook(book);
 
+            // Only a book being opened starts off screen, as a refresh leaves the reader's book where it already sits
+            _currentPosition = _startPosition;
+
             // Cache HUD state
             _previousHudState = Game1.displayHUD;
             Game1.displayHUD = false;
-
-            DetermineSlidePositions();
-            DetermineHotspotPositions();
         }
 
         /// <summary>Takes on a book, being everything the menu reads out of <see cref="Models.Data.BookData"/> rather than out of the reader's session.
         /// Shared by the constructor and <see cref="TryRefreshBook"/>, so a refreshed book is set up exactly as a freshly opened one is.
+        /// Where the book sits is left alone, since that belongs to the reading rather than to the book, and a refresh would otherwise drop it back to the start of its slide.
         /// </summary>
         private void ApplyBook(Book book)
         {
@@ -724,8 +725,6 @@ namespace Parchment.Framework.UI.Menus
             float centeredY = base.yPositionOnScreen + base.height / 2f - (closedBookRectangle.Height * _appearance.Scale) / 2f;
             _targetPosition = new Vector2(MathF.Round(centeredX + _appearance.Offset.X * _appearance.Scale), MathF.Round(centeredY + _appearance.Offset.Y * _appearance.Scale));
             _startPosition = new Vector2(_targetPosition.X, Game1.uiViewport.Height + (closedBookRectangle.Height * _appearance.Scale));
-
-            _currentPosition = _startPosition;
         }
 
         /// <summary>The whole book frame's bounds on screen.</summary>
