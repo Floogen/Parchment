@@ -23,6 +23,11 @@ namespace Parchment.Framework.Models
 
         public bool IsVisible { get; set; } = true;
 
+        /// <summary>The container this element sits inside, whether as a child or in one of its layers. Null for anything at the top of a page or a book's Underlay and Overlay.
+        /// Set once when the element is created, so it always points into the same book rather than following an element that was carried across a refresh.
+        /// </summary>
+        public Element? Parent { get; set; }
+
         /// <summary>When a ShowElement action last put this element up, in the same clock the animations run on. Null until something does,
         /// which is what keeps an element with a <see cref="ElementData.Lifetime"/> out of the way until it's wanted.
         /// </summary>
@@ -141,8 +146,12 @@ namespace Parchment.Framework.Models
 
         /// <summary>How strongly to draw the element, being one for everything that isn't partway through fading out.
         /// Read at draw time rather than stored, so the fade runs at the frame rate instead of stepping on the condition refresh.
+        /// A container's fade carries down, so everything inside a panel that's on its way out goes with it rather than staying solid until the panel vanishes.
         /// </summary>
-        public float DrawAlpha
+        public float DrawAlpha { get { return OwnDrawAlpha * (Parent?.DrawAlpha ?? 1f); } }
+
+        /// <summary>How strongly to draw this element on its own account, before anything it sits inside has its say.</summary>
+        private float OwnDrawAlpha
         {
             get
             {

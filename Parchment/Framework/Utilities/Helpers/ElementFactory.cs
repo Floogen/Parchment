@@ -118,6 +118,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver)
             };
 
+            // Set after construction, as the children are built inside the initializer above and have nothing to point at until it finishes
+            AdoptDescendants(element);
+
             WarnOnUnreachableContent(data);
 
             // Prep the active frames, so a conditional animation is correct on the first draw rather than after the first condition refresh
@@ -130,6 +133,25 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return element;
+        }
+
+        /// <summary>Points everything an element holds back at it, so a fade or anything else that carries down has a chain to walk.
+        /// Only the immediate contents are touched, as each of those adopted its own on the way out of <see cref="Create"/>.
+        /// </summary>
+        private static void AdoptDescendants(Element element)
+        {
+            foreach (Element child in element.Children)
+            { 
+                child.Parent = element;
+            }
+            foreach (Element placed in element.Background)
+            {
+                placed.Parent = element;
+            }
+            foreach (Element placed in element.Foreground)
+            {
+                placed.Parent = element;
+            }
         }
 
         /// <summary>Reports a tooltip or hover art on an element the cursor passes through, which is always an authoring mistake.
