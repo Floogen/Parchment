@@ -55,7 +55,8 @@ namespace Parchment.Framework.UI.Rendering.Elements
             Point offset = new Point((int)(data.TextOffset.X * data.Scale), (int)(data.TextOffset.Y * data.Scale));
             float bannerHeight = sourceRectangle.Height * data.Scale;
             float maximumTextWidth = Math.Max(0f, context.AvailableWidth - (capWidth + padding) * 2f - Math.Abs(offset.X) * 2f);
-            float maximumTextHeight = Math.Max(0f, bannerHeight - padding * 2f - Math.Abs(offset.Y) * 2f);
+            // Padding sits between the caps and the text, and a banner has caps at its ends rather than above and below, so only the width gives any up
+            float maximumTextHeight = Math.Max(0f, bannerHeight - Math.Abs(offset.Y) * 2f);
 
             float textScale = data.TextScale;
             if (textScale <= 0f)
