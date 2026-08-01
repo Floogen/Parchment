@@ -18,6 +18,15 @@
         /// <summary>How long the value lasts: "Save" to keep it on the player and in the save file, or "Global" to share it across every save. Defaults to "Save".</summary>
         IVariableBuilder Scope(string variableScope);
 
+        /// <summary>The lowest value a Number variable can hold, inclusive. SetVariable turns away anything below it, and IncrementVariable stops here rather than failing.</summary>
+        IVariableBuilder Min(double min);
+
+        /// <summary>The highest value a Number variable can hold, inclusive. SetVariable turns away anything above it, and IncrementVariable stops here rather than failing.</summary>
+        IVariableBuilder Max(double max);
+
+        /// <summary>The lowest and highest values together, for the usual case of declaring a range in one go.</summary>
+        IVariableBuilder Range(double min, double max);
+
         /// <summary>Adds a value SetVariable will accept, compared ignoring case. Calling this more than once builds the list, and leaving it alone accepts anything the type allows.
         /// Pair it with Default, as the type's own starting value is rarely one of the allowed ones and registration fails when it isn't.
         /// </summary>

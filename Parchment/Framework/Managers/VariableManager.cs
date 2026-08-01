@@ -230,6 +230,46 @@ namespace Parchment.Framework.Managers
             return true;
         }
 
+        /// <summary>Moves a Number variable by an amount, which is what a stepper needs rather than one conditioned SetVariable per value it could land on.
+        /// A negative amount steps down, so there's no separate decrement.
+        /// </summary>
+        public bool TryIncrement(Farmer who, string bookId, string variableId, double amount, out string error)
+        {
+            if (TryGetDeclaration(bookId, variableId, out VariableData declaration, out error) is false)
+            {
+                return false;
+            }
+
+            if (declaration.Type is not VariableType.Number)
+            {
+                error = $"\"{declaration.Id}\" is a {declaration.Type} variable, and only Number variables can be incremented";
+                return false;
+            }
+
+            string current = Get(who, bookId, declaration);
+
+            // A Number that won't parse means its declared Default was never a number, as TryValidateValue turns away anything else
+            if (double.TryParse(current, NumberStyles.Any, CultureInfo.InvariantCulture, out double currentNumber) is false)
+            {
+                error = $"\"{declaration.Id}\" currently holds \"{current}\", which isn't a number, so it can't be incremented. Check the Default it was declared with";
+                return false;
+            }
+
+            // Clamped rather than turned away, so holding a stepper stops at the end of its range instead of warning on every further press
+            double updatedNumber = declaration.Clamp(currentNumber + amount);
+
+            // Round-tripped through the invariant culture, or a machine with a comma decimal separator would store something the query side can't read back
+            string updated = updatedNumber.ToString(CultureInfo.InvariantCulture);
+
+            if (declaration.TryValidateValue(updated, out string valueError) is false)
+            {
+                error = $"\"{variableId}\" cannot hold {valueError}";
+                return false;
+            }
+
+            return TryStore(who, bookId, declaration, updated, out error);
+        }
+
         /// <summary>Flips a boolean variable, which is what a checkbox needs rather than a pair of conditioned SetVariable buttons.</summary>
         public bool TryToggle(Farmer who, string bookId, string variableId, out string error)
         {

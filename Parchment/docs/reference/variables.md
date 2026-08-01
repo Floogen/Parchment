@@ -23,6 +23,8 @@ Every variable has to be declared on the book before anything touches it. A decl
 | `Type` <span class="opt">optional</span> | `Boolean` \| `Number` \| `Text` | `Boolean` | What the variable holds. See [Types](#types). |
 | `Default` <span class="opt">optional</span> | `string` | *see below* | The value before anything sets it, and what `ClearVariable` returns it to. Omitted, it's `false`, `0` or empty text, whichever suits the `Type`. |
 | `AllowedValues` <span class="opt">optional</span> | list of `string` | *anything* | The only values `SetVariable` accepts, compared ignoring case. |
+| `Min` <span class="opt">optional</span> | `number` | *unbounded* | The lowest value a `Number` can hold, inclusive. See [Bounds](#bounds). |
+| `Max` <span class="opt">optional</span> | `number` | *unbounded* | The highest value a `Number` can hold, inclusive. See [Bounds](#bounds). |
 | `Scope` <span class="opt">optional</span> | `Save` \| `Global` | `Save` | Whether the value belongs to the save file or to the whole installation. See [Scope](#scope). |
 
 !!! warning "`AllowedValues` without a `Default`"
@@ -40,7 +42,33 @@ Every variable has to be declared on the book before anything touches it. A decl
 | `Number` | Anything that parses as a number | A number, so `9` and `9.0` are the same value |
 | `Text` | Anything | Text, ignoring case |
 
-Only a `Boolean` can be toggled. `ToggleVariable` on anything else fails with a message naming the type it found.
+Only a `Boolean` can be toggled, and only a `Number` can be incremented. `ToggleVariable` or `IncrementVariable` on anything else fails with a message naming the type it found.
+
+## Bounds
+
+`Min` and `Max` fence a `Number` in, both inclusive. They only apply to a `Number`, and giving either to a `Boolean` or `Text` variable is rejected.
+
+```json title="content.json"
+{
+  "Id": "fontSize",
+  "Type": "Number",
+  "Default": "3",
+  "Min": 1,
+  "Max": 5
+}
+```
+
+The two actions treat a bound differently, deliberately:
+
+| | Outside the range |
+| --- | --- |
+| `SetVariable` | Fails, naming the bound it crossed |
+| `IncrementVariable` | Stops at the bound and reports success |
+
+`SetVariable` names a value outright, so one outside the range is a mistake worth hearing about. A stepper doesn't, and clamping is what makes holding a `+` button stop at the top rather than warn on every press after it.
+
+!!! tip "Bounds and `AllowedValues` stack"
+    A value has to pass both. `Min` and `Max` suit a range you'd never want to write out, and `AllowedValues` suits a handful of specific ones. Using both is valid but rarely what you want, since the list already says everything the bounds would.
 
 ## Scope
 

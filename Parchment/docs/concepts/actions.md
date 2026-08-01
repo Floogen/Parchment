@@ -89,6 +89,7 @@ These only work while a book is open, apart from `MarkSeen`, `ClearSeen` and the
 | `PeacefulEnd.Parchment_SetVariable` | `<bookId> <variableId> <value>` | Set a [variable](../reference/variables.md) a book declares. Everything past the variable ID counts as the value. |
 | `PeacefulEnd.Parchment_ClearVariable` | `<bookId> <variableId>...` | Return one or more of a book's variables to their declared `Default`. |
 | `PeacefulEnd.Parchment_ToggleVariable` | `<bookId> <variableId>...` | Flip one or more `Boolean` variables. |
+| `PeacefulEnd.Parchment_IncrementVariable` | `<bookId> <variableId> [amount]` | Move a `Number` variable by `amount`, which defaults to `1`. Negative steps down. |
 | `PeacefulEnd.Parchment_RefreshBook` | | Ask the open book to rebuild itself. Only works for a [book built in C#](../reference/building-books.md#refreshing-an-open-book) whose builder was given an `OnRefresh`. |
 
 ### Skipping the turn
@@ -217,6 +218,20 @@ Where a flag is a name that lasts the reading, a [variable](../reference/variabl
   "Action": "PeacefulEnd.Parchment_ToggleVariable {{ModId}}_Almanac showSpoilers"
 }
 ```
+
+`IncrementVariable` takes one variable rather than a list, since a trailing amount couldn't be told apart from another name. That's what a stepper wants:
+
+```json title="content.json"
+{
+  "Type": "Button",
+  "Text": "Bigger",
+  "Action": "PeacefulEnd.Parchment_IncrementVariable {{ModId}}_Almanac fontSize",
+  "Condition": "!PeacefulEnd.Parchment_HasVariable {{ModId}}_Almanac fontSize 5"
+}
+```
+
+!!! tip "Declare the range and drop the condition"
+    A variable with [`Min` and `Max`](../reference/variables.md#bounds) stops at its bounds on its own, so the `Condition` above is only needed when you also want the button to disappear at the end of the range. Without bounds a stepper keeps going as far as it's pressed.
 
 Every variable action names the book that declares it, so they work from `Data/TriggerActions` as readily as from a button inside the book. The `%Variable:id%` token is the exception, since it only appears inside a book's text and takes that book as read.
 

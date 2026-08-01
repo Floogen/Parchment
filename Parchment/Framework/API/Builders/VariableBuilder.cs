@@ -29,6 +29,9 @@ namespace Parchment.Framework.API.Builders
         public IVariableBuilder Type(string variableType) { return Set("Type", variableType); }
         public IVariableBuilder Default(string defaultValue) { return Set("Default", defaultValue); }
         public IVariableBuilder Scope(string variableScope) { return Set("Scope", variableScope); }
+        public IVariableBuilder Min(double min) { return Set("Min", min); }
+        public IVariableBuilder Max(double max) { return Set("Max", max); }
+        public IVariableBuilder Range(double min, double max) { return Min(min).Max(max); }
 
         public IVariableBuilder AllowedValue(string value)
         {

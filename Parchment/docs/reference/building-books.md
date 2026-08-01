@@ -179,6 +179,9 @@ That pairs with a hint drawn only while the variable is false, which the reader 
 | `Type(variableType)` | `Type`, one of `"Boolean"`, `"Number"`, `"Text"` |
 | `Default(defaultValue)` | `Default` |
 | `Scope(variableScope)` | `Scope`, either `"Save"` or `"Global"` |
+| `Min(min)` | `Min` |
+| `Max(max)` | `Max` |
+| `Range(min, max)` | `Min` and `Max` together |
 | `AllowedValue(value)` | Adds one entry to `AllowedValues`. Call it more than once to build the list. |
 
 ```cs title="Declaring two variables"

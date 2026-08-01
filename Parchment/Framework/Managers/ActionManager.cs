@@ -40,6 +40,7 @@ namespace Parchment.Framework.Managers
         public const string SET_VARIABLE = "PeacefulEnd.Parchment_SetVariable";
         public const string CLEAR_VARIABLE = "PeacefulEnd.Parchment_ClearVariable";
         public const string TOGGLE_VARIABLE = "PeacefulEnd.Parchment_ToggleVariable";
+        public const string INCREMENT_VARIABLE = "PeacefulEnd.Parchment_IncrementVariable";
 
         public ActionManager(IMonitor monitor, IModHelper helper) : base(monitor, helper)
         {
@@ -75,6 +76,7 @@ namespace Parchment.Framework.Managers
             TriggerActionManager.RegisterAction(SET_VARIABLE, SetVariable);
             TriggerActionManager.RegisterAction(CLEAR_VARIABLE, ClearVariable);
             TriggerActionManager.RegisterAction(TOGGLE_VARIABLE, ToggleVariable);
+            TriggerActionManager.RegisterAction(INCREMENT_VARIABLE, IncrementVariable);
         }
 
         public bool GoToStart(string[] args, TriggerActionContext context, out string error)
@@ -396,6 +398,27 @@ namespace Parchment.Framework.Managers
             }
 
             return Parchment.variableManager.TryToggleAll(Game1.player, bookId, args.Skip(2), out error);
+        }
+
+        /// <summary>Moves a Number variable by an amount, defaulting to one. Takes a single variable rather than a list, as a trailing amount couldn't be told apart from another name.</summary>
+        public bool IncrementVariable(string[] args, TriggerActionContext context, out string error)
+        {
+            if (ArgUtility.TryGet(args, 1, out string bookId, out error, name: "string bookId") is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(args, 2, out string variableId, out error, name: "string variableId") is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGetOptionalFloat(args, 3, out float amount, out error, defaultValue: 1f, name: "float amount") is false)
+            {
+                return false;
+            }
+
+            return Parchment.variableManager.TryIncrement(Game1.player, bookId, variableId, amount, out error);
         }
 
         /// <summary>Reads the optional trailing flag every navigation action ends with, which lands the reader on the target spread without playing the turn.</summary>
