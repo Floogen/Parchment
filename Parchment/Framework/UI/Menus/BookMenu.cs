@@ -229,7 +229,11 @@ namespace Parchment.Framework.UI.Menus
             SetHoveredElement(null);
             ClearInputFocus();
 
+            Book previousBook = Book;
+
             ApplyBook(book);
+
+            CarryAnimationTiming(previousBook, book);
 
             RestoreReadingPosition(previousPageId, previousChapterIndex, previousSpread);
             RefreshVisiblePages();
@@ -237,6 +241,114 @@ namespace Parchment.Framework.UI.Menus
             error = null;
 
             return true;
+        }
+
+        /// <summary>Hands the rebuilt book's elements the animation clocks their counterparts were running on, so a refresh doesn't replay every animation from its first frame.
+        /// A fresh element has no way to know it replaced one mid-cycle, since <see cref="AnimationHelper.RefreshActiveFrames"/> stamps a start time whenever the active frames appear, and on a new element they always do.
+        /// </summary>
+        private static void CarryAnimationTiming(Book previousBook, Book book)
+        {
+            CarryAnimationTiming(previousBook.Underlay, book.Underlay);
+            CarryAnimationTiming(previousBook.Overlay, book.Overlay);
+
+            // Paired by position, so a rebuild that added or removed pages carries what it can and lets the rest start fresh
+            int pageCount = Math.Min(previousBook.Pages.Count, book.Pages.Count);
+
+            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
+            {
+                Page previousPage = previousBook.Pages[pageIndex];
+                Page page = book.Pages[pageIndex];
+
+                // A page that moved is a different page, so its elements are left to start over rather than inheriting a stranger's clock
+                if (string.Equals(previousPage.Data.Id, page.Data.Id, StringComparison.OrdinalIgnoreCase) is false)
+                {
+                    continue;
+                }
+
+                CarryAnimationTiming(previousPage.Elements, page.Elements);
+                CarryAnimationTiming(previousPage.Background, page.Background);
+                CarryAnimationTiming(previousPage.Foreground, page.Foreground);
+            }
+        }
+
+        /// <summary>Walks two element lists together, carrying the timing across wherever the pair lines up.
+        /// Position is what pairs them, since an element isn't required to carry an Id, and a pair that does carry differing ones is taken as a mismatch rather than trusted.
+        /// </summary>
+        private static void CarryAnimationTiming(IReadOnlyList<Element> previousElements, IReadOnlyList<Element> elements)
+        {
+            int elementCount = Math.Min(previousElements.Count, elements.Count);
+
+            for (int index = 0; index < elementCount; index++)
+            {
+                Element previousElement = previousElements[index];
+                Element element = elements[index];
+
+                if (previousElement.Data.Type != element.Data.Type || HasMatchingId(previousElement, element) is false)
+                {
+                    continue;
+                }
+
+                element.AnimationStartedAt = previousElement.AnimationStartedAt;
+                element.HoverAnimationStartedAt = previousElement.HoverAnimationStartedAt;
+
+                // Mapped rather than copied, or the first frame of every animation would run its actions again on each refresh
+                element.LastPlayedFrame = MapPlayedFrame(previousElement, element);
+
+                CarryAnimationTiming(previousElement.Children, element.Children);
+                CarryAnimationTiming(previousElement.Background, element.Background);
+                CarryAnimationTiming(previousElement.Foreground, element.Foreground);
+            }
+        }
+
+        /// <summary>Finds the rebuilt element's counterpart to the frame its predecessor last played, being the same position in the same list rather than the same object.
+        /// Frames belong to the data and a rebuild produces its own, so carrying the reference across would never match what <see cref="DispatchFrameActions(IReadOnlyList{Element})"/> compares against.
+        /// </summary>
+        private static AnimationFrameData? MapPlayedFrame(Element previousElement, Element element)
+        {
+            if (previousElement.LastPlayedFrame is not AnimationFrameData playedFrame)
+            {
+                return null;
+            }
+
+            if (TryMapFrame(previousElement.ActiveFrames, element.ActiveFrames, playedFrame, out AnimationFrameData? mappedFrame) is true)
+            {
+                return mappedFrame;
+            }
+
+            return TryMapFrame(previousElement.ActiveHoverFrames, element.ActiveHoverFrames, playedFrame, out mappedFrame) is true ? mappedFrame : null;
+        }
+
+        /// <summary>Finds the frame sitting where the played one sat. A list that has changed length under it can leave the position unreachable, in which case the animation is treated as never having played.</summary>
+        private static bool TryMapFrame(List<AnimationFrameData>? previousFrames, List<AnimationFrameData>? frames, AnimationFrameData playedFrame, out AnimationFrameData? mappedFrame)
+        {
+            mappedFrame = null;
+
+            if (previousFrames is null || frames is null)
+            {
+                return false;
+            }
+
+            int frameIndex = previousFrames.IndexOf(playedFrame);
+
+            if (frameIndex < 0 || frameIndex >= frames.Count)
+            {
+                return false;
+            }
+
+            mappedFrame = frames[frameIndex];
+
+            return true;
+        }
+
+        /// <summary>Whether two elements at the same position agree on their Id. Two without one are taken as the same element, as position is all there is to go on.</summary>
+        private static bool HasMatchingId(Element previousElement, Element element)
+        {
+            if (string.IsNullOrWhiteSpace(previousElement.Data.Id) is true && string.IsNullOrWhiteSpace(element.Data.Id) is true)
+            {
+                return true;
+            }
+
+            return string.Equals(previousElement.Data.Id, element.Data.Id, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>Puts the reader back where they were after a refresh, preferring the page they were reading over the position it happened to sit at.</summary>
