@@ -86,7 +86,7 @@ Paired with [`JumpToPageId`](../../concepts/actions.md#addressing-a-page) that g
 }
 ```
 
-The text is substituted already quoted, so a typed phrase stays a single argument. See [Passing input text](../../concepts/actions.md#passing-input-text).
+The text is substituted already quoted, so a typed phrase stays a single argument. See [Tokens](../../concepts/actions.md#tokens).
 
 ## Reacting to typing
 
