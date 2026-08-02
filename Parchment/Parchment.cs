@@ -177,7 +177,7 @@ namespace Parchment
             var bookMenu = new BookMenu(book);
             if (ArgUtility.TryGetInt(args, 1, out int page, out error) is true)
             {
-                bool passed = ArgUtility.TryGet(args, 2, out string chapter, out error) is true ? bookMenu.TryOpenAtChapterPage(chapter, page, out error) : bookMenu.TryOpenAtChapter(chapter, out error);
+                bool passed = ArgUtility.TryGet(args, 2, out string chapter, out error) is true ? bookMenu.TryOpenAtChapterPage(chapter, page, out error) : bookMenu.TryOpenAtPage(page, out error);
                 if (passed is false)
                 {
                     monitor.Log(error, LogLevel.Warn);
