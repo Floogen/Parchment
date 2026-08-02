@@ -1,4 +1,4 @@
-namespace Parchment.Framework.API
+﻿namespace Parchment.Framework.API
 {
     /// <summary>Builds one page of a book. Obtained from <see cref="IBookBuilder.AddPage(string)"/>.</summary>
     public interface IPageBuilder
@@ -25,6 +25,15 @@ namespace Parchment.Framework.API
         IElementBuilder AddDivider();
         IElementBuilder AddPanel();
 
+        /// <summary>Adds a grid laying its children out across cells of a fixed size, left to right and then top to bottom.
+        /// The three arguments are the fields a grid cannot do without, so passing them here is what stops a grid failing registration for being incomplete.
+        /// </summary>
+        /// <param name="cellWidth">A cell's width, in unscaled pixels multiplied by the element's scale.</param>
+        /// <param name="cellHeight">A cell's height, in unscaled pixels multiplied by the element's scale.</param>
+        /// <param name="columns">How many cells sit side by side before the next row starts.</param>
+        /// <param name="rows">The most rows the grid draws, or null for as many as its children need. Cells past the last row are dropped.</param>
+        IElementBuilder AddGrid(int cellWidth, int cellHeight, int columns, int? rows = null);
+
         /// <summary>Adds the page's own number, filled in from its position in the book.</summary>
         IElementBuilder AddPageNumber();
 
@@ -39,9 +48,45 @@ namespace Parchment.Framework.API
         IElementBuilder AddButton(string text, string action);
 
         /// <summary>Runs a trigger action each time this page becomes visible.</summary>
+        /// <summary>Adds a keyword describing what is on the page, for a contents entry or a search box to match against. Calling this more than once builds a list. Never shown to the reader.</summary>
+        IPageBuilder Tag(string tag);
+
         IPageBuilder OnView(string action);
 
         /// <summary>Runs a trigger action each time this page becomes visible and the game state query passes.</summary>
         IPageBuilder OnView(string action, string condition);
+
+        /// <summary>Adds a keybind pressed while this page is visible and returns its builder, taking the button over from the menu and from the book's own binds.
+        /// The keybind uses SMAPI's syntax, such as "Escape", "LeftControl + S" or "Escape, Back".
+        /// At least one Action is required, and a keybind without one is reported when the book is registered.
+        /// </summary>
+        IKeybindBuilder OnKeyPress(string keybind);
+
+        /// <summary>Removes the last element added to the page's stacked content, for undoing a speculative add that turned out not to fit.
+        /// Does nothing when the page has no stacked content. Background and foreground elements are left alone.</summary>
+        IPageBuilder RemoveLast();
+
+        /// <summary>The width in pixels this page has for stacked content, being what text wraps to.</summary>
+        /// <remarks>This is a size rather than a position, since a page has no place on screen until its book is open. Use <c>TryGetLeftPageBounds</c> on the API for that.</remarks>
+        float GetAvailableWidth();
+
+        /// <summary>The height in pixels this page has for stacked content, from the book's appearance and layout.</summary>
+        /// <remarks>Returns 0 before Parchment has finished starting up, since the page size isn't known until then.</remarks>
+        float GetAvailableHeight();
+
+        /// <summary>How tall the stacked elements added so far come to in pixels, measured with the fonts, wrapping and spacing they will actually be drawn with.
+        /// Content past the bottom of the page still counts, so this keeps growing rather than stopping at the page edge.</summary>
+        /// <remarks>Each call rebuilds and measures the page, so prefer calling it once per element added rather than in a tight loop.</remarks>
+        float GetContentHeight();
+
+        /// <summary>How much room is left on the page in pixels, which goes negative once the content overflows.</summary>
+        float GetRemainingHeight();
+
+        /// <summary>Whether the elements added so far run past the bottom of the page.</summary>
+        /// <remarks>
+        /// Pair this with <see cref="RemoveLast"/> to fill pages greedily: add an element, and if the page now overflows,
+        /// take it back off and start a new page with it instead.
+        /// </remarks>
+        bool WouldOverflow();
     }
 }

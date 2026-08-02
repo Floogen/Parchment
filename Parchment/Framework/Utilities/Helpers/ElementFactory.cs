@@ -104,15 +104,24 @@ namespace Parchment.Framework.Utilities.Helpers
             {
                 DisplayName = displayName,
                 Description = description,
-                IsVisible = isVisible,
+                // An element on a timer waits to be shown, whatever its condition says
+                IsVisible = isVisible && data.Lifetime is null,
+                Results = data is GridElementData sourceGrid && sourceGrid.Source is not null ? new ResultSet(sourceGrid.Source) : null,
                 Font = font,
                 TextColor = ResolveTextColor(data) ?? Game1.textColor,
                 TintColor = ResolveTintColor(data) ?? Color.White,
                 TextureAssetName = textureAssetName,
                 SourceRectangle = sourceRectangle,
                 Texture = texture,
-                Children = CreateChildren(data, registry, fontResolver)
+                Children = CreateChildren(data, registry, fontResolver),
+                Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver),
+                Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver)
             };
+
+            // Set after construction, as the children are built inside the initializer above and have nothing to point at until it finishes
+            AdoptDescendants(element);
+
+            WarnOnUnreachableContent(data);
 
             // Prep the active frames, so a conditional animation is correct on the first draw rather than after the first condition refresh
             AnimationHelper.RefreshActiveFrames(element);
@@ -126,14 +135,89 @@ namespace Parchment.Framework.Utilities.Helpers
             return element;
         }
 
+        /// <summary>Points everything an element holds back at it, so a fade or anything else that carries down has a chain to walk.
+        /// Only the immediate contents are touched, as each of those adopted its own on the way out of <see cref="Create"/>.
+        /// </summary>
+        private static void AdoptDescendants(Element element)
+        {
+            foreach (Element child in element.Children)
+            { 
+                child.Parent = element;
+            }
+            foreach (Element placed in element.Background)
+            {
+                placed.Parent = element;
+            }
+            foreach (Element placed in element.Foreground)
+            {
+                placed.Parent = element;
+            }
+        }
+
+        /// <summary>Reports a tooltip or hover art on an element the cursor passes through, which is always an authoring mistake.
+        /// Logged once per element type and ID, as a Grid builds one element per cell from the same template.
+        /// </summary>
+        private static void WarnOnUnreachableContent(ElementData data)
+        {
+            if (data.IgnoreCursor is false)
+            {
+                return;
+            }
+
+            var unreachableFields = new List<string>();
+
+            if (string.IsNullOrEmpty(data.DisplayName) is false) { unreachableFields.Add("DisplayName"); }
+            if (string.IsNullOrEmpty(data.Description) is false) { unreachableFields.Add("Description"); }
+            if (data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) { unreachableFields.Add("HoverTextureSourceRectangle"); }
+            if (data.HoverFrames is not null && data.HoverFrames.Count is not 0) { unreachableFields.Add("HoverFrames"); }
+
+            if (unreachableFields.Count is 0)
+            {
+                return;
+            }
+
+            string elementLabel = string.IsNullOrWhiteSpace(data.Id) ? $"A {data.Type} element" : $"The {data.Type} element \"{data.Id}\"";
+
+            Parchment.monitor.LogOnce($"{elementLabel} sets \"IgnoreCursor\" alongside {string.Join(", ", unreachableFields)}, which the cursor never reaches.", LogLevel.Warn);
+        }
+
+        private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver)
+        {
+            if (layerData is null || layerData.Count is 0)
+            {
+                return Array.Empty<Element>();
+            }
+
+            return CreateList(layerData, registry, fontResolver);
+        }
+
         private static IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver)
         {
-            if (data is not IContainer container || container.Children is null)
+            if (data is not IContainer container || (container.Children is null && data is not GridElementData { Source: not null }))
             {
                 return Array.Empty<Element>();
             }
 
             var children = new List<Element>();
+
+            if (data is GridElementData gridData && gridData.Source?.Template is ElementData template)
+            {
+                int slotCount = gridData.GetSlotCount();
+
+                for (int index = 0; index < slotCount; index++)
+                {
+                    var slot = Create(template, registry, fontResolver);
+                    if (slot is not null)
+                    {
+                        // A cell starts empty and is shown once the filter hands it an item, so a grid never flashes a full set of blanks before its first assignment
+                        slot.IsVisible = false;
+                        children.Add(slot);
+                    }
+                }
+
+                return children;
+            }
+
             foreach (ElementData childData in container.Children)
             {
                 var child = Create(childData, registry, fontResolver);
@@ -215,31 +299,40 @@ namespace Parchment.Framework.Utilities.Helpers
             element.LayoutState = null;
         }
 
-        public static bool RefreshTextures(List<Element> elements, IReadOnlyCollection<IAssetName> invalidatedAssetNames)
+        /// <summary>Reloads any texture belonging to an invalidated asset, walking nested elements as well as the list given, since a container's children and layers hold their own textures.</summary>
+        public static bool RefreshTextures(IReadOnlyList<Element> elements, IReadOnlyCollection<IAssetName> invalidatedAssetNames)
         {
             bool wasAnyTextureRefreshed = false;
+
             foreach (Element element in elements)
             {
-                if (element.TextureAssetName is null)
-                {
-                    continue;
-                }
+                wasAnyTextureRefreshed |= RefreshTextures(element, invalidatedAssetNames);
+            }
 
-                if (invalidatedAssetNames.Any(assetName => assetName.IsEquivalentTo(element.TextureAssetName)) is false)
-                {
-                    continue;
-                }
+            return wasAnyTextureRefreshed;
+        }
 
+        private static bool RefreshTextures(Element element, IReadOnlyCollection<IAssetName> invalidatedAssetNames)
+        {
+            bool wasAnyTextureRefreshed = false;
+
+            if (element.TextureAssetName is not null && invalidatedAssetNames.Any(assetName => assetName.IsEquivalentTo(element.TextureAssetName)))
+            {
                 RefreshTexture(element);
                 wasAnyTextureRefreshed = true;
             }
 
+            wasAnyTextureRefreshed |= RefreshTextures(element.Children, invalidatedAssetNames);
+            wasAnyTextureRefreshed |= RefreshTextures(element.Background, invalidatedAssetNames);
+            wasAnyTextureRefreshed |= RefreshTextures(element.Foreground, invalidatedAssetNames);
+
+            // A nested texture swap can change a container's measured size, so drop the cached layout even when this element owns no texture itself
             if (wasAnyTextureRefreshed)
             {
-                return true;
+                element.LayoutState = null;
             }
 
-            return false;
+            return wasAnyTextureRefreshed;
         }
     }
 }

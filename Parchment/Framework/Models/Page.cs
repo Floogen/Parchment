@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
@@ -21,6 +21,9 @@ namespace Parchment.Framework.Models
 {
     public class Page
     {
+        /// <summary>A height no page will ever reach, used to stop <see cref="MeasureStack"/> clipping. Kept well short of <see cref="float.MaxValue"/> so the subtraction a container does for its children can't overflow.</summary>
+        private const float UNBOUNDED_MEASURE_HEIGHT = 1000000f;
+
         public PageData Data { get; }
 
         /// <summary>This page's 0-based position within the book, which is what a <see cref="Enums.ElementType.PageNumber"/> element renders (as a 1-based number).</summary>
@@ -37,6 +40,18 @@ namespace Parchment.Framework.Models
 
         public ElementRenderContext? LastLayoutContext;
 
+        /// <summary>Every element on this page whose text carries a token, gathered once so the change watch has nothing to walk in a book that uses none.</summary>
+        public List<Element> TokenTextElements { get; }
+
+        /// <summary>Every Grid on this page whose cells come from a Source block, gathered once so the per-tick assignment pass has nothing to walk in a book that uses none.</summary>
+        public List<Element> ResultElements { get; }
+
+        /// <summary>Every Input element on this page carrying a text changed action, gathered once for the same reason as <see cref="FrameActionElements"/>: they are polled every tick.</summary>
+        public List<Element> TextChangedActionElements { get; }
+
+        /// <summary>Every element on this page carrying a frame action, gathered once at construction. Frame actions are dispatched every tick, so this is what keeps a page with none from walking its whole element tree sixty times a second.</summary>
+        public List<Element> FrameActionElements { get; }
+
         public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver)
         {
             Data = data;
@@ -44,6 +59,60 @@ namespace Parchment.Framework.Models
             Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver);
             Background = ElementFactory.CreateList(Data.Background, registry, fontResolver);
             Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver);
+
+            FrameActionElements = new List<Element>();
+            AnimationHelper.CollectFrameActionElements(Elements, FrameActionElements);
+            AnimationHelper.CollectFrameActionElements(Background, FrameActionElements);
+            AnimationHelper.CollectFrameActionElements(Foreground, FrameActionElements);
+
+            TextChangedActionElements = new List<Element>();
+            CollectElements(Elements, HasTextChangedActions, TextChangedActionElements);
+            CollectElements(Background, HasTextChangedActions, TextChangedActionElements);
+            CollectElements(Foreground, HasTextChangedActions, TextChangedActionElements);
+
+            ResultElements = new List<Element>();
+            CollectElements(Elements, HasResults, ResultElements);
+            CollectElements(Background, HasResults, ResultElements);
+            CollectElements(Foreground, HasResults, ResultElements);
+
+            TokenTextElements = new List<Element>();
+            CollectElements(Elements, TokenHelper.HasTokenText, TokenTextElements);
+            CollectElements(Background, TokenHelper.HasTokenText, TokenTextElements);
+            CollectElements(Foreground, TokenHelper.HasTokenText, TokenTextElements);
+        }
+
+        /// <summary>Whether an element is a Grid filling its cells from a Source block.</summary>
+        public static bool HasResults(Element element)
+        {
+            return element.Results is not null;
+        }
+
+        /// <summary>Forces the next draw to lay this page out again, for a change the condition pass can't see, such as a result cell gaining or losing its item.</summary>
+        public void InvalidateLayout()
+        {
+            LastLayoutContext = null;
+        }
+
+        /// <summary>Whether an element is an Input with something to run when its text settles.</summary>
+        public static bool HasTextChangedActions(Element element)
+        {
+            return element.Data is InputElementData inputData && inputData.HasTextChangedActions is true;
+        }
+
+        /// <summary>Walks element lists and their nested lists, gathering everything the predicate accepts. Safe to do once, as conditions only toggle an element's visibility rather than replacing the element.</summary>
+        public static void CollectElements(IReadOnlyList<Element> elements, Func<Element, bool> predicate, List<Element> results)
+        {
+            foreach (Element element in elements)
+            {
+                if (predicate(element) is true)
+                {
+                    results.Add(element);
+                }
+
+                CollectElements(element.Children, predicate, results);
+                CollectElements(element.Background, predicate, results);
+                CollectElements(element.Foreground, predicate, results);
+            }
         }
 
         /// <summary>
@@ -95,9 +164,10 @@ namespace Parchment.Framework.Models
         {
             bool hasChanged = false;
 
-            if (string.IsNullOrEmpty(element.Data.Condition) is false)
+            if (string.IsNullOrEmpty(element.Data.Condition) is false || element.Data.Lifetime is not null)
             {
-                bool isVisible = GameStateQuery.CheckConditions(element.Data.Condition);
+                // An element on a timer has to pass both, so it can still be conditioned on where the reader is as well as on how long it has been up
+                bool isVisible = (string.IsNullOrEmpty(element.Data.Condition) || GameStateQuery.CheckConditions(element.Data.Condition)) && element.IsWithinLifetime;
 
                 if (isVisible != element.IsVisible)
                 {
@@ -109,16 +179,15 @@ namespace Parchment.Framework.Models
             // Frame conditions don't affect layout, since the element is sized by its source rectangle rather than the active frame, so this deliberately doesn't feed into hasChanged and trigger a relayout
             AnimationHelper.RefreshActiveFrames(element);
 
-            foreach (Element child in element.Children)
-            {
-                hasChanged |= RefreshCondition(child);
-            }
+            hasChanged |= RefreshConditionsFor(element.Children);
+            hasChanged |= RefreshConditionsFor(element.Background);
+            hasChanged |= RefreshConditionsFor(element.Foreground);
 
             return hasChanged;
         }
 
         // Start of public static methods
-        /// <summary>Places each element at its own <see cref="ElementData.Position"/> rather than stacking it, used for a page's Background and Foreground and a book's Underlay and Overlay.
+        /// <summary>Places each element at its own <see cref="ElementData.Position"/> rather than stacking it, used for a page's Background and Foreground, a book's Underlay and Overlay and a container's own layers.
         /// <see cref="ElementData.Alignment"/> and <see cref="ElementData.VerticalAlignment"/> anchor the element within the container first and <see cref="ElementData.Position"/> is then an offset from that anchor.
         /// Left and Top anchor at zero, so a default-aligned element's position still reads as a plain coordinate. Unlike <see cref="StackElements"/> this ignores the element's margins, as Position is already the way to inset a placed element.
         /// </summary>
@@ -145,6 +214,16 @@ namespace Parchment.Framework.Models
 
                 element.Bounds = new Rectangle(alignedX + element.Data.Position.X, alignedY + element.Data.Position.Y, (int)elementSize.X, (int)elementSize.Y);
             }
+        }
+
+        /// <summary>Measures how tall a stack of elements comes to, without the clipping <see cref="StackElements"/> applies once content runs past the bottom of the page.
+        /// Use this to ask whether content fits, since the clipped height stops growing at the page edge and so can't answer that.
+        /// </summary>
+        /// <param name="elements">The elements that would be stacked.</param>
+        /// <param name="availableWidth">The width the content wraps to, being the page's content width.</param>
+        public static float MeasureStack(IReadOnlyList<Element> elements, float availableWidth)
+        {
+            return StackElements(elements, new ElementRenderContext(availableWidth, UNBOUNDED_MEASURE_HEIGHT));
         }
 
         // Keep this static so it can be called outside Page
@@ -218,6 +297,7 @@ namespace Parchment.Framework.Models
 
         /// <param name="interactiveOnly">When true, elements that do nothing on hover or click are stepped over instead of claiming the cursor. Used for <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/>,
         /// where a decorative element covering the page would otherwise block everything beneath it. Their children are still tested, so a plain panel can hold an element carrying a description.
+        /// <see cref="ElementData.IgnoreCursor"/> does the same for one element regardless of this, which is how a list that is always hit-tested gets a transparent element of its own.
         /// </param>
         public static Element? HitTest(IReadOnlyList<Element> elements, Rectangle containerBounds, Point screenPosition, bool interactiveOnly = false)
         {
@@ -235,13 +315,29 @@ namespace Parchment.Framework.Models
                 }
 
                 Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
+
+                // A container's own layers are anchored to its content area, so they are tested against the same rectangle its children are
+                // Both are always interactiveOnly, whatever the outer list is, so decorative art inside a panel doesn't swallow the cursor
+                Element? hitLayer = HitTest(element.Foreground, contentBounds, screenPosition, interactiveOnly: true);
+                if (hitLayer is not null)
+                {
+                    return hitLayer;
+                }
+
                 Element? hitChild = HitTest(element.Children, contentBounds, screenPosition, interactiveOnly);
                 if (hitChild is not null)
                 {
                     return hitChild;
                 }
 
-                if (interactiveOnly && element.IsInteractive is false)
+                hitLayer = HitTest(element.Background, contentBounds, screenPosition, interactiveOnly: true);
+                if (hitLayer is not null)
+                {
+                    return hitLayer;
+                }
+
+                // Checked after the children and layers above, so a container the cursor passes through still lets the elements inside it be reached
+                if (element.Data.IgnoreCursor || (interactiveOnly && element.IsInteractive is false))
                 {
                     continue;
                 }

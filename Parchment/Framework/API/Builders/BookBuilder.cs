@@ -1,6 +1,7 @@
-using Parchment.Framework.Models;
+﻿using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Variables;
 using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
 using StardewValley;
@@ -19,6 +20,9 @@ namespace Parchment.Framework.API.Builders
         private readonly List<PageBuilder> _pages = new List<PageBuilder>();
         private readonly List<ElementBuilder> _underlay = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _overlay = new List<ElementBuilder>();
+        private readonly List<VariableBuilder> _variables = new List<VariableBuilder>();
+        private readonly List<KeybindBuilder> _onKeyPress = new List<KeybindBuilder>();
+        private Action? _onRefresh;
 
         public string BookId { get { return _bookId; } }
 
@@ -39,6 +43,21 @@ namespace Parchment.Framework.API.Builders
 
         public IBookBuilder Sprite(string spritePath) { return Set("SpritePath", spritePath); }
 
+        public IBookBuilder OnRefresh(Action onRefresh)
+        {
+            _onRefresh = onRefresh;
+
+            return this;
+        }
+
+        public IKeybindBuilder OnKeyPress(string keybind)
+        {
+            var keybindBuilder = new KeybindBuilder(keybind);
+            _onKeyPress.Add(keybindBuilder);
+
+            return keybindBuilder;
+        }
+
         public IPageBuilder AddPage(string pageId)
         {
             return CreatePage(pageId, null);
@@ -51,10 +70,24 @@ namespace Parchment.Framework.API.Builders
 
         private IPageBuilder CreatePage(string pageId, string? chapterId)
         {
-            var page = new PageBuilder(pageId, chapterId);
+            var page = new PageBuilder(pageId, chapterId, this);
             _pages.Add(page);
 
             return page;
+        }
+
+        /// <summary>Builds just the book's own fields, with no pages, so a page can be measured against the appearance and layout it will be drawn with.</summary>
+        /// <remarks>Field errors are ignored here, as they are reported properly by <see cref="TryBuildValidated"/> at registration. A field that fails to bind simply leaves its default in place.</remarks>
+        internal BookData GetLayoutData()
+        {
+            var data = new BookData() { Id = _bookId };
+
+            foreach (var field in _fields)
+            {
+                ModelBinder.TrySet(data, field.Field, field.Value, out _);
+            }
+
+            return data;
         }
 
         public IElementBuilder AddUnderlay(string elementType)
@@ -73,6 +106,14 @@ namespace Parchment.Framework.API.Builders
             return element;
         }
 
+        public IVariableBuilder AddVariable(string variableId)
+        {
+            var variable = new VariableBuilder(variableId);
+            _variables.Add(variable);
+
+            return variable;
+        }
+
         public bool TryRegister(out string error)
         {
             return Parchment.bookManager.TryRegisterBook(_modId, this, out error);
@@ -87,9 +128,80 @@ namespace Parchment.Framework.API.Builders
             }
 
             var book = new Book(bookData, Parchment.bookManager.ElementRegistry, Parchment.bookManager.FontResolver);
-            Game1.activeClickableMenu = new BookMenu(book);
+            var bookMenu = new BookMenu(book);
+
+            bookMenu.SetRefreshCallback(_onRefresh);
+            Game1.activeClickableMenu = bookMenu;
 
             return true;
+        }
+
+        public bool TryRefresh(out string error)
+        {
+            if (Game1.activeClickableMenu is not BookMenu bookMenu)
+            {
+                error = "no book is open";
+                return false;
+            }
+
+            if (string.Equals(bookMenu.Book.Data.Id, _bookId, StringComparison.OrdinalIgnoreCase) is false)
+            {
+                error = $"the open book is \"{bookMenu.Book.Data.Id}\" rather than \"{_bookId}\"";
+                return false;
+            }
+
+            if (TryBuildValidated(out BookData bookData, out error) is false)
+            {
+                Parchment.monitor.Log($"{_modId} failed to refresh the book \"{_bookId}\", because {error}.", LogLevel.Warn);
+                return false;
+            }
+
+            var book = new Book(bookData, Parchment.bookManager.ElementRegistry, Parchment.bookManager.FontResolver);
+
+            if (bookMenu.TryRefreshBook(book, out error) is false)
+            {
+                return false;
+            }
+
+            // Carried over so the next refresh runs this builder's callback rather than the one the book was first opened with
+            if (_onRefresh is not null)
+            {
+                bookMenu.SetRefreshCallback(_onRefresh);
+            }
+
+            return true;
+        }
+
+        /// <summary>Builds just one of the declared variables, for reading a declaration off a book that hasn't been registered or opened yet.
+        /// Only the named variable is built, so this says nothing about whether the book as a whole is valid.
+        /// </summary>
+        internal bool TryGetVariableDeclaration(string variableId, out VariableData declaration)
+        {
+            foreach (VariableBuilder variableBuilder in _variables)
+            {
+                if (string.Equals(variableBuilder.VariableId, variableId, StringComparison.OrdinalIgnoreCase) is false)
+                {
+                    continue;
+                }
+
+                if (variableBuilder.TryBuild(out declaration, out _) is true)
+                {
+                    return true;
+                }
+            }
+
+            declaration = null!;
+
+            return false;
+        }
+
+        /// <summary>Every variable ID the recipe declares, for reporting what a book offers when a name doesn't resolve.</summary>
+        internal IEnumerable<string> GetVariableIds()
+        {
+            foreach (VariableBuilder variableBuilder in _variables)
+            {
+                yield return variableBuilder.VariableId;
+            }
         }
 
         /// <summary>Creates a fresh data object from the recipe, then runs the same validation content pack books go through.</summary>
@@ -176,6 +288,42 @@ namespace Parchment.Framework.API.Builders
                 }
 
                 data.Overlay = overlay;
+            }
+
+            if (_variables.Count > 0)
+            {
+                var variables = new List<VariableData>();
+
+                foreach (VariableBuilder variableBuilder in _variables)
+                {
+                    if (variableBuilder.TryBuild(out VariableData variable, out error) is false)
+                    {
+                        error = $"variable \"{variableBuilder.VariableId}\": {error}";
+                        return false;
+                    }
+
+                    variables.Add(variable);
+                }
+
+                data.Variables = variables;
+            }
+
+            if (_onKeyPress.Count > 0)
+            {
+                var keybinds = new List<KeybindData>();
+
+                foreach (KeybindBuilder keybindBuilder in _onKeyPress)
+                {
+                    if (keybindBuilder.TryBuild(out KeybindData keybind, out error) is false)
+                    {
+                        error = $"keybind \"{keybindBuilder.Keybind}\": {error}";
+                        return false;
+                    }
+
+                    keybinds.Add(keybind);
+                }
+
+                data.OnKeyPress = keybinds;
             }
 
             book = data;

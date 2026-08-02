@@ -1,3 +1,4 @@
+﻿using Microsoft.Xna.Framework;
 using Parchment.Framework.API.Builders;
 using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
@@ -17,7 +18,12 @@ namespace Parchment.Framework.API
 
         public IBookBuilder CreateBook(string bookId)
         {
-            return new BookBuilder(_modId, bookId);
+            var builder = new BookBuilder(_modId, bookId);
+
+            // Tracked up front, so a book that reads its own variables while assembling itself finds what it has already declared
+            Parchment.bookManager.TrackLiveBuilder(builder);
+
+            return builder;
         }
 
         public bool TryUnregisterBook(string bookId, out string error)
@@ -110,6 +116,58 @@ namespace Parchment.Framework.API
             }
 
             return TryOpenBookAtPageId(bookId, chapterId, pageId);
+        }
+
+        public bool TryGetVariable(string bookId, string variableId, out string value)
+        {
+            if (Parchment.variableManager.TryGet(Game1.player, bookId, variableId, out value, out string error) is false)
+            {
+                Parchment.monitor.Log($"{_modId} failed to read the variable \"{variableId}\", because {error}.", LogLevel.Warn);
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool TrySetVariable(string bookId, string variableId, string value, out string error)
+        {
+            if (Parchment.variableManager.TrySet(Game1.player, bookId, variableId, value, out error) is false)
+            {
+                Parchment.monitor.Log($"{_modId} failed to set the variable \"{variableId}\", because {error}.", LogLevel.Warn);
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool TryGetBookBounds(out Rectangle bounds)
+        {
+            return TryGetBounds(menu => menu.GetBookScreenBounds(), out bounds);
+        }
+
+        public bool TryGetLeftPageBounds(out Rectangle bounds)
+        {
+            return TryGetBounds(menu => menu.GetLeftPageBounds(), out bounds);
+        }
+
+        public bool TryGetRightPageBounds(out Rectangle bounds)
+        {
+            return TryGetBounds(menu => menu.GetRightPageBounds(), out bounds);
+        }
+
+        /// <summary>Reads a rectangle off whichever book is open, or reports that none is.</summary>
+        private static bool TryGetBounds(Func<BookMenu, Rectangle> getBounds, out Rectangle bounds)
+        {
+            bounds = Rectangle.Empty;
+
+            if (Game1.activeClickableMenu is not BookMenu menu)
+            {
+                return false;
+            }
+
+            bounds = getBounds(menu);
+
+            return true;
         }
 
         private static bool TryCreateMenu(string bookId, out BookMenu menu)

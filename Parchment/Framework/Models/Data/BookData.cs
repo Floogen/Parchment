@@ -1,5 +1,6 @@
 using Parchment.Framework.Models.Data.Books;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Variables;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +37,18 @@ namespace Parchment.Framework.Models.Data
         /// Drawn in every menu state, so they ride in with the book and remain on the shut cover.</summary>
         public List<ElementData>? Overlay { get; set; }
 
+        /// <summary>
+        /// Key bindings active on every page of this book, each running its actions when pressed. A page's own <see cref="PageData.OnKeyPress"/> takes precedence:
+        /// when a page binds the same button, only the page's entries run and these are left alone.
+        /// </summary>
+        public List<KeybindData>? OnKeyPress { get; set; }
+
         public BookLayoutData Layout { get; set; } = new BookLayoutData();
+
+        /// <summary>The named values this book can set and read back, which unlike a session flag survive the book being put down.
+        /// Every variable an action or query names has to be declared here, so a mistyped name fails visibly rather than being stored.
+        /// </summary>
+        public List<VariableData>? Variables { get; set; }
 
         /// <summary>Whether the book arrives shut, holding on its cover until the reader clicks it open, rather than opening itself once it
         /// has slid into place. Independent of <see cref="ExitToCover"/>, which governs the other end of the reading.</summary>
@@ -95,6 +107,35 @@ namespace Parchment.Framework.Models.Data
                     if (isValidData.Result is false)
                     {
                         return (false, $"Element \"{element.Id}\" ({element.Type}): {isValidData.Error}");
+                    }
+                }
+            }
+
+            if (Variables is not null)
+            {
+                foreach (VariableData variable in Variables)
+                {
+                    var variableIsValidData = variable.IsValid();
+                    if (variableIsValidData.Result is false)
+                    {
+                        return (false, $"[Variables] Variable \"{variable.Id}\": {variableIsValidData.Error}");
+                    }
+
+                    if (Variables.Count(other => other.Id.Equals(variable.Id, StringComparison.OrdinalIgnoreCase)) > 1)
+                    {
+                        return (false, $"[Variables] More than one variable is named \"{variable.Id}\".");
+                    }
+                }
+            }
+
+            if (OnKeyPress is not null)
+            {
+                for (int i = 0; i < OnKeyPress.Count; i++)
+                {
+                    var keybindIsValidData = OnKeyPress[i].IsValid();
+                    if (keybindIsValidData.Result is false)
+                    {
+                        return (false, $"[OnKeyPress] Keybind at index {i}: {keybindIsValidData.Error}");
                     }
                 }
             }

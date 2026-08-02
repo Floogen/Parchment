@@ -28,8 +28,13 @@ namespace Parchment.Framework.Managers
     internal class BookManager : BaseManager
     {
         public const string BOOKS_DATA_PATH = "Data/PeacefulEnd.Parchment/Books";
-        public const string SEEN_PAGES_DATA_PATH = "Data/PeacefulEnd.Parchment/SeenPages";
-        public const string SEEN_CHAPTERS_DATA_PATH = "Data/PeacefulEnd.Parchment/SeenChapters";
+
+        // Reading history rides on the player rather than in a data asset, so the game saves it and each save file keeps its own
+        public const string SEEN_PAGES_MOD_DATA_KEY = "PeacefulEnd.Parchment/SeenPages";
+        public const string SEEN_CHAPTERS_MOD_DATA_KEY = "PeacefulEnd.Parchment/SeenChapters";
+
+        // Chosen because a book, chapter or page ID can contain a dot but not this
+        private const char SEEN_SEPARATOR = '|';
 
         public List<BookData> Books { get { return _books; } set { FilterBookData(value); } }
         private List<BookData> _books = new List<BookData>();
@@ -41,14 +46,21 @@ namespace Parchment.Framework.Managers
         // built data, so every asset load produces a fresh graph and Content Patcher's edits can't accumulate on the registered original.
         private readonly Dictionary<string, Dictionary<string, BookBuilder>> _modIdToRegisteredBooks = new Dictionary<string, Dictionary<string, BookBuilder>>(StringComparer.OrdinalIgnoreCase);
 
+        // Every builder handed out by CreateBook, keyed by the book ID it was created for. A book being assembled right now isn't in the asset yet,
+        // so this is what lets its variable declarations answer before the terminal call that would put it there.
+        private readonly Dictionary<string, BookBuilder> _bookIdToLiveBuilder = new Dictionary<string, BookBuilder>(StringComparer.OrdinalIgnoreCase);
+
         // Whether the books asset has been loaded at least once, so registrations made before then don't need to invalidate it
         private bool _hasLoadedBooks = false;
+        private bool _hasPendingBookReload = false;
 
         // A requested book to be opened (if this fails, the book request is discarded)
         private string? _requestedBookId = null;
 
-        private Dictionary<string, List<string>> _playerToSeenPages { get; set; } = new Dictionary<string, List<string>>();
-        private Dictionary<string, List<string>> _playerToSeenChapters { get; set; } = new Dictionary<string, List<string>>();
+        // Parsed views of what each farmer has read, so a condition refresh reads a set rather than splitting a stored string dozens of times a second.
+        // Every change is written back to modData on the spot, so these are a cache and never the record.
+        private readonly Dictionary<long, HashSet<string>> _playerToSeenPages = new Dictionary<long, HashSet<string>>();
+        private readonly Dictionary<long, HashSet<string>> _playerToSeenChapters = new Dictionary<long, HashSet<string>>();
 
         public ElementRegistry ElementRegistry { get; }
         public FontResolver FontResolver { get; }
@@ -61,6 +73,7 @@ namespace Parchment.Framework.Managers
 
             helper.Events.GameLoop.GameLaunched += OnGameLaunched;
             helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
+            helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
             helper.Events.Content.AssetRequested += OnAssetRequested;
             helper.Events.Content.AssetsInvalidated += OnAssetInvalidated;
         }
@@ -69,9 +82,13 @@ namespace Parchment.Framework.Managers
         {
             Books = helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
             _hasLoadedBooks = true;
+        }
 
-            _playerToSeenPages = helper.GameContent.Load<Dictionary<string, List<string>>>(SEEN_PAGES_DATA_PATH);
-            _playerToSeenChapters = helper.GameContent.Load<Dictionary<string, List<string>>>(SEEN_CHAPTERS_DATA_PATH);
+        // The cached history belongs to the save being left, and a farmer's ID is only unique within one
+        private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
+        {
+            _playerToSeenPages.Clear();
+            _playerToSeenChapters.Clear();
         }
 
         private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
@@ -80,14 +97,6 @@ namespace Parchment.Framework.Managers
             {
                 e.LoadFrom(CreateRegisteredBookList, AssetLoadPriority.Medium);
             }
-            else if (e.NameWithoutLocale.IsEquivalentTo(SEEN_PAGES_DATA_PATH))
-            {
-                e.LoadFrom(() => _playerToSeenPages, AssetLoadPriority.Medium);
-            }
-            else if (e.NameWithoutLocale.IsEquivalentTo(SEEN_CHAPTERS_DATA_PATH))
-            {
-                e.LoadFrom(() => _playerToSeenChapters, AssetLoadPriority.Medium);
-            }
         }
 
         private void OnAssetInvalidated(object? sender, AssetsInvalidatedEventArgs e)
@@ -95,23 +104,33 @@ namespace Parchment.Framework.Managers
             var books = e.NamesWithoutLocale.FirstOrDefault(a => a.IsEquivalentTo(BOOKS_DATA_PATH));
             if (books is not null)
             {
-                Books = helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
+                // Reloading under a reader would throw away their page, their scroll and anything typed into an input.
+                // Single player can't hit this, as an open menu pauses the clock Content Patcher updates on, but multiplayer keeps ticking.
+                if (Game1.activeClickableMenu is BookMenu)
+                {
+                    _hasPendingBookReload = true;
+                }
+                else
+                {
+                    Books = helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
+                }
             }
-            var seenPages = e.NamesWithoutLocale.FirstOrDefault(a => a.IsEquivalentTo(SEEN_PAGES_DATA_PATH));
-            if (seenPages is not null)
-            {
-                _playerToSeenPages = helper.GameContent.Load<Dictionary<string, List<string>>>(SEEN_PAGES_DATA_PATH);
-            }
-            var seenChapters = e.NamesWithoutLocale.FirstOrDefault(a => a.IsEquivalentTo(SEEN_CHAPTERS_DATA_PATH));
-            if (seenChapters is not null)
-            {
-                _playerToSeenChapters = helper.GameContent.Load<Dictionary<string, List<string>>>(SEEN_CHAPTERS_DATA_PATH);
-            }
-
             if (Game1.activeClickableMenu is BookMenu bookMenu)
             {
                 bookMenu.Book.RefreshTextures(e.NamesWithoutLocale);
             }
+        }
+
+        /// <summary>Takes up a reload that was held back while a book was open. Called when the menu closes, since that is when the reader has nothing left to lose.</summary>
+        public void ApplyPendingBookReload()
+        {
+            if (_hasPendingBookReload is false)
+            {
+                return;
+            }
+
+            _hasPendingBookReload = false;
+            Books = helper.GameContent.Load<List<BookData>>(BOOKS_DATA_PATH);
         }
 
         private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -249,6 +268,31 @@ namespace Parchment.Framework.Managers
             return true;
         }
 
+        /// <summary>Records a builder against the book ID it was created for, so what it declares can be found before it's registered or opened.
+        /// Keyed by book ID, so a mod rebuilding the same book replaces its earlier builder rather than stacking up another one.
+        /// </summary>
+        public void TrackLiveBuilder(BookBuilder builder)
+        {
+            if (string.IsNullOrWhiteSpace(builder.BookId) is true)
+            {
+                return;
+            }
+
+            // A book ID another mod already registered stays theirs, so a builder can't answer for a book it doesn't own
+            if (TryGetOwningModId(builder.BookId, out string owningModId) is true && owningModId.EqualsIgnoreCase(builder.ModId) is false)
+            {
+                return;
+            }
+
+            _bookIdToLiveBuilder[builder.BookId] = builder;
+        }
+
+        /// <summary>The most recent builder created for a book ID, whether or not anything has been done with it yet.</summary>
+        public bool TryGetLiveBuilder(string bookId, out BookBuilder builder)
+        {
+            return _bookIdToLiveBuilder.TryGetValue(bookId, out builder!);
+        }
+
         /// <summary>Removes a book previously registered by the given mod. A mod can only remove its own books.</summary>
         public bool TryUnregisterBook(string modId, string bookId, out string error)
         {
@@ -263,6 +307,8 @@ namespace Parchment.Framework.Managers
                 error = $"{modId} hasn't registered a book with the ID \"{bookId}\"";
                 return false;
             }
+
+            _bookIdToLiveBuilder.Remove(bookId);
 
             RefreshBooksAsset();
             error = string.Empty;
@@ -334,22 +380,12 @@ namespace Parchment.Framework.Managers
 
         public bool HasSeenChapter(Farmer who, string bookId, string chapter)
         {
-            if (_playerToSeenChapters.TryGetValue(who.Name, out var seenChapters) is false || seenChapters is null)
-            {
-                return false;
-            }
-
-            return seenChapters.Any(c => c.EqualsIgnoreCase($"{bookId}.{chapter}"));
+            return GetSeen(who, _playerToSeenChapters, SEEN_CHAPTERS_MOD_DATA_KEY).Contains($"{bookId}.{chapter}");
         }
 
         public bool HasSeenPage(Farmer who, string bookId, string chapter, string pageId)
         {
-            if (_playerToSeenPages.TryGetValue(who.Name, out var seenPages) is false || seenPages is null)
-            {
-                return false;
-            }
-
-            return seenPages.Any(c => c.EqualsIgnoreCase($"{bookId}.{chapter}.{pageId}"));
+            return GetSeen(who, _playerToSeenPages, SEEN_PAGES_MOD_DATA_KEY).Contains($"{bookId}.{chapter}.{pageId}");
         }
 
         public bool HasSeenChapterlessPage(Farmer who, string bookId, string pageId)
@@ -359,28 +395,92 @@ namespace Parchment.Framework.Managers
 
         public void SetSeenChapter(Farmer who, string bookId, string chapter)
         {
-            if (_playerToSeenChapters.ContainsKey(who.Name) is false)
-            {
-                _playerToSeenChapters[who.Name] = new List<string>();
-            }
-
-            _playerToSeenChapters[who.Name].Add($"{bookId}.{chapter}");
+            SetSeen(who, _playerToSeenChapters, SEEN_CHAPTERS_MOD_DATA_KEY, $"{bookId}.{chapter}");
         }
 
         public void SetSeenPage(Farmer who, string bookId, string chapter, string pageId)
         {
-            if (_playerToSeenPages.ContainsKey(who.Name) is false)
-            {
-                _playerToSeenPages[who.Name] = new List<string>();
-            }
-
-            _playerToSeenPages[who.Name].Add($"{bookId}.{chapter}.{pageId}");
+            SetSeen(who, _playerToSeenPages, SEEN_PAGES_MOD_DATA_KEY, $"{bookId}.{chapter}.{pageId}");
         }
 
-        public void ClearSeen(Farmer who)
+        /// <summary>Forgets a single chapter, so the next reading counts as the first.</summary>
+        public void ClearSeenChapter(Farmer who, string bookId, string chapter)
         {
-            _playerToSeenPages[who.Name] = new List<string>();
-            _playerToSeenChapters[who.Name] = new List<string>();
+            ClearSeen(who, _playerToSeenChapters, SEEN_CHAPTERS_MOD_DATA_KEY, entry => entry.EqualsIgnoreCase($"{bookId}.{chapter}"));
+        }
+
+        /// <summary>Forgets a single page.</summary>
+        public void ClearSeenPage(Farmer who, string bookId, string chapter, string pageId)
+        {
+            ClearSeen(who, _playerToSeenPages, SEEN_PAGES_MOD_DATA_KEY, entry => entry.EqualsIgnoreCase($"{bookId}.{chapter}.{pageId}"));
+        }
+
+        /// <summary>Forgets everything a player has read, or everything from one book when a book ID is given.</summary>
+        public void ClearSeen(Farmer who, string? bookId = null)
+        {
+            Func<string, bool> matches = bookId is null ? _ => true : entry => entry.StartsWith($"{bookId}.", StringComparison.OrdinalIgnoreCase);
+
+            ClearSeen(who, _playerToSeenPages, SEEN_PAGES_MOD_DATA_KEY, matches);
+            ClearSeen(who, _playerToSeenChapters, SEEN_CHAPTERS_MOD_DATA_KEY, matches);
+        }
+
+        // Reads a player's history out of their modData the first time it is asked for, then answers from the parsed set
+        private static HashSet<string> GetSeen(Farmer who, Dictionary<long, HashSet<string>> cache, string modDataKey)
+        {
+            if (cache.TryGetValue(who.UniqueMultiplayerID, out HashSet<string>? cached) is true)
+            {
+                return cached;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (who.modData.TryGetValue(modDataKey, out string? stored) is true && string.IsNullOrEmpty(stored) is false)
+            {
+                foreach (string entry in stored.Split(SEEN_SEPARATOR, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    seen.Add(entry);
+                }
+            }
+
+            cache[who.UniqueMultiplayerID] = seen;
+
+            return seen;
+        }
+
+        private static void SetSeen(Farmer who, Dictionary<long, HashSet<string>> cache, string modDataKey, string entry)
+        {
+            HashSet<string> seen = GetSeen(who, cache, modDataKey);
+
+            // Nothing to write when the entry was already there, which is what keeps a reader lingering on a page off the save
+            if (seen.Add(entry) is false)
+            {
+                return;
+            }
+
+            Store(who, seen, modDataKey);
+        }
+
+        private static void ClearSeen(Farmer who, Dictionary<long, HashSet<string>> cache, string modDataKey, Func<string, bool> matches)
+        {
+            HashSet<string> seen = GetSeen(who, cache, modDataKey);
+
+            if (seen.RemoveWhere(entry => matches(entry)) is 0)
+            {
+                return;
+            }
+
+            Store(who, seen, modDataKey);
+        }
+
+        private static void Store(Farmer who, HashSet<string> seen, string modDataKey)
+        {
+            if (seen.Count is 0)
+            {
+                who.modData.Remove(modDataKey);
+                return;
+            }
+
+            who.modData[modDataKey] = string.Join(SEEN_SEPARATOR, seen);
         }
 
         public bool TryGetBookId(string qualifiedItemId, out string? bookId)

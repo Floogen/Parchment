@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
+using Parchment.Framework.Models.Data.Elements;
 using StardewValley;
 using System;
 using System.Collections.Generic;
@@ -13,21 +14,31 @@ namespace Parchment.Framework.Utilities.Helpers
 {
     public static class AnimationHelper
     {
+        /// <summary>The clock every animation is measured against, in milliseconds. Cycles run from an element's own start time rather than straight off this, so an animation always begins on its first frame.</summary>
+        public static double GetAnimationTime()
+        {
+            return Game1.currentGameTime is null ? 0d : Game1.currentGameTime.TotalGameTime.TotalMilliseconds;
+        }
+
         /// <summary>Rebuilds an element's active frames from its per-frame conditions, and reports whether either active set changed.</summary>
         public static bool RefreshActiveFrames(Element element)
         {
-            ImageElementData? imageData = element.Data as ImageElementData;
-
-            bool hasFramesChanged = TryBuildActiveFrames(imageData?.Frames, element.ActiveFrames, out List<AnimationFrameData>? activeFrames);
+            bool hasFramesChanged = TryBuildActiveFrames(element.Data.Frames, element.ActiveFrames, out List<AnimationFrameData>? activeFrames);
             if (hasFramesChanged is true)
             {
                 element.ActiveFrames = activeFrames;
+
+                // A set that just gained or lost frames is a different animation, so it starts over. This is what stops an animation gated behind a condition, such as one that only plays on its own page, from being partway through the moment it becomes active
+                element.AnimationStartedAt = GetAnimationTime();
+                element.LastPlayedFrame = null;
             }
 
-            bool hasHoverFramesChanged = TryBuildActiveFrames(imageData?.HoverFrames, element.ActiveHoverFrames, out List<AnimationFrameData>? activeHoverFrames);
+            bool hasHoverFramesChanged = TryBuildActiveFrames(element.Data.HoverFrames, element.ActiveHoverFrames, out List<AnimationFrameData>? activeHoverFrames);
             if (hasHoverFramesChanged is true)
             {
                 element.ActiveHoverFrames = activeHoverFrames;
+                element.HoverAnimationStartedAt = GetAnimationTime();
+                element.LastPlayedFrame = null;
             }
 
             return hasFramesChanged || hasHoverFramesChanged;
@@ -98,23 +109,38 @@ namespace Parchment.Framework.Utilities.Helpers
             return true;
         }
 
+        /// <summary>Whether the element's hover animation is the one playing, which needs the cursor on it and a hover list that isn't absent or fully conditioned out.</summary>
+        public static bool IsPlayingHoverFrames(Element element)
+        {
+            return element.IsHovered is true && element.ActiveHoverFrames is not null && element.ActiveHoverFrames.Count is not 0;
+        }
+
         /// <summary>Gets the frame list an element should be playing, preferring the hover animation while the cursor is on it.
         /// A hover list that is absent or fully conditioned out falls through to the normal animation, so the idle loop carries on rather than freezing.
         /// </summary>
         public static List<AnimationFrameData>? GetPlayingFrames(Element element)
         {
-            if (element.IsHovered is true && element.ActiveHoverFrames is not null && element.ActiveHoverFrames.Count is not 0)
+            return IsPlayingHoverFrames(element) is true ? element.ActiveHoverFrames : element.ActiveFrames;
+        }
+
+        /// <summary>Gets the frame an element should be drawing right now, taken from whichever animation is playing and timed from that animation's own start.
+        /// This is what drawing code wants, since it keeps the normal and hover cycles on their separate clocks.
+        /// </summary>
+        public static AnimationFrameData? GetActiveFrame(Element element, float defaultFrameDuration)
+        {
+            if (IsPlayingHoverFrames(element) is true)
             {
-                return element.ActiveHoverFrames;
+                return GetActiveFrame(element.ActiveHoverFrames, defaultFrameDuration, element.HoverAnimationStartedAt);
             }
 
-            return element.ActiveFrames;
+            return GetActiveFrame(element.ActiveFrames, defaultFrameDuration, element.AnimationStartedAt);
         }
 
         /// <summary>Gets the frame that should be drawn right now, or null when there is nothing to play and the element should fall back to its own source rectangle.
         /// Callers that need both the rectangle and the frame's scale should hold onto this rather than asking twice, since the answer moves with the clock.
         /// </summary>
-        public static AnimationFrameData? GetActiveFrame(List<AnimationFrameData>? frames, float defaultFrameDuration)
+        /// <param name="startedAt">When the animation began, on the clock <see cref="GetAnimationTime"/> reads. The cycle is measured from here, so the first frame is what draws at the moment it starts.</param>
+        public static AnimationFrameData? GetActiveFrame(List<AnimationFrameData>? frames, float defaultFrameDuration, double startedAt)
         {
             if (frames is null || frames.Count is 0 || Game1.currentGameTime is null)
             {
@@ -138,7 +164,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 return frames[0];
             }
 
-            float cyclePosition = (float)(Game1.currentGameTime.TotalGameTime.TotalMilliseconds % cycleDuration);
+            // Clamped because a start time stamped on a later tick than this read would otherwise wrap round and land near the end of the cycle
+            double elapsedDuration = Math.Max(GetAnimationTime() - startedAt, 0d);
+            float cyclePosition = (float)(elapsedDuration % cycleDuration);
 
             foreach (AnimationFrameData frame in frames)
             {
@@ -172,12 +200,70 @@ namespace Parchment.Framework.Utilities.Helpers
             return frame?.Scale ?? 1f;
         }
 
-        /// <summary>Gets the source rectangle to draw. When no frames are given, or every frame was filtered out by its condition, the element's own source rectangle is used.
-        /// This ignores <see cref="AnimationFrameData.Scale"/>, so a caller that draws the result should use <see cref="GetActiveFrame"/> instead.
+        /// <summary>Whether any frame in either of an element's authored lists carries an action, which is what decides whether it needs watching for frame changes at all.
+        /// Read from the authored lists rather than the active ones, so an element whose frames are currently all conditioned out is still watched for when they come back.
         /// </summary>
-        public static Rectangle GetFrame(Rectangle sourceRectangle, List<AnimationFrameData>? frames, float defaultFrameDuration)
+        public static bool HasFrameActions(Element element)
         {
-            return GetFrameRectangle(sourceRectangle, GetActiveFrame(frames, defaultFrameDuration));
+            return HasFrameActions(element.Data.Frames) || HasFrameActions(element.Data.HoverFrames);
+        }
+
+        /// <summary>Walks element lists and their nested lists, gathering everything carrying a frame action.
+        /// Gathered once by whatever owns the elements, since frame actions are dispatched every tick and conditions only toggle an element's visibility rather than replacing the element.
+        /// </summary>
+        public static void CollectFrameActionElements(IReadOnlyList<Element> elements, List<Element> frameActionElements)
+        {
+            foreach (Element element in elements)
+            {
+                if (HasFrameActions(element) is true)
+                {
+                    frameActionElements.Add(element);
+                }
+
+                CollectFrameActionElements(element.Children, frameActionElements);
+                CollectFrameActionElements(element.Background, frameActionElements);
+                CollectFrameActionElements(element.Foreground, frameActionElements);
+            }
+        }
+
+        private static bool HasFrameActions(List<AnimationFrameData>? frames)
+        {
+            if (frames is null)
+            {
+                return false;
+            }
+
+            foreach (AnimationFrameData frame in frames)
+            {
+                if (frame.HasActions is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Gets how far a frame shifts what it draws, in screen pixels. A null frame, or one without an offset, doesn't move.
+        /// Rounded to whole pixels, as a sprite that moves every tick shimmers on a fractional position in a way a still one doesn't.
+        /// </summary>
+        /// <param name="scale">The element's own draw scale, not the frame's. Using the frame's would move the offset as the frame grew, turning a bob that also pulses into a drift.</param>
+        public static Vector2 GetFrameOffset(AnimationFrameData? frame, float scale)
+        {
+            if (frame?.Offset is not Point offset)
+            {
+                return Vector2.Zero;
+            }
+
+            return new Vector2(MathF.Round(offset.X * scale), MathF.Round(offset.Y * scale));
+        }
+
+        /// <summary>Gets the source rectangle to draw. When no frames are given, or every frame was filtered out by its condition, the element's own source rectangle is used.
+        /// This ignores <see cref="AnimationFrameData.Scale"/>, so a caller that draws the result should use <see cref="GetActiveFrame(Element, float)"/> instead.
+        /// </summary>
+        public static Rectangle GetFrame(Rectangle sourceRectangle, List<AnimationFrameData>? frames, float defaultFrameDuration, double startedAt)
+        {
+            return GetFrameRectangle(sourceRectangle, GetActiveFrame(frames, defaultFrameDuration, startedAt));
         }
     }
 }

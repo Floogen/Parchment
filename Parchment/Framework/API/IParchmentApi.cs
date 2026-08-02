@@ -1,3 +1,4 @@
+﻿using Microsoft.Xna.Framework;
 using System;
 
 namespace Parchment.Framework.API
@@ -35,6 +36,36 @@ namespace Parchment.Framework.API
 
         /// <summary>Gets whether a book with the given ID is loaded, whether it came from a content pack or the C# API.</summary>
         bool HasBook(string bookId);
+
+        /// <summary>Reads a variable a book declares, so a mod can mirror a reader's choice into its own config. A Save-scoped variable is read from the local player.</summary>
+        /// <param name="bookId">The BookData.Id value of the book declaring the variable.</param>
+        /// <param name="variableId">The VariableData.Id value of the variable.</param>
+        /// <param name="value">The variable's current value, or its default when nothing has set it yet.</param>
+        /// <returns>False when the book isn't loaded or declares no variable by that name.</returns>
+        bool TryGetVariable(string bookId, string variableId, out string value);
+
+        /// <summary>Sets a variable a book declares. The value has to suit the variable's declared type and allowed values. A Save-scoped variable is set on the local player.</summary>
+        /// <param name="bookId">The BookData.Id value of the book declaring the variable.</param>
+        /// <param name="variableId">The VariableData.Id value of the variable.</param>
+        /// <param name="value">The value to store.</param>
+        /// <param name="error">Why the value couldn't be stored, when this returns false.</param>
+        bool TrySetVariable(string bookId, string variableId, string value, out string error);
+
+        /// <summary>Gets the whole book frame's bounds on screen, for drawing alongside an open book.</summary>
+        /// <param name="bounds">The book's bounds, when this returns true.</param>
+        /// <returns>False when no Parchment book is open.</returns>
+        /// <remarks>Taken from the book's resting position, so it stays put while the open and close animations play.</remarks>
+        bool TryGetBookBounds(out Rectangle bounds);
+
+        /// <summary>Gets the left page's content area on screen, being the region a page's stacked elements are laid out in.</summary>
+        /// <param name="bounds">The page's bounds, when this returns true.</param>
+        /// <returns>False when no Parchment book is open.</returns>
+        bool TryGetLeftPageBounds(out Rectangle bounds);
+
+        /// <summary>Gets the right page's content area on screen, being the region a page's stacked elements are laid out in.</summary>
+        /// <param name="bounds">The page's bounds, when this returns true.</param>
+        /// <returns>False when no Parchment book is open.</returns>
+        bool TryGetRightPageBounds(out Rectangle bounds);
 
         /// <summary>Opens a book in the book menu at a page number.</summary>
         [Obsolete("Use TryOpenBookAtPage instead. This overload is kept so mods built against Parchment 1.1.0 keep working.")]

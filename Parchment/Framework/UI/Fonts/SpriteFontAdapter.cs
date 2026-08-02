@@ -24,9 +24,12 @@ namespace Parchment.Framework.UI.Fonts
             return _spriteFont.MeasureString(text) * scale;
         }
 
+        /// <summary>Draws the text, telling the shadow how strongly to come through as well as the glyphs.
+        /// The shadow is drawn in the game's own colour rather than the one passed in, so a faded colour on its own would leave it behind while the text underneath went.
+        /// </summary>
         public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float scale)
         {
-            Utility.drawTextWithShadow(spriteBatch, text, _spriteFont, position, color, scale);
+            Utility.drawTextWithShadow(spriteBatch, text, _spriteFont, position, color, scale, shadowIntensity: color.A / 255f);
         }
     }
 }

@@ -1,8 +1,9 @@
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
+using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Books;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Data.Pages;
@@ -23,7 +24,7 @@ namespace Parchment.Framework.UI.Menus
 {
     public class BookMenu : IClickableMenu
     {
-        public Book Book { get; }
+        public Book Book { get; private set; }
 
         /// <summary>Covering shuts the book but stays in the menu, landing in Cover. Closing shuts it and leaves.</summary>
         public enum MenuState { Sliding, Opening, Ready, Turning, Covering, Cover, Closing }
@@ -41,19 +42,24 @@ namespace Parchment.Framework.UI.Menus
         private const float BOOK_LAYER_DEPTH = 0.86f;
         private const float CURL_LAYER_DEPTH = 0.99f;
 
-        private readonly BookAppearanceData _appearance;
-        private readonly PageCurlData _pageCurl;
-        private readonly BookAnimationData _animation;
+        private BookAppearanceData _appearance;
+        private PageCurlData _pageCurl;
+        private BookAnimationData _animation;
 
         // Adjust this for GSQ refresh rate check
         private const int CONDITION_REFRESH_INTERVAL = 6;
         private int _conditionRefreshTimer = CONDITION_REFRESH_INTERVAL;
 
+        // How long the exit button has to be held to leave a page that has taken the button over
+        private const float FORCE_CLOSE_HOLD_DURATION = 3000f;
+        private float _forceCloseHoldTimer = 0f;
+        private bool _isExitButtonSuppressed = false;
+
         private readonly List<Rectangle> _openFrames = new List<Rectangle>();
-        private readonly List<Rectangle> _closeFrames = new List<Rectangle>();
+        private List<Rectangle> _closeFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageCurlFrames = new List<Rectangle>();
         private readonly List<Rectangle> _pageTurnFrames = new List<Rectangle>();
-        private readonly List<Rectangle> _pageTurnFramesReversed = new List<Rectangle>();
+        private List<Rectangle> _pageTurnFramesReversed = new List<Rectangle>();
 
         private Vector2 _currentPosition;
         private Vector2 _startPosition;
@@ -62,8 +68,8 @@ namespace Parchment.Framework.UI.Menus
         private Rectangle _previousPageHotspot;
         private Rectangle _nextPageHotspot;
 
-        private readonly Color _bookTintColor;
-        private readonly List<Page> _pages;
+        private Color _bookTintColor;
+        private List<Page> _pages;
 
         private int _currentChapterIndex = 0;
         private int _pendingChapterIndex;
@@ -72,7 +78,18 @@ namespace Parchment.Framework.UI.Menus
         private int _pendingSpread;
         private bool _isTurningForward;
 
+        // Where the reader has been this session, most recent last, so GoBack can retrace its way out of a chain of jumps
+        private const int HISTORY_LIMIT = 64;
+        private readonly List<(int ChapterIndex, int Spread)> _history = new List<(int ChapterIndex, int Spread)>();
+
         private Element? _hoveredElement;
+
+        // The hovered element's tooltip with its tokens resolved. Held here rather than resolved in the draw, which runs every frame while a tooltip is only worth resolving when something about it could have moved
+        private string? _hoveredDisplayName;
+        private string? _hoveredDescription;
+
+        private Element? _focusedElement;
+        private InputTextSubscriber? _focusedInput;
 
         private bool _isHoveringLeftPage;
         private bool _isHoveringRightPage;
@@ -86,12 +103,34 @@ namespace Parchment.Framework.UI.Menus
 
         private readonly bool _previousHudState;
 
+        /// <summary>What the owning mod runs when something asks the book to rebuild itself, set through the builder's OnRefresh. Null for a book with nothing to rebuild from, such as one out of the books asset.</summary>
+        private Action? _onRefresh;
+
+        // Guards against a refresh callback whose own actions ask for another refresh, which would otherwise recurse until the stack ran out
+        private bool _isRefreshing = false;
+
         public BookMenu(Book book) : base((int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).X, (int)Utility.getTopLeftPositionForCenteringOnScreen(1280, 720).Y, 1280, 720, showUpperRightCloseButton: false)
         {
             Vector2 topLeft = Utility.getTopLeftPositionForCenteringOnScreen(base.width, base.height);
             base.xPositionOnScreen = (int)topLeft.X;
             base.yPositionOnScreen = (int)topLeft.Y;
 
+            ApplyBook(book);
+
+            // Only a book being opened starts off screen, as a refresh leaves the reader's book where it already sits
+            _currentPosition = _startPosition;
+
+            // Cache HUD state
+            _previousHudState = Game1.displayHUD;
+            Game1.displayHUD = false;
+        }
+
+        /// <summary>Takes on a book, being everything the menu reads out of <see cref="Models.Data.BookData"/> rather than out of the reader's session.
+        /// Shared by the constructor and <see cref="TryRefreshBook"/>, so a refreshed book is set up exactly as a freshly opened one is.
+        /// Where the book sits is left alone, since that belongs to the reading rather than to the book, and a refresh would otherwise drop it back to the start of its slide.
+        /// </summary>
+        private void ApplyBook(Book book)
+        {
             Book = book;
             _bookTintColor = ResolveBookTintColor(book.Data);
             _pages = book.Pages;
@@ -104,29 +143,275 @@ namespace Parchment.Framework.UI.Menus
             _bookGrayscaleTexture = string.IsNullOrWhiteSpace(_appearance.GrayscaleTexturePath) ? null : Parchment.modHelper.GameContent.Load<Texture2D>(_appearance.GrayscaleTexturePath);
             _pageCurlTexture = Parchment.modHelper.GameContent.Load<Texture2D>(_pageCurl.TexturePath);
 
+            _openFrames.Clear();
             for (int frameIndex = 0; frameIndex < _appearance.OpenFrameCount; frameIndex++)
             {
                 _openFrames.Add(new Rectangle(_appearance.FrameWidth * frameIndex, 0, _appearance.FrameWidth, _appearance.FrameHeight));
             }
             _closeFrames = Enumerable.Reverse(_openFrames).ToList();
 
+            _pageCurlFrames.Clear();
             for (int frameIndex = 0; frameIndex < _pageCurl.FrameCount; frameIndex++)
             {
                 _pageCurlFrames.Add(new Rectangle(_pageCurl.FrameWidth * frameIndex, 0, _pageCurl.FrameWidth, _pageCurl.FrameHeight));
             }
 
+            _pageTurnFrames.Clear();
             for (int frameIndex = _appearance.OpenFrameCount; frameIndex < _appearance.OpenFrameCount + _appearance.TurnFrameCount; frameIndex++)
             {
                 _pageTurnFrames.Add(new Rectangle(_appearance.FrameWidth * frameIndex, 0, _appearance.FrameWidth, _appearance.FrameHeight));
             }
             _pageTurnFramesReversed = Enumerable.Reverse(_pageTurnFrames).ToList();
 
-            // Cache HUD state
-            _previousHudState = Game1.displayHUD;
-            Game1.displayHUD = false;
-
             DetermineSlidePositions();
             DetermineHotspotPositions();
+        }
+
+        /// <summary>Puts up an element that has been waiting on a ShowElement, restarting its <see cref="ElementData.Lifetime"/> from now.
+        /// Showing one that's already up restarts it rather than adding a second, so repeated presses extend it instead of stacking.
+        /// </summary>
+        public bool TryShowElement(string elementId, out string error)
+        {
+            double shownAt = AnimationHelper.GetAnimationTime();
+            bool hasShownAny = false;
+
+            foreach (Element element in Book.FindElementsById(elementId))
+            {
+                if (element.Data.Lifetime is null)
+                {
+                    continue;
+                }
+
+                element.ShownAt = shownAt;
+                element.IsVisible = true;
+                hasShownAny = true;
+            }
+
+            if (hasShownAny is false)
+            {
+                error = $"the book '{Book.Data.Id}' has no element with the ID '{elementId}' carrying a \"Lifetime\", which is what an element needs to be shown this way";
+                return false;
+            }
+
+            // The element it belongs to may have been sized out of the layout while it was away
+            Book.InvalidateLayout();
+
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Takes the callback that rebuilds this book, handed over by the builder that opened it.</summary>
+        public void SetRefreshCallback(Action? onRefresh)
+        {
+            _onRefresh = onRefresh;
+        }
+
+        /// <summary>Asks the owning mod to rebuild the book, which it does by assembling a fresh builder and calling TryRefresh on it.
+        /// The rebuild is the mod's own work, as a builder holds the values it was given rather than the code that produced them, so Parchment has nothing to recompute on its behalf.
+        /// </summary>
+        public bool TryRunRefreshCallback(out string error)
+        {
+            if (_onRefresh is null)
+            {
+                error = $"the book '{Book.Data.Id}' has no refresh callback, which is set through the C# builder's OnRefresh";
+                return false;
+            }
+
+            if (_isRefreshing is true)
+            {
+                error = "a refresh is already running";
+                return false;
+            }
+
+            _isRefreshing = true;
+
+            try
+            {
+                _onRefresh();
+            }
+            finally
+            {
+                _isRefreshing = false;
+            }
+
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Swaps in a rebuilt version of the book the reader already has open, keeping them where they were.
+        /// This is how content generated in C# responds to something changing under it, as a builder recipe holds the values it was given rather than recomputing them.
+        /// The reader is returned to the page they were on by its ID, falling back to the same position when the page is gone and to the start when even that is out of range.
+        /// Session state (flags, input text, seen pages) is untouched, as this replaces the book inside the living menu rather than putting up a new one.
+        /// </summary>
+        public bool TryRefreshBook(Book book, out string error)
+        {
+            if (CurrentState is not MenuState.Ready)
+            {
+                error = "the book isn't ready, as it's still opening, turning or closing";
+                return false;
+            }
+
+            if (book.Pages.Count is 0)
+            {
+                error = "the rebuilt book has no pages";
+                return false;
+            }
+
+            string? previousPageId = GetPageId(GetLeftPageIndex()) ?? GetPageId(GetRightPageIndex());
+            int previousChapterIndex = _currentChapterIndex;
+            int previousSpread = _currentSpread;
+
+            // Dropped before the pages behind it are, as the element it points at is about to be thrown away
+            SetHoveredElement(null);
+            ClearInputFocus();
+
+            Book previousBook = Book;
+
+            ApplyBook(book);
+
+            CarryElementState(previousBook, book);
+
+            RestoreReadingPosition(previousPageId, previousChapterIndex, previousSpread);
+            RefreshVisiblePages();
+
+            error = null;
+
+            return true;
+        }
+
+        /// <summary>Hands the rebuilt book's elements the clocks their counterparts were running on, so a refresh doesn't replay every animation from its first frame or take away something that was only just put up.
+        /// A fresh element has no way to know it replaced one mid-cycle, since <see cref="AnimationHelper.RefreshActiveFrames"/> stamps a start time whenever the active frames appear, and on a new element they always do.
+        /// </summary>
+        private static void CarryElementState(Book previousBook, Book book)
+        {
+            CarryElementState(previousBook.Underlay, book.Underlay);
+            CarryElementState(previousBook.Overlay, book.Overlay);
+
+            // Paired by position, so a rebuild that added or removed pages carries what it can and lets the rest start fresh
+            int pageCount = Math.Min(previousBook.Pages.Count, book.Pages.Count);
+
+            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
+            {
+                Page previousPage = previousBook.Pages[pageIndex];
+                Page page = book.Pages[pageIndex];
+
+                // A page that moved is a different page, so its elements are left to start over rather than inheriting a stranger's clock
+                if (string.Equals(previousPage.Data.Id, page.Data.Id, StringComparison.OrdinalIgnoreCase) is false)
+                {
+                    continue;
+                }
+
+                CarryElementState(previousPage.Elements, page.Elements);
+                CarryElementState(previousPage.Background, page.Background);
+                CarryElementState(previousPage.Foreground, page.Foreground);
+            }
+        }
+
+        /// <summary>Walks two element lists together, carrying the state across wherever the pair lines up.
+        /// Position is what pairs them, since an element isn't required to carry an Id, and a pair that does carry differing ones is taken as a mismatch rather than trusted.
+        /// </summary>
+        private static void CarryElementState(IReadOnlyList<Element> previousElements, IReadOnlyList<Element> elements)
+        {
+            int elementCount = Math.Min(previousElements.Count, elements.Count);
+
+            for (int index = 0; index < elementCount; index++)
+            {
+                Element previousElement = previousElements[index];
+                Element element = elements[index];
+
+                if (previousElement.Data.Type != element.Data.Type || HasMatchingId(previousElement, element) is false)
+                {
+                    continue;
+                }
+
+                element.AnimationStartedAt = previousElement.AnimationStartedAt;
+                element.HoverAnimationStartedAt = previousElement.HoverAnimationStartedAt;
+
+                // Carried too, or a refresh in the same breath as a ShowElement would take the element straight back down
+                element.ShownAt = previousElement.ShownAt;
+                element.IsVisible = previousElement.IsVisible;
+
+                // Mapped rather than copied, or the first frame of every animation would run its actions again on each refresh
+                element.LastPlayedFrame = MapPlayedFrame(previousElement, element);
+
+                CarryElementState(previousElement.Children, element.Children);
+                CarryElementState(previousElement.Background, element.Background);
+                CarryElementState(previousElement.Foreground, element.Foreground);
+            }
+        }
+
+        /// <summary>Finds the rebuilt element's counterpart to the frame its predecessor last played, being the same position in the same list rather than the same object.
+        /// Frames belong to the data and a rebuild produces its own, so carrying the reference across would never match what <see cref="DispatchFrameActions(IReadOnlyList{Element})"/> compares against.
+        /// </summary>
+        private static AnimationFrameData? MapPlayedFrame(Element previousElement, Element element)
+        {
+            if (previousElement.LastPlayedFrame is not AnimationFrameData playedFrame)
+            {
+                return null;
+            }
+
+            if (TryMapFrame(previousElement.ActiveFrames, element.ActiveFrames, playedFrame, out AnimationFrameData? mappedFrame) is true)
+            {
+                return mappedFrame;
+            }
+
+            return TryMapFrame(previousElement.ActiveHoverFrames, element.ActiveHoverFrames, playedFrame, out mappedFrame) is true ? mappedFrame : null;
+        }
+
+        /// <summary>Finds the frame sitting where the played one sat. A list that has changed length under it can leave the position unreachable, in which case the animation is treated as never having played.</summary>
+        private static bool TryMapFrame(List<AnimationFrameData>? previousFrames, List<AnimationFrameData>? frames, AnimationFrameData playedFrame, out AnimationFrameData? mappedFrame)
+        {
+            mappedFrame = null;
+
+            if (previousFrames is null || frames is null)
+            {
+                return false;
+            }
+
+            int frameIndex = previousFrames.IndexOf(playedFrame);
+
+            if (frameIndex < 0 || frameIndex >= frames.Count)
+            {
+                return false;
+            }
+
+            mappedFrame = frames[frameIndex];
+
+            return true;
+        }
+
+        /// <summary>Whether two elements at the same position agree on their Id. Two without one are taken as the same element, as position is all there is to go on.</summary>
+        private static bool HasMatchingId(Element previousElement, Element element)
+        {
+            if (string.IsNullOrWhiteSpace(previousElement.Data.Id) is true && string.IsNullOrWhiteSpace(element.Data.Id) is true)
+            {
+                return true;
+            }
+
+            return string.Equals(previousElement.Data.Id, element.Data.Id, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Puts the reader back where they were after a refresh, preferring the page they were reading over the position it happened to sit at.</summary>
+        private void RestoreReadingPosition(string? pageId, int chapterIndex, int spread)
+        {
+            if (pageId is not null)
+            {
+                int pageIndex = FindPageIndex(pageId, chapterFilter: -1);
+
+                if (pageIndex >= 0)
+                {
+                    _currentChapterIndex = Book.GetChapterIndexForPage(pageIndex);
+                    _currentSpread = (pageIndex - GetChapter(_currentChapterIndex).FirstPageIndex) / 2;
+
+                    return;
+                }
+            }
+
+            // The page is gone, so the same place in the book is the next best thing
+            _currentChapterIndex = Math.Clamp(chapterIndex, 0, Book.Chapters.Count - 1);
+            _currentSpread = Math.Clamp(spread, 0, GetSpreadCount() - 1);
         }
 
         // Public methods for game state queries
@@ -150,9 +435,34 @@ namespace Parchment.Framework.UI.Menus
             return pageIndex == GetLeftPageIndex() || pageIndex == GetRightPageIndex();
         }
 
+        /// <summary>The data behind a page, found by its ID across the whole book. Null when no page carries that ID.</summary>
+        public PageData? FindPageData(string pageId)
+        {
+            int pageIndex = FindPageIndex(pageId, chapterFilter: -1);
+
+            return pageIndex < 0 ? null : _pages[pageIndex].Data;
+        }
+
+        /// <summary>Whether either page on screen carries a tag.</summary>
+        public bool IsOnPageTagged(string tag)
+        {
+            return HasTag(GetLeftPageIndex(), tag) || HasTag(GetRightPageIndex(), tag);
+        }
+
+        private bool HasTag(int pageIndex, string tag)
+        {
+            return pageIndex < _pages.Count && _pages[pageIndex] is not null && _pages[pageIndex].Data.HasTag(tag);
+        }
+
         public bool IsOnPage(string pageId)
         {
             return string.Equals(GetPageId(GetLeftPageIndex()), pageId, StringComparison.OrdinalIgnoreCase) || string.Equals(GetPageId(GetRightPageIndex()), pageId, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Whether there is anywhere for <see cref="TryGoBack"/> to return to, which is what a back button hides itself on.</summary>
+        public bool CanGoBack()
+        {
+            return _history.Any(IsWithinBook);
         }
 
         public bool IsInChapter(string chapterId)
@@ -167,7 +477,7 @@ namespace Parchment.Framework.UI.Menus
         }
 
         // Public methods for action usage
-        public bool TryTurnPage(bool forward, out string error)
+        public bool TryTurnPage(bool forward, out string error, bool skipAnimation = false)
         {
             if (CurrentState is not MenuState.Ready)
             {
@@ -183,13 +493,45 @@ namespace Parchment.Framework.UI.Menus
                 return false;
             }
 
-            BeginPageTurn(targetSpread);
+            BeginPageTurn(targetSpread, skipAnimation);
             error = null;
 
             return true;
         }
 
-        public bool TryJumpToChapter(string chapterId, out string error)
+        /// <summary>Returns to the spread the reader came from, dropping it from the history so a second call goes back a step further.
+        /// Going back doesn't record a step of its own, so a book can't trap the reader bouncing between two spreads.
+        /// </summary>
+        public bool TryGoBack(out string error, bool skipAnimation = false)
+        {
+            if (CurrentState is not MenuState.Ready)
+            {
+                error = "The book is not ready";
+                return false;
+            }
+
+            while (_history.Count > 0)
+            {
+                (int ChapterIndex, int Spread) previous = _history[_history.Count - 1];
+                _history.RemoveAt(_history.Count - 1);
+
+                // An entry that no longer addresses anything, or that points at where the reader already is, is dropped and the one beneath it tried instead
+                if (IsWithinBook(previous) is false || (previous.ChapterIndex == _currentChapterIndex && previous.Spread == _currentSpread))
+                {
+                    continue;
+                }
+
+                BeginPageTurn(previous.ChapterIndex, previous.Spread, recordHistory: false, skipAnimation: skipAnimation);
+                error = null;
+
+                return true;
+            }
+
+            error = "there is nowhere to go back to";
+            return false;
+        }
+
+        public bool TryJumpToChapter(string chapterId, out string error, bool skipAnimation = false)
         {
             if (CurrentState is not MenuState.Ready)
             {
@@ -205,7 +547,7 @@ namespace Parchment.Framework.UI.Menus
 
             if (chapterIndex != _currentChapterIndex || _currentSpread != 0)
             {
-                BeginPageTurn(chapterIndex, 0);
+                BeginPageTurn(chapterIndex, 0, skipAnimation: skipAnimation);
             }
 
             error = null;
@@ -213,7 +555,7 @@ namespace Parchment.Framework.UI.Menus
             return true;
         }
 
-        public bool TryJumpToPage(int pageIndex, out string error)
+        public bool TryJumpToPage(int pageIndex, out string error, bool skipAnimation = false)
         {
             if (CurrentState is not MenuState.Ready)
             {
@@ -232,7 +574,7 @@ namespace Parchment.Framework.UI.Menus
 
             if (chapterIndex != _currentChapterIndex || targetSpread != _currentSpread)
             {
-                BeginPageTurn(chapterIndex, targetSpread);
+                BeginPageTurn(chapterIndex, targetSpread, skipAnimation: skipAnimation);
             }
 
             error = null;
@@ -240,14 +582,88 @@ namespace Parchment.Framework.UI.Menus
             return true;
         }
 
-        public bool TryJumpToFirstPage(out string error)
+        public bool TryJumpToChapterPage(string chapterId, int pageInChapter, out string error, bool skipAnimation = false)
         {
-            return TryJumpToPage(GetChapter(_currentChapterIndex).FirstPageIndex, out error);
+            if (CurrentState is not MenuState.Ready)
+            {
+                error = "The book is not ready";
+                return false;
+            }
+
+            if (Book.TryGetChapterIndex(chapterId, out int chapterIndex) is false)
+            {
+                error = $"There is no chapter '{chapterId}'";
+                return false;
+            }
+
+            Chapter chapter = GetChapter(chapterIndex);
+            int pageIndex = chapter.FirstPageIndex + pageInChapter;
+
+            if (pageInChapter < 0 || pageIndex > chapter.LastPageIndex)
+            {
+                error = $"Chapter '{chapterId}' has no page {pageInChapter}";
+                return false;
+            }
+
+            int targetSpread = pageInChapter / 2;
+
+            if (chapterIndex != _currentChapterIndex || targetSpread != _currentSpread)
+            {
+                BeginPageTurn(chapterIndex, targetSpread, skipAnimation: skipAnimation);
+            }
+
+            error = null;
+
+            return true;
         }
 
-        public bool TryJumpToLastPage(out string error)
+        public bool TryJumpToPageId(string pageId, out string error, bool skipAnimation = false)
         {
-            return TryJumpToPage(GetChapter(_currentChapterIndex).LastPageIndex, out error);
+            return TryJumpToPageId(null, pageId, out error, skipAnimation);
+        }
+
+        public bool TryJumpToPageId(string chapterId, string pageId, out string error, bool skipAnimation = false)
+        {
+            if (CurrentState is not MenuState.Ready)
+            {
+                error = "The book is not ready";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(pageId))
+            {
+                error = "No page ID was provided";
+                return false;
+            }
+
+            int chapterFilter = -1;
+            if (chapterId is not null)
+            {
+                if (Book.TryGetChapterIndex(chapterId, out chapterFilter) is false)
+                {
+                    error = $"There is no chapter '{chapterId}'";
+                    return false;
+                }
+            }
+
+            int pageIndex = FindPageIndex(pageId, chapterFilter);
+            if (pageIndex < 0)
+            {
+                error = chapterFilter >= 0 ? $"Chapter '{chapterId}' has no page '{pageId}'" : $"There is no page '{pageId}'";
+                return false;
+            }
+
+            return TryJumpToPage(pageIndex, out error, skipAnimation);
+        }
+
+        public bool TryJumpToFirstPage(out string error, bool skipAnimation = false)
+        {
+            return TryJumpToPage(GetChapter(_currentChapterIndex).FirstPageIndex, out error, skipAnimation);
+        }
+
+        public bool TryJumpToLastPage(out string error, bool skipAnimation = false)
+        {
+            return TryJumpToPage(GetChapter(_currentChapterIndex).LastPageIndex, out error, skipAnimation);
         }
 
         /// <summary>Positions the book on a page by its index within the whole book, before the menu is shown.</summary>
@@ -463,11 +879,11 @@ namespace Parchment.Framework.UI.Menus
             float centeredY = base.yPositionOnScreen + base.height / 2f - (closedBookRectangle.Height * _appearance.Scale) / 2f;
             _targetPosition = new Vector2(MathF.Round(centeredX + _appearance.Offset.X * _appearance.Scale), MathF.Round(centeredY + _appearance.Offset.Y * _appearance.Scale));
             _startPosition = new Vector2(_targetPosition.X, Game1.uiViewport.Height + (closedBookRectangle.Height * _appearance.Scale));
-
-            _currentPosition = _startPosition;
         }
 
-        private Rectangle GetBookScreenBounds()
+        /// <summary>The whole book frame's bounds on screen.</summary>
+        /// <remarks>Taken from the book's resting position, so this stays put while the open and close animations play rather than tracking the book as it slides.</remarks>
+        public Rectangle GetBookScreenBounds()
         {
             Rectangle bookFrame = _openFrames[0];
 
@@ -530,29 +946,32 @@ namespace Parchment.Framework.UI.Menus
             return _pages[pageIndex].Data.Id;
         }
 
-        private Rectangle GetLeftPageBounds()
+        /// <summary>The left page's content area on screen, inside the book's margins.</summary>
+        public Rectangle GetLeftPageBounds()
         {
             Rectangle bookBounds = GetBookScreenBounds();
 
             int marginOuter = (int)(Book.Data.Layout.MarginOuter * _appearance.Scale);
             int marginTop = (int)(Book.Data.Layout.MarginTop * _appearance.Scale);
-            int marginBottom = (int)(Book.Data.Layout.MarginBottom * _appearance.Scale);
-            int marginSpine = (int)(Book.Data.Layout.MarginSpine * _appearance.Scale);
 
-            return new Rectangle(bookBounds.X + marginOuter, bookBounds.Y + marginTop, bookBounds.Width / 2 - marginOuter - marginSpine, bookBounds.Height - marginTop - marginBottom);
+            // Shared with the builder's measurement, so a page can't be measured against a size it won't be drawn at
+            Point pageSize = PageLayoutHelper.GetPageContentSize(bookBounds.Width, bookBounds.Height, Book.Data.Layout, _appearance.Scale);
+
+            return new Rectangle(bookBounds.X + marginOuter, bookBounds.Y + marginTop, pageSize.X, pageSize.Y);
         }
 
-        private Rectangle GetRightPageBounds()
+        /// <summary>The right page's content area on screen, inside the book's margins.</summary>
+        public Rectangle GetRightPageBounds()
         {
             Rectangle bookBounds = GetBookScreenBounds();
             int spineX = bookBounds.X + bookBounds.Width / 2;
 
-            int marginOuter = (int)(Book.Data.Layout.MarginOuter * _appearance.Scale);
             int marginTop = (int)(Book.Data.Layout.MarginTop * _appearance.Scale);
-            int marginBottom = (int)(Book.Data.Layout.MarginBottom * _appearance.Scale);
             int marginSpine = (int)(Book.Data.Layout.MarginSpine * _appearance.Scale);
 
-            return new Rectangle(spineX + marginSpine, bookBounds.Y + marginTop, bookBounds.Width / 2 - marginOuter - marginSpine, bookBounds.Height - marginTop - marginBottom);
+            Point pageSize = PageLayoutHelper.GetPageContentSize(bookBounds.Width, bookBounds.Height, Book.Data.Layout, _appearance.Scale);
+
+            return new Rectangle(spineX + marginSpine, bookBounds.Y + marginTop, pageSize.X, pageSize.Y);
         }
 
         private void UpdateCornerAnimation(ref float animationTimer, ref int currentFrame, bool isHovering, float elapsedMilliseconds)
@@ -584,20 +1003,34 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
-        private void BeginPageTurn(int targetChapterIndex, int targetSpread)
+        /// <param name="skipAnimation">Whether to land on the target spread immediately rather than playing the turn. Nothing is drawn turning and nothing is heard, since neither belongs to a swap the reader didn't watch happen.</param>
+        private void BeginPageTurn(int targetChapterIndex, int targetSpread, bool recordHistory = true, bool skipAnimation = false)
         {
+            if (recordHistory)
+            {
+                PushHistory();
+            }
+
             _isTurningForward = targetChapterIndex != _currentChapterIndex ? targetChapterIndex > _currentChapterIndex : targetSpread > _currentSpread;
             _pendingChapterIndex = targetChapterIndex;
             _pendingSpread = targetSpread;
 
-            SetMenuState(MenuState.Turning);
+            if (skipAnimation is false)
+            {
+                SetMenuState(MenuState.Turning);
 
-            PlaySound(_animation.TurnSound);
+                PlaySound(_animation.TurnSound);
+                return;
+            }
+
+            // The same landing the turn animation reaches when it finishes, and the same one a click skips to
+            CommitPageTurn();
+            SetMenuState(MenuState.Ready);
         }
 
-        private void BeginPageTurn(int targetSpread)
+        private void BeginPageTurn(int targetSpread, bool skipAnimation = false)
         {
-            BeginPageTurn(_currentChapterIndex, targetSpread);
+            BeginPageTurn(_currentChapterIndex, targetSpread, skipAnimation: skipAnimation);
         }
 
         private void BeginPageTurn(bool forward)
@@ -611,6 +1044,29 @@ namespace Parchment.Framework.UI.Menus
             _currentSpread = _pendingSpread;
         }
 
+        /// <summary>Records where the reader is standing, before a turn takes them somewhere else.</summary>
+        private void PushHistory()
+        {
+            _history.Add((_currentChapterIndex, _currentSpread));
+
+            // A book with a lot of cross-linking would otherwise grow this for as long as it stays open
+            if (_history.Count > HISTORY_LIMIT)
+            {
+                _history.RemoveAt(0);
+            }
+        }
+
+        /// <summary>Whether a recorded spread still addresses somewhere in this book.</summary>
+        private bool IsWithinBook((int ChapterIndex, int Spread) entry)
+        {
+            if (entry.ChapterIndex < 0 || entry.ChapterIndex >= Book.Chapters.Count)
+            {
+                return false;
+            }
+
+            return entry.Spread >= 0 && entry.Spread < GetChapter(entry.ChapterIndex).SpreadCount;
+        }
+
         private void RefreshVisiblePages()
         {
             _conditionRefreshTimer = 0;
@@ -619,6 +1075,8 @@ namespace Parchment.Framework.UI.Menus
 
             RefreshPageConditions(GetLeftPageIndex());
             RefreshPageConditions(GetRightPageIndex());
+
+            RefreshHoverText();
         }
 
         private void RefreshPageConditions(int pageIndex)
@@ -685,11 +1143,42 @@ namespace Parchment.Framework.UI.Menus
 
             if (_hoveredElement is null)
             {
+                RefreshHoverText();
                 return;
             }
 
             _hoveredElement.IsHovered = true;
             RunHoverActions(_hoveredElement);
+
+            // Last, so a tooltip reading a variable one of those actions set shows the new value rather than the one it replaced
+            RefreshHoverText();
+        }
+
+        /// <summary>Resolves the tokens in the hovered element's tooltip, from the same vocabulary an element's text uses.
+        /// Refreshed on cursor entry and then alongside conditions, so a value that moves while the cursor rests on the element is followed rather than frozen at the moment it arrived.
+        /// </summary>
+        private void RefreshHoverText()
+        {
+            if (_hoveredElement is null)
+            {
+                _hoveredDisplayName = null;
+                _hoveredDescription = null;
+
+                return;
+            }
+
+            _hoveredDisplayName = ResolveHoverText(_hoveredElement.DisplayName, _hoveredElement);
+            _hoveredDescription = ResolveHoverText(_hoveredElement.Description, _hoveredElement);
+        }
+
+        private static string? ResolveHoverText(string? text, Element element)
+        {
+            if (string.IsNullOrEmpty(text) is true)
+            {
+                return text;
+            }
+
+            return TokenHelper.Resolve(text, element, quoteValues: false);
         }
 
         /// <summary>Runs an element's click actions in order, from <see cref="ElementData.Action"/> and then <see cref="ElementData.Actions"/>.
@@ -697,11 +1186,32 @@ namespace Parchment.Framework.UI.Menus
         /// </summary>
         private void RunClickActions(Element element)
         {
-            foreach (string action in element.Data.GetActions())
+            RunActions(element.Data.GetActions(), element, "action");
+        }
+
+        /// <summary>Runs an input's submit actions in order, from <see cref="InputElementData.SubmitAction"/> and then <see cref="InputElementData.SubmitActions"/>.</summary>
+        private void RunSubmitActions(Element element)
+        {
+            if (element.Data is not InputElementData inputData || inputData.HasSubmitActions is false)
             {
-                if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
+                return;
+            }
+
+            RunActions(inputData.GetSubmitActions(), element, "submit action");
+
+            RefreshVisiblePages();
+        }
+
+        /// <summary>Runs a list of trigger actions in order, resolving any placeholders first. A failing action doesn't stop the ones after it.</summary>
+        private void RunActions(IEnumerable<string> actions, Element? element, string label)
+        {
+            foreach (string action in actions)
+            {
+                string resolvedAction = ActionTokenHelper.Resolve(action, element);
+
+                if (TriggerActionManager.TryRunAction(resolvedAction, out string error, out Exception exception) is false)
                 {
-                    Parchment.monitor.Log($"Element action '{action}' failed: {error}", LogLevel.Warn);
+                    Parchment.monitor.Log($"Element {label} '{resolvedAction}' failed: {error}", LogLevel.Warn);
 
                     if (exception is not null)
                     {
@@ -721,18 +1231,7 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            foreach (string action in element.Data.GetHoverActions())
-            {
-                if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
-                {
-                    Parchment.monitor.Log($"Element hover action '{action}' failed: {error}", LogLevel.Warn);
-
-                    if (exception is not null)
-                    {
-                        Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
-                    }
-                }
-            }
+            RunActions(element.Data.GetHoverActions(), element, "hover action");
 
             RefreshVisiblePages();
         }
@@ -744,6 +1243,12 @@ namespace Parchment.Framework.UI.Menus
             _animationFrame = 0;
 
             ClearHoverState();
+
+            // An input on the book's own layers is on screen whatever page is being read, so it keeps the keyboard through a turn rather than being dropped halfway. One on a page goes with the page, and a book that is shutting or closing drops focus whatever holds it
+            if (menuState is not MenuState.Ready and not MenuState.Turning || _focusedElement is null || Book.OwnsElement(_focusedElement) is false)
+            {
+                ClearInputFocus();
+            }
 
             // The book state is itself testable through CurrentBookState, so a transition can change what's visible. Refreshing here rather than waiting for the next tick keeps the swap in step with the animation it belongs to
             RefreshVisiblePages();
@@ -798,9 +1303,11 @@ namespace Parchment.Framework.UI.Menus
 
                 foreach (string action in trigger.Actions)
                 {
-                    if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
+                    string resolvedAction = ActionTokenHelper.Resolve(action, element: null);
+
+                    if (TriggerActionManager.TryRunAction(resolvedAction, out string error, out Exception exception) is false)
                     {
-                        Parchment.monitor.Log($"OnView action '{action}' on page '{pageId}' failed: {error}", LogLevel.Warn);
+                        Parchment.monitor.Log($"OnView action '{resolvedAction}' on page '{pageId}' failed: {error}", LogLevel.Warn);
 
                         if (exception is not null)
                         {
@@ -809,6 +1316,165 @@ namespace Parchment.Framework.UI.Menus
                     }
                 }
             }
+        }
+
+        /// <summary>Runs every keybind the button matches, the visible spread's first and the book's own only when no page bind took it, and reports whether
+        /// any of them claimed the button. A claimed button never reaches the menu's own handling, which is how a page takes over the exit button.
+        /// </summary>
+        private bool HandleKeybinds(SButton button)
+        {
+            if (CurrentState is not MenuState.Ready || button is SButton.None)
+            {
+                return false;
+            }
+
+            // A focused input takes precedence over every bind, so a book that binds a letter doesn't fire it while the reader types that letter
+            if (_focusedInput is not null)
+            {
+                return false;
+            }
+
+            bool hasRunAny = false;
+            bool isSuppressed = DispatchPageKeybinds(GetLeftPageIndex(), button, ref hasRunAny);
+
+            // A left page action may have turned the page, closed the book or jumped elsewhere, in which case the right page is no longer the one being read
+            if (CurrentState is MenuState.Ready)
+            {
+                isSuppressed |= DispatchPageKeybinds(GetRightPageIndex(), button, ref hasRunAny);
+            }
+
+            // The book's own binds are a fallback rather than a second helping, so a page binding the same button takes it off the book while that page is being read
+            if (hasRunAny is false)
+            {
+                isSuppressed |= DispatchKeybinds(Book.Data.OnKeyPress, $"book '{Book.Data.Id}'", button, ref hasRunAny);
+            }
+
+            if (hasRunAny)
+            {
+                RefreshVisiblePages();
+            }
+
+            return isSuppressed;
+        }
+
+        private bool DispatchPageKeybinds(int pageIndex, SButton button, ref bool hasRunAny)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return false;
+            }
+
+            return DispatchKeybinds(_pages[pageIndex].Data.OnKeyPress, $"page '{_pages[pageIndex].Data.Id}'", button, ref hasRunAny);
+        }
+
+        /// <summary>Runs each keybind in the list the button matches and whose condition passes, reporting whether any of them claimed it.
+        /// <paramref name="hasRunAny"/> is what decides the page over book precedence, so it is set by anything that actually runs rather than by anything that merely matched.
+        /// </summary>
+        private bool DispatchKeybinds(List<KeybindData>? keybinds, string source, SButton button, ref bool hasRunAny)
+        {
+            if (keybinds is null)
+            {
+                return false;
+            }
+
+            bool isSuppressed = false;
+
+            foreach (KeybindData keybind in keybinds)
+            {
+                if (keybind.Matches(button) is false)
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(keybind.Condition) is false && GameStateQuery.CheckConditions(keybind.Condition) is false)
+                {
+                    continue;
+                }
+
+                isSuppressed |= keybind.SuppressDefault;
+                hasRunAny = true;
+
+                PlaySound(keybind.Sound);
+
+                foreach (string action in keybind.GetActions())
+                {
+                    if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
+                    {
+                        Parchment.monitor.Log($"OnKeyPress action '{action}' on {source} failed: {error}", LogLevel.Warn);
+
+                        if (exception is not null)
+                        {
+                            Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
+                        }
+                    }
+                }
+            }
+
+            return isSuppressed;
+        }
+
+        /// <summary>Starts counting the exit button's hold, after a page claimed the press.</summary>
+        private void BeginForceCloseHold()
+        {
+            _isExitButtonSuppressed = true;
+            _forceCloseHoldTimer = 0f;
+        }
+
+        /// <summary>Counts how long the exit button stays down after a page took it over, forcing the book shut once the hold is long enough.
+        /// This is the reader's guaranteed way out, so a page that redirects the exit button can never strand them.
+        /// </summary>
+        private void UpdateForceCloseHold(float elapsedMilliseconds)
+        {
+            if (_isExitButtonSuppressed is false)
+            {
+                return;
+            }
+
+            if (IsExitButtonHeld() is false)
+            {
+                _isExitButtonSuppressed = false;
+                _forceCloseHoldTimer = 0f;
+
+                return;
+            }
+
+            _forceCloseHoldTimer += elapsedMilliseconds;
+            if (_forceCloseHoldTimer < FORCE_CLOSE_HOLD_DURATION)
+            {
+                return;
+            }
+
+            _isExitButtonSuppressed = false;
+            _forceCloseHoldTimer = 0f;
+
+            ForceClose();
+        }
+
+        /// <summary>Whether anything bound to the menu's exit is currently down, covering the keyboard binding and the controller's B button.</summary>
+        private static bool IsExitButtonHeld()
+        {
+            KeyboardState keyboardState = Game1.input.GetKeyboardState();
+            foreach (InputButton inputButton in Game1.options.menuButton)
+            {
+                if (inputButton.key != Keys.None && keyboardState.IsKeyDown(inputButton.key))
+                {
+                    return true;
+                }
+            }
+
+            return Game1.options.gamepadControls && Game1.input.GetGamePadState().IsButtonDown(Buttons.B);
+        }
+
+        /// <summary>Shuts the book and leaves the menu, ignoring ExitToCover. The reader held the exit button to get here, so landing on the cover isn't what they asked for.</summary>
+        private void ForceClose()
+        {
+            if (CurrentState is MenuState.Closing)
+            {
+                return;
+            }
+
+            SetMenuState(MenuState.Closing);
+            PlaySound(_animation.CloseSound);
         }
 
         private void MarkVisibleSeen(Chapter chapter, int leftPageIndex, int rightPageIndex)
@@ -840,6 +1506,61 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
+        /// <summary>Whether an Input element currently has the keyboard. Read from the mod's button handler, which suppresses world binds while the reader is typing.</summary>
+        public bool HasFocusedInput => _focusedInput is not null;
+
+        /// <summary>Gives an Input element the keyboard, so typing goes to it rather than to the menu.</summary>
+        private void FocusInput(Element element)
+        {
+            if (element.Data is not InputElementData inputData || string.IsNullOrWhiteSpace(inputData.InputId))
+            {
+                return;
+            }
+
+            if (ReferenceEquals(_focusedElement, element) is true)
+            {
+                return;
+            }
+
+            ClearInputFocus();
+
+            _focusedElement = element;
+            element.IsFocused = true;
+
+            _focusedInput = new InputTextSubscriber(inputData.InputId, inputData.MaxLength, OnInputTextChanged, () => RunSubmitActions(element));
+
+            // Assigning the subscriber is what starts the game routing characters here. The dispatcher owns the Selected flag on both the old and new subscriber
+            Game1.keyboardDispatcher.Subscriber = _focusedInput;
+        }
+
+        private void ClearInputFocus()
+        {
+            if (_focusedElement is not null)
+            {
+                _focusedElement.IsFocused = false;
+                _focusedElement = null;
+            }
+
+            if (_focusedInput is null)
+            {
+                return;
+            }
+
+            // Only release the dispatcher when it is still ours, so a menu opened over this one keeps the keyboard
+            if (ReferenceEquals(Game1.keyboardDispatcher.Subscriber, _focusedInput) is true)
+            {
+                Game1.keyboardDispatcher.Subscriber = null;
+            }
+
+            _focusedInput = null;
+        }
+
+        /// <summary>Refreshes conditions the moment an input changes, so a list filtered on the typed text keeps up with the reader rather than waiting for the next condition tick.</summary>
+        private void OnInputTextChanged()
+        {
+            RefreshVisiblePages();
+        }
+
         private void ClearHoverState()
         {
             SetHoveredElement(null);
@@ -854,6 +1575,350 @@ namespace Parchment.Framework.UI.Menus
             _nextCornerFrame = 0;
             _previousCornerAnimationTimer = 0f;
             _nextCornerAnimationTimer = 0f;
+        }
+
+        /// <summary>Runs the actions of any frame that started this tick, on either visible page.
+        /// Only elements that carry a frame action are walked, so a book without any pays almost nothing for this running every tick.
+        /// </summary>
+        private void DispatchFrameActions()
+        {
+            if (CurrentState is not MenuState.Ready and not MenuState.Turning)
+            {
+                return;
+            }
+
+            // The book's own layers are on screen whatever is being read, so they run first and regardless of which pages are showing
+            bool hasRunAny = DispatchFrameActions(Book.FrameActionElements);
+
+            if (CurrentState is MenuState.Ready or MenuState.Turning)
+            {
+                hasRunAny |= DispatchPageFrameActions(GetLeftPageIndex());
+            }
+
+            // A frame action may have turned the page or closed the book, in which case the right page is no longer the one being read
+            if (CurrentState is MenuState.Ready or MenuState.Turning)
+            {
+                hasRunAny |= DispatchPageFrameActions(GetRightPageIndex());
+            }
+
+            // Refreshed straight away rather than on the next interval, so an animation that ends by setting a flag has its frames conditioned out before the cycle wraps and replays
+            if (hasRunAny is true)
+            {
+                RefreshVisiblePages();
+            }
+        }
+
+        private bool DispatchPageFrameActions(int pageIndex)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return false;
+            }
+
+            return DispatchFrameActions(_pages[pageIndex].FrameActionElements);
+        }
+
+        /// <summary>Runs the actions of any frame in this list that started on this tick, reporting whether any of them ran.</summary>
+        private bool DispatchFrameActions(IReadOnlyList<Element> frameActionElements)
+        {
+            bool hasRunAny = false;
+
+            foreach (Element element in frameActionElements)
+            {
+                if (element.IsVisible is false)
+                {
+                    continue;
+                }
+
+                AnimationFrameData? activeFrame = AnimationHelper.GetActiveFrame(element, element.Data.FrameDuration);
+                if (ReferenceEquals(element.LastPlayedFrame, activeFrame) is true)
+                {
+                    continue;
+                }
+
+                element.LastPlayedFrame = activeFrame;
+
+                if (activeFrame is null || activeFrame.HasActions is false)
+                {
+                    continue;
+                }
+
+                RunActions(activeFrame.GetActions(), element, "frame action");
+                hasRunAny = true;
+            }
+
+            return hasRunAny;
+        }
+
+        /// <summary>Runs the text changed actions of any Input whose text has stopped moving for its TextChangedDelay.
+        /// The text is polled rather than hooked off typing, so a clear button or a SetInput action counts as a change the same as a keystroke does.
+        /// </summary>
+        private void DispatchTextChangedActions(float elapsedMilliseconds)
+        {
+            if (CurrentState is not MenuState.Ready and not MenuState.Turning)
+            {
+                return;
+            }
+
+            bool hasRunAny = DispatchTextChangedActions(Book.TextChangedActionElements, elapsedMilliseconds);
+
+            if (CurrentState is MenuState.Ready or MenuState.Turning)
+            {
+                hasRunAny |= DispatchPageTextChangedActions(GetLeftPageIndex(), elapsedMilliseconds);
+            }
+
+            if (CurrentState is MenuState.Ready or MenuState.Turning)
+            {
+                hasRunAny |= DispatchPageTextChangedActions(GetRightPageIndex(), elapsedMilliseconds);
+            }
+
+            if (hasRunAny is true)
+            {
+                RefreshVisiblePages();
+            }
+        }
+
+        private bool DispatchPageTextChangedActions(int pageIndex, float elapsedMilliseconds)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return false;
+            }
+
+            return DispatchTextChangedActions(_pages[pageIndex].TextChangedActionElements, elapsedMilliseconds);
+        }
+
+        private bool DispatchTextChangedActions(IReadOnlyList<Element> textChangedActionElements, float elapsedMilliseconds)
+        {
+            bool hasRunAny = false;
+
+            foreach (Element element in textChangedActionElements)
+            {
+                if (element.IsVisible is false || element.Data is not InputElementData inputData)
+                {
+                    continue;
+                }
+
+                string currentText = Parchment.inputManager.GetText(inputData.InputId);
+
+                if (string.Equals(element.LastSeenInputText, currentText, StringComparison.Ordinal) is false)
+                {
+                    // The first look records the text without arming anything, so a book doesn't run its text changed actions the moment it opens
+                    bool hasSeenBefore = element.LastSeenInputText is not null;
+
+                    element.LastSeenInputText = currentText;
+                    element.TextChangedDelayRemaining = hasSeenBefore ? inputData.TextChangedDelay : null;
+
+                    continue;
+                }
+
+                if (element.TextChangedDelayRemaining is not float delayRemaining)
+                {
+                    continue;
+                }
+
+                delayRemaining -= elapsedMilliseconds;
+                if (delayRemaining > 0f)
+                {
+                    element.TextChangedDelayRemaining = delayRemaining;
+                    continue;
+                }
+
+                element.TextChangedDelayRemaining = null;
+
+                RunActions(inputData.GetTextChangedActions(), element, "text changed action");
+                hasRunAny = true;
+            }
+
+            return hasRunAny;
+        }
+
+        /// <summary>Hands each result Grid's cells the items matching whatever the reader has typed. A grid whose filter hasn't moved does nothing, so this is a pair of string compares on a quiet tick.</summary>
+        private void RefreshResults()
+        {
+            if (CurrentState is not MenuState.Ready and not MenuState.Turning)
+            {
+                return;
+            }
+
+            if (RefreshResults(Book.ResultElements) is true)
+            {
+                Book.InvalidateLayout();
+            }
+
+            RefreshPageResults(GetLeftPageIndex());
+            RefreshPageResults(GetRightPageIndex());
+        }
+
+        private void RefreshPageResults(int pageIndex)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return;
+            }
+
+            // Cells gaining or losing an item isn't something the condition pass can see, so the relayout has to be asked for rather than waited on
+            if (RefreshResults(_pages[pageIndex].ResultElements) is true)
+            {
+                _pages[pageIndex].InvalidateLayout();
+            }
+        }
+
+        private static bool RefreshResults(IReadOnlyList<Element> resultElements)
+        {
+            bool hasChanged = false;
+
+            foreach (Element element in resultElements)
+            {
+                if (element.Results is null)
+                {
+                    continue;
+                }
+
+                hasChanged |= element.Results.TryRefresh(element.Children);
+            }
+
+            return hasChanged;
+        }
+
+        /// <summary>The counts behind a Grid, found by its Id across the book's own layers and both visible pages.
+        /// A grid filling its cells from a Source reports on its candidates, and one with authored children reports on those, so the same tokens read either kind.
+        /// </summary>
+        public bool TryGetGridCounts(string gridId, out int displayed, out int matched, out int total)
+        {
+            displayed = 0;
+            matched = 0;
+            total = 0;
+
+            if (TryFindGridInBook(gridId, out Element? grid) is false)
+            {
+                return false;
+            }
+
+            if (grid!.Results is ResultSet results)
+            {
+                displayed = results.DisplayedCount;
+                matched = results.MatchedCount;
+                total = results.TotalCount;
+
+                return true;
+            }
+
+            foreach (Element child in grid.Children)
+            {
+                total++;
+
+                if (child.IsVisible is true)
+                {
+                    matched++;
+                }
+            }
+
+            // A capped grid draws only what its cells hold, so what is displayed and what matched are different numbers
+            int cellCount = grid.Data is GridElementData gridData && gridData.Rows is int rows ? rows * gridData.Columns : matched;
+            displayed = Math.Min(matched, cellCount);
+
+            return true;
+        }
+
+        /// <summary>Looks for a grid on the book's own layers first, then on each visible page. A grid the reader can't see isn't found, so a token can only report on what is in front of them.</summary>
+        private bool TryFindGridInBook(string gridId, out Element? grid)
+        {
+            if (TryFindGrid(Book.Underlay, gridId, out grid) is true || TryFindGrid(Book.Overlay, gridId, out grid) is true)
+            {
+                return true;
+            }
+
+            return TryFindGridOnPage(GetLeftPageIndex(), gridId, out grid) || TryFindGridOnPage(GetRightPageIndex(), gridId, out grid);
+        }
+
+        private bool TryFindGridOnPage(int pageIndex, string gridId, out Element? grid)
+        {
+            grid = null;
+
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return false;
+            }
+
+            Page page = _pages[pageIndex];
+
+            return TryFindGrid(page.Elements, gridId, out grid) || TryFindGrid(page.Background, gridId, out grid) || TryFindGrid(page.Foreground, gridId, out grid);
+        }
+
+        private static bool TryFindGrid(IReadOnlyList<Element> elements, string gridId, out Element? grid)
+        {
+            foreach (Element element in elements)
+            {
+                if (element.Data is GridElementData && string.Equals(element.Data.Id, gridId, StringComparison.OrdinalIgnoreCase) is true)
+                {
+                    grid = element;
+                    return true;
+                }
+
+                if (TryFindGrid(element.Children, gridId, out grid) is true || TryFindGrid(element.Background, gridId, out grid) is true || TryFindGrid(element.Foreground, gridId, out grid) is true)
+                {
+                    return true;
+                }
+            }
+
+            grid = null;
+            return false;
+        }
+
+        /// <summary>Watches the elements whose text carries a token and asks for a relayout when one resolves differently.
+        /// Text is wrapped and measured once per layout pass, so a token whose value moves without a condition moving with it would otherwise stay on screen as it was.
+        /// </summary>
+        private void RefreshTokenText()
+        {
+            if (CurrentState is not MenuState.Ready and not MenuState.Turning)
+            {
+                return;
+            }
+
+            if (RefreshTokenText(Book.TokenTextElements) is true)
+            {
+                Book.InvalidateLayout();
+            }
+
+            RefreshPageTokenText(GetLeftPageIndex());
+            RefreshPageTokenText(GetRightPageIndex());
+        }
+
+        private void RefreshPageTokenText(int pageIndex)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return;
+            }
+
+            if (RefreshTokenText(_pages[pageIndex].TokenTextElements) is true)
+            {
+                _pages[pageIndex].InvalidateLayout();
+            }
+        }
+
+        private static bool RefreshTokenText(IReadOnlyList<Element> tokenTextElements)
+        {
+            bool hasChanged = false;
+
+            foreach (Element element in tokenTextElements)
+            {
+                string? resolvedText = TokenHelper.ResolveElementText(element);
+
+                if (string.Equals(element.LastResolvedText, resolvedText, StringComparison.Ordinal) is true)
+                {
+                    continue;
+                }
+
+                // The first look records the text without asking for anything, since the layout that is about to run will resolve it anyway
+                bool hasSeenBefore = element.LastResolvedText is not null;
+
+                element.LastResolvedText = resolvedText;
+                hasChanged |= hasSeenBefore;
+            }
+
+            return hasChanged;
         }
 
         private void UpdateConditionTimer()
@@ -879,12 +1944,32 @@ namespace Parchment.Framework.UI.Menus
         protected override void cleanupBeforeExit()
         {
             Game1.displayHUD = _previousHudState;
+
+            ClearInputFocus();
+
+            // Input text and flags are per reading session, so they don't survive the book being put down
+            Parchment.inputManager.ClearAll();
+            Parchment.flagManager.ClearAll();
+
+            // Variables do survive, so the global ones are written out here rather than waiting for the next save
+            Parchment.variableManager.Save();
+
+            // A book edited while it was being read is reloaded now rather than under the reader
+            Parchment.bookManager.ApplyPendingBookReload();
+
             base.cleanupBeforeExit();
         }
 
         public override void emergencyShutDown()
         {
             Game1.displayHUD = _previousHudState;
+
+            ClearInputFocus();
+            Parchment.inputManager.ClearAll();
+            Parchment.flagManager.ClearAll();
+            Parchment.variableManager.Save();
+            Parchment.bookManager.ApplyPendingBookReload();
+
             base.emergencyShutDown();
         }
 
@@ -906,7 +1991,32 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            if (Game1.options.doesInputListContain(Game1.options.menuButton, key))
+            bool isExitButton = Game1.options.doesInputListContain(Game1.options.menuButton, key);
+
+            // A focused input has the keyboard, so no keystroke reaches the page's binds or the menu's own handling while the reader is typing
+            if (_focusedInput is not null)
+            {
+                // Escape alone leaves the box, as the menu button list also holds E by default and a reader typing "e" means the letter. A second press then closes the book
+                if (key is Keys.Escape)
+                {
+                    ClearInputFocus();
+                }
+
+                return;
+            }
+
+            // The visible page gets first refusal, so it can take the button over before the menu acts on it
+            if (HandleKeybinds(key.ToSButton()) is true)
+            {
+                if (isExitButton)
+                {
+                    BeginForceCloseHold();
+                }
+
+                return;
+            }
+
+            if (isExitButton)
             {
                 BeginClose();
                 return;
@@ -918,6 +2028,21 @@ namespace Parchment.Framework.UI.Menus
             }
 
             base.receiveKeyPress(key);
+        }
+
+        public override void receiveGamePadButton(Buttons button)
+        {
+            if (HandleKeybinds(button.ToSButton()) is true)
+            {
+                if (button is Buttons.B)
+                {
+                    BeginForceCloseHold();
+                }
+
+                return;
+            }
+
+            base.receiveGamePadButton(button);
         }
 
         public override void receiveLeftClick(int x, int y, bool playSound = true)
@@ -981,6 +2106,15 @@ namespace Parchment.Framework.UI.Menus
 
             // Check for any button element
             Element? clickedElement = GetElementAt(new Point(x, y));
+
+            if (clickedElement is not null && clickedElement.Data is InputElementData)
+            {
+                FocusInput(clickedElement);
+                return;
+            }
+
+            ClearInputFocus();
+
             if (clickedElement is not null && clickedElement.Data.HasActions)
             {
                 PlaySound(clickedElement.Data.Sound);
@@ -1042,6 +2176,18 @@ namespace Parchment.Framework.UI.Menus
 
             // Conditions refresh in every state, so CurrentBookState works for all of them and there's no state where a condition goes stale
             UpdateConditionTimer();
+
+            // Every tick rather than on the condition interval, as a frame shorter than that interval would otherwise be stepped over without ever being seen
+            DispatchFrameActions();
+
+            DispatchTextChangedActions(elapsedMilliseconds);
+
+            RefreshResults();
+
+            RefreshTokenText();
+
+            // Tracked in every state, since an action a keybind ran may have started an animation the reader is now holding the button through
+            UpdateForceCloseHold(elapsedMilliseconds);
 
             if (CurrentState is MenuState.Sliding)
             {
@@ -1173,15 +2319,15 @@ namespace Parchment.Framework.UI.Menus
 
             base.draw(b);
 
-            if (CurrentState is (MenuState.Ready or MenuState.Cover) && _hoveredElement is not null && (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false || string.IsNullOrEmpty(_hoveredElement.Description) is false))
+            if (CurrentState is (MenuState.Ready or MenuState.Cover) && _hoveredElement is not null && (string.IsNullOrEmpty(_hoveredDisplayName) is false || string.IsNullOrEmpty(_hoveredDescription) is false))
             {
-                if (string.IsNullOrEmpty(_hoveredElement.DisplayName) is false && string.IsNullOrEmpty(_hoveredElement.Description) is true)
+                if (string.IsNullOrEmpty(_hoveredDisplayName) is false && string.IsNullOrEmpty(_hoveredDescription) is true)
                 {
-                    drawHoverText(b, _hoveredElement.DisplayName, Game1.smallFont);
+                    drawHoverText(b, _hoveredDisplayName, Game1.smallFont);
                 }
                 else
                 {
-                    drawHoverText(b, _hoveredElement.Description, Game1.smallFont, boldTitleText: _hoveredElement.DisplayName);
+                    drawHoverText(b, _hoveredDescription, Game1.smallFont, boldTitleText: _hoveredDisplayName);
                 }
             }
 

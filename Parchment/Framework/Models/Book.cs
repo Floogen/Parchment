@@ -24,6 +24,35 @@ namespace Parchment.Framework.Models
 
         public ElementRenderContext? LastLayoutContext;
 
+        // Everything on the book's own layers, for asking whether an element belongs to the book rather than to a page
+        private readonly List<Element> _layerElements;
+
+        /// <summary>Whether this element sits on the book's own layers rather than on a page, which is what decides if it survives a page turn.</summary>
+        public bool OwnsElement(Element element)
+        {
+            foreach (Element layerElement in _layerElements)
+            {
+                if (ReferenceEquals(layerElement, element) is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Every element on the book's own layers whose text carries a token.</summary>
+        public List<Element> TokenTextElements { get; }
+
+        /// <summary>Every Grid on the book's own layers whose cells come from a Source block.</summary>
+        public List<Element> ResultElements { get; }
+
+        /// <summary>Every Input element on the book's own layers carrying a text changed action. A search box usually lives here rather than on a page, so this is the list that matters most.</summary>
+        public List<Element> TextChangedActionElements { get; }
+
+        /// <summary>Every element on the book's own layers carrying a frame action, gathered once. The book's layers are on screen whatever page is being read, so these are dispatched alongside the visible pages' own.</summary>
+        public List<Element> FrameActionElements { get; }
+
         public Book(BookData data, ElementRegistry elementRegistry, FontResolver fontResolver)
         {
             Data = data;
@@ -31,6 +60,71 @@ namespace Parchment.Framework.Models
             Underlay = ElementFactory.CreateList(Data.Underlay, elementRegistry, fontResolver);
             Overlay = ElementFactory.CreateList(Data.Overlay, elementRegistry, fontResolver);
             Chapters = CreateChapters();
+
+            FrameActionElements = new List<Element>();
+            AnimationHelper.CollectFrameActionElements(Underlay, FrameActionElements);
+            AnimationHelper.CollectFrameActionElements(Overlay, FrameActionElements);
+
+            _layerElements = new List<Element>();
+            Page.CollectElements(Underlay, _ => true, _layerElements);
+            Page.CollectElements(Overlay, _ => true, _layerElements);
+
+            TextChangedActionElements = new List<Element>();
+            Page.CollectElements(Underlay, Page.HasTextChangedActions, TextChangedActionElements);
+            Page.CollectElements(Overlay, Page.HasTextChangedActions, TextChangedActionElements);
+
+            ResultElements = new List<Element>();
+            Page.CollectElements(Underlay, Page.HasResults, ResultElements);
+            Page.CollectElements(Overlay, Page.HasResults, ResultElements);
+
+            TokenTextElements = new List<Element>();
+            Page.CollectElements(Underlay, TokenHelper.HasTokenText, TokenTextElements);
+            Page.CollectElements(Overlay, TokenHelper.HasTokenText, TokenTextElements);
+        }
+
+        private static void InvalidateResults(IReadOnlyList<Element> resultElements)
+        {
+            foreach (Element element in resultElements)
+            {
+                element.Results?.Invalidate();
+            }
+        }
+
+        /// <summary>Forces the next draw to lay the book's own layers out again.</summary>
+        /// <summary>Finds every element in the book carrying an ID, wherever it sits. A timed element can be placed anywhere, so this looks past the pages on screen rather than only at them.
+        /// All matches are returned rather than the first, so an ID reused across pages brings up the same thing on each of them.
+        /// </summary>
+        public IEnumerable<Element> FindElementsById(string elementId)
+        {
+            foreach (Element element in FindElementsById(Underlay, elementId)) { yield return element; }
+            foreach (Element element in FindElementsById(Overlay, elementId)) { yield return element; }
+
+            foreach (Page page in Pages)
+            {
+                foreach (Element element in FindElementsById(page.Background, elementId)) { yield return element; }
+                foreach (Element element in FindElementsById(page.Elements, elementId)) { yield return element; }
+                foreach (Element element in FindElementsById(page.Foreground, elementId)) { yield return element; }
+            }
+        }
+
+        private static IEnumerable<Element> FindElementsById(IReadOnlyList<Element> elements, string elementId)
+        {
+            foreach (Element element in elements)
+            {
+                if (string.Equals(element.Data.Id, elementId, StringComparison.OrdinalIgnoreCase) is true)
+                {
+                    yield return element;
+                }
+
+                foreach (Element child in FindElementsById(element.Children, elementId)) { yield return child; }
+                foreach (Element child in FindElementsById(element.Background, elementId)) { yield return child; }
+                foreach (Element child in FindElementsById(element.Foreground, elementId)) { yield return child; }
+            }
+        }
+
+        public void InvalidateLayout()
+        {
+            LastLayoutContext = null;
         }
 
         private List<Chapter> CreateChapters()
@@ -176,9 +270,29 @@ namespace Parchment.Framework.Models
 
         public void RefreshTextures(IReadOnlyCollection<IAssetName> invalidatedAssetNames)
         {
+            // An item query's answer can change with the assets behind it, so the candidates are resolved again rather than trusted
+            InvalidateResults(ResultElements);
+
+            foreach (Page resultPage in Pages)
+            {
+                InvalidateResults(resultPage.ResultElements);
+            }
+
+            bool wasBookLayerRefreshed = ElementFactory.RefreshTextures(Underlay, invalidatedAssetNames);
+            wasBookLayerRefreshed |= ElementFactory.RefreshTextures(Overlay, invalidatedAssetNames);
+
+            if (wasBookLayerRefreshed)
+            {
+                LastLayoutContext = null;
+            }
+
             foreach (Page page in Pages)
             {
-                if (ElementFactory.RefreshTextures(page.Elements, invalidatedAssetNames) is true)
+                bool wasPageRefreshed = ElementFactory.RefreshTextures(page.Elements, invalidatedAssetNames);
+                wasPageRefreshed |= ElementFactory.RefreshTextures(page.Background, invalidatedAssetNames);
+                wasPageRefreshed |= ElementFactory.RefreshTextures(page.Foreground, invalidatedAssetNames);
+
+                if (wasPageRefreshed)
                 {
                     page.LastLayoutContext = null;
                 }

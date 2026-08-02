@@ -7,5 +7,7 @@
   "EntryDll": "Parchment.dll",
   "MinimumApiVersion": "4.1.10",
   "UpdateKeys": [ "Nexus:49525" ],
-  "Dependencies": []
+  "Dependencies": [
+    { "UniqueID": "Pathoschild.ContentPatcher", "IsRequired": false }
+  ]
 }

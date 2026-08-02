@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using Parchment.Framework.API;
 using Parchment.Framework.Managers;
 using Parchment.Framework.Models;
@@ -37,6 +38,7 @@ namespace Parchment
         public static bool isDebugMode = false;
 
         // Shared static helpers
+        internal static IManifest manifest;
         internal static IMonitor monitor;
         internal static IModHelper modHelper;
         internal static Multiplayer multiplayer;
@@ -44,12 +46,17 @@ namespace Parchment
         // Managers
         internal static ActionManager actionManager;
         internal static BookManager bookManager;
+        internal static ContentPatcherManager contentPatcherManager;
+        internal static FlagManager flagManager;
+        internal static InputManager inputManager;
         internal static QueryManager queryManager;
         internal static TileManager tileManager;
+        internal static VariableManager variableManager;
 
         public override void Entry(IModHelper helper)
         {
             // Set up the monitor, helper and multiplayer
+            manifest = ModManifest;
             monitor = Monitor;
             modHelper = helper;
             multiplayer = helper.Reflection.GetField<Multiplayer>(typeof(Game1), "multiplayer").GetValue();
@@ -57,8 +64,12 @@ namespace Parchment
             // Create managers
             actionManager = new ActionManager(monitor, helper);
             bookManager = new BookManager(monitor, helper);
+            contentPatcherManager = new ContentPatcherManager(monitor, helper);
+            flagManager = new FlagManager(monitor, helper);
+            inputManager = new InputManager(monitor, helper);
             queryManager = new QueryManager(monitor, helper);
             tileManager = new TileManager(monitor, helper);
+            variableManager = new VariableManager(monitor, helper);
 
             try
             {
@@ -77,6 +88,11 @@ namespace Parchment
             // Hook into the required events
             helper.Events.Content.AssetRequested += OnAssetRequested;
             helper.Events.Input.ButtonPressed += OnButtonPressed;
+            helper.Events.GameLoop.Saving += (sender, args) => variableManager.Save();
+            helper.Events.GameLoop.ReturnedToTitle += (sender, args) => variableManager.Save();
+
+            // Global variables can be set with no book open, so attempt variable save once a second
+            helper.Events.GameLoop.OneSecondUpdateTicked += (sender, args) => variableManager.Save();
 
             // Register actions
             GameLocation.RegisterTileAction("PeacefulEnd.Parchment_OpenBook", MapActionHelper.HandleOpenBook);
@@ -122,6 +138,14 @@ namespace Parchment
 
         private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
         {
+            // A focused Input owns typed characters, which arrive through the keyboard dispatcher, but the chat hotkey and every other world bind are read from the polled key state instead and never pass through the menu
+            // Suppressing here is the only place that reaches them. Escape is let through so it can still leave the box
+            if (Game1.activeClickableMenu is BookMenu focusedBookMenu && focusedBookMenu.HasFocusedInput is true && e.Button.TryGetKeyboard(out Keys pressedKey) is true && pressedKey is not Keys.Escape)
+            {
+                Helper.Input.Suppress(e.Button);
+                return;
+            }
+
             // Only runs if debug mode is active
             if (isDebugMode is true && e.Button is SButton.O && Context.IsPlayerFree && Game1.activeClickableMenu is null)
             {

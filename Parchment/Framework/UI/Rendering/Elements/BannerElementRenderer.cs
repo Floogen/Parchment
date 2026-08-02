@@ -55,7 +55,8 @@ namespace Parchment.Framework.UI.Rendering.Elements
             Point offset = new Point((int)(data.TextOffset.X * data.Scale), (int)(data.TextOffset.Y * data.Scale));
             float bannerHeight = sourceRectangle.Height * data.Scale;
             float maximumTextWidth = Math.Max(0f, context.AvailableWidth - (capWidth + padding) * 2f - Math.Abs(offset.X) * 2f);
-            float maximumTextHeight = Math.Max(0f, bannerHeight - padding * 2f - Math.Abs(offset.Y) * 2f);
+            // Padding sits between the caps and the text, and a banner has caps at its ends rather than above and below, so only the width gives any up
+            float maximumTextHeight = Math.Max(0f, bannerHeight - Math.Abs(offset.Y) * 2f);
 
             float textScale = data.TextScale;
             if (textScale <= 0f)
@@ -64,7 +65,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 textScale = naturalLineHeight > 0f ? Math.Max(1f, (float)Math.Floor(maximumTextHeight / naturalLineHeight)) : 1f;
             }
 
-            WrappedText wrappedText = TextWrapper.Wrap(GetText(data, context), element.Font, maximumTextWidth, textScale);
+            WrappedText wrappedText = TextWrapper.Wrap(TokenHelper.Resolve(GetText(data, context), element, quoteValues: false), element.Font, maximumTextWidth, textScale);
             if (wrappedText.Size.Y > maximumTextHeight)
             {
                 Parchment.monitor.LogOnce($"Banner text is {(int)wrappedText.Size.Y}px tall but the banner only has {(int)maximumTextHeight}px; text will overflow. Try a smaller {nameof(data.TextScale)} or a shorter font.", LogLevel.Warn);
@@ -107,12 +108,12 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return;
             }
 
-            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), bannerLayout.LeftSource, element.TintColor, 0f, Vector2.Zero, data.Scale, SpriteEffects.None, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, new Vector2(bounds.X, bounds.Y), bannerLayout.LeftSource, element.TintColor * element.DrawAlpha, 0f, Vector2.Zero, data.Scale, SpriteEffects.None, LAYER_DEPTH);
 
             Rectangle middleDestination = new Rectangle(bounds.X + bannerLayout.CapWidth, bounds.Y, bounds.Width - bannerLayout.CapWidth * 2, bounds.Height);
-            spriteBatch.Draw(element.Texture, middleDestination, bannerLayout.MiddleSource, element.TintColor, 0f, Vector2.Zero, SpriteEffects.None, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, middleDestination, bannerLayout.MiddleSource, element.TintColor * element.DrawAlpha, 0f, Vector2.Zero, SpriteEffects.None, LAYER_DEPTH);
 
-            spriteBatch.Draw(element.Texture, new Vector2(bounds.Right - bannerLayout.CapWidth, bounds.Y), bannerLayout.RightSource, element.TintColor, 0f, Vector2.Zero, data.Scale, SpriteEffects.None, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, new Vector2(bounds.Right - bannerLayout.CapWidth, bounds.Y), bannerLayout.RightSource, element.TintColor * element.DrawAlpha, 0f, Vector2.Zero, data.Scale, SpriteEffects.None, LAYER_DEPTH);
 
             Rectangle textBounds = new Rectangle(
                 bounds.X + bannerLayout.CapWidth + bannerLayout.Padding + bannerLayout.Offset.X,

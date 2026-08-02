@@ -42,7 +42,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
 
             float? explicitWidth = this.GetExplicitWidth(data, context);
 
-            WrappedText wrappedText = TextWrapper.Wrap(this.GetText(data, context), element.Font, explicitWidth ?? context.AvailableWidth, element.Data.Scale);
+            WrappedText wrappedText = TextWrapper.Wrap(TokenHelper.Resolve(this.GetText(data, context), element, quoteValues: false), element.Font, explicitWidth ?? context.AvailableWidth, element.Data.Scale);
             element.LayoutState = wrappedText;
 
             return new Vector2(explicitWidth ?? wrappedText.Size.X, wrappedText.Size.Y);

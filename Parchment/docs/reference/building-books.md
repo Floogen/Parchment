@@ -1,4 +1,4 @@
-# Building books in C#
+# Building books in C\#
 
 A SMAPI mod can build a book in code instead of shipping it as a content pack. This page covers the builder; for fetching the API and opening books that already exist, see [C# API](api.md).
 
@@ -53,6 +53,63 @@ parchment.TryUnregisterBook("you.CampingGuide", out string error);
 
 You can only remove books your own mod registered. Books from content packs, and from other mods, are left alone.
 
+## Refreshing an open book
+
+A builder holds the values you gave it, not the code that produced them. `AddParagraph(fish.DisplayName)` stored the *string*, so rebuilding the same builder produces the same book however much the world has moved on. To change what a reader is looking at, assemble a **fresh** builder from your current state and hand that to `TryRefresh`:
+
+```csharp title="Responding to a setting the reader just changed"
+private void RefreshLogbook()
+{
+    IBookBuilder book = BuildLogbook();
+
+    if (book.TryRefresh(out string error) is false)
+    {
+        Monitor.Log($"Couldn't refresh the logbook, because {error}.", LogLevel.Trace);
+    }
+}
+```
+
+The reader keeps their place. Parchment notes the page they were on and returns them to it by ID, so a rebuild that adds or removes pages doesn't move them. When that page is gone entirely they land at the same position in the book instead.
+
+Flags, input text and seen pages all survive, since the book is swapped inside the open menu rather than a new one being put up. Nothing reopens, so there's no open animation.
+
+### Refreshing from inside the book
+
+A button in the book can ask for the rebuild itself, without your mod watching for the click. Hand the builder an `OnRefresh` when you open it:
+
+```csharp
+book.OnRefresh(RefreshLogbook);
+```
+
+Then `PeacefulEnd.Parchment_RefreshBook` runs it:
+
+```csharp
+settingsPage.AddButton("Show fish names", $"PeacefulEnd.Parchment_ToggleVariable {BOOK_ID} forceFishNames")
+    .Action("PeacefulEnd.Parchment_RefreshBook");
+```
+
+!!! warning "Put the refresh last"
+    Actions run in the order they're given, and the rebuild reads whatever the state is at the moment it runs. A refresh placed before the `ToggleVariable` would rebuild against the old value.
+
+The callback carries over each time, so the builder you pass to `TryRefresh` doesn't need its own `OnRefresh` unless you want to replace it. A refresh asking for another refresh while it's still running is ignored rather than recursing.
+
+The action reports plainly when the open book has no callback, which is every book from a content pack.
+
+| Returns false when | |
+| --- | --- |
+| Nothing is open | Or the open menu isn't a book |
+| A different book is open | Compared by book ID |
+| The book is mid-animation | Opening, turning, closing or going to its cover |
+| The rebuilt book is invalid | The same validation `TryOpen` runs |
+
+None of those are worth treating as a problem, so log at `Trace` rather than `Warn` unless you know the book should have been open.
+
+!!! tip "Conditions are often enough"
+    A refresh rebuilds everything. When the change is only *which* of a few known things to show, a [`Condition`](../concepts/conditions.md) on each variant is lighter and updates on its own within a few ticks. Reach for `TryRefresh` when the page count, ordering or content genuinely can't be known ahead of time.
+
+!!! warning "Registered books refresh differently"
+    `TryRefresh` is for books opened with `TryOpen`. A registered book comes from the books asset, so `TryRegister` plus an asset invalidation is how it updates, and a book edited while it's being read is reloaded when the reader closes it rather than under them.
+
 ## The book builder
 
 | Method | What it does |
@@ -63,8 +120,12 @@ You can only remove books your own mod registered. Books from content packs, and
 | `AddPage(pageId, chapterId)` | Adds a page belonging to a chapter. Pages sharing a chapter must be added together. |
 | `AddUnderlay(type)` | Adds an element drawn behind the book sprite. |
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
+| `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. Readable straight away, before the book is registered or opened. |
+| `OnKeyPress(keybind)` | Adds a key pressed on any page of the book and returns its [keybind builder](#the-keybind-builder). A page binding the same key takes it over. |
+| `OnRefresh(onRefresh)` | What to run when the book is asked to rebuild. See [Refreshing an open book](#refreshing-an-open-book). |
 | `TryRegister(out error)` | Validates and registers the book. |
 | `TryOpen(out error)` | Validates and opens the book without registering it. |
+| `TryRefresh(out error)` | Rebuilds and swaps into the open book, keeping the reader's page. See [Refreshing an open book](#refreshing-an-open-book). |
 
 ## The page builder
 
@@ -80,12 +141,58 @@ You can only remove books your own mod registered. Books from content packs, and
 | `AddBanner(text)` | Shorthand for `Add("Banner").Text(text)`. |
 | `AddDivider()` | Shorthand for `Add("Divider")`. |
 | `AddPanel()` | Shorthand for `Add("Panel")`. |
+| `AddGrid(cellWidth, cellHeight, columns, rows)` | A [`Grid`](elements/grid.md), with the three fields it can't do without. `rows` is optional and caps its height. Four adjacent numbers, so name them: `AddGrid(20, 20, columns: 6)`. |
 | `AddPageNumber()` | The page's own [number](elements/page-number.md), filled in from its position. |
 | `AddImage(texturePath)` | Shorthand for `Add("Image").Texture(texturePath)`. |
 | `AddItemImage(itemId)` | An image drawn from an item's icon, using a qualified ID such as `"(O)24"`. |
 | `AddButton(text, action)` | A button running a [trigger action](../concepts/actions.md) when clicked. |
+| `Tag(tag)` | Adds a keyword for a contents entry or search box to match against. Call it more than once to build a list. |
 | `OnView(action)` | Runs a trigger action each time the page becomes visible. |
 | `OnView(action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |
+| `OnKeyPress(keybind)` | Adds a key pressed while the page is visible and returns its [keybind builder](#the-keybind-builder), taking the key over from the menu and from the book's own binds. |
+
+## The keybind builder
+
+`OnKeyPress` returns this, on the book builder and on the page builder alike. It reaches everything [`OnKeyPress`](book.md#on-key-press) offers, and follows the same rule as `AddPage` and the `Add` element methods: it hands back the new keybind's builder rather than the thing you called it on.
+
+| Method | Sets |
+| --- | --- |
+| `Set(field, value)` | Any keybind field by name. |
+| `Action(action)` | Adds one action. Call it more than once to run several in order, and at least one is required. |
+| `Condition(condition)` | `Condition` |
+| `Sound(sound)` | `Sound` |
+| `SuppressDefault(suppressDefault)` | `SuppressDefault`. The argument is optional and defaults to `true`. |
+
+```cs title="Going back, and remembering that the reader knows how"
+book.OnKeyPress("Escape").Action("PeacefulEnd.Parchment_GoBack").Action($"PeacefulEnd.Parchment_SetVariable {BOOK_ID} seenEscapeHint true").Sound("shwip");
+```
+
+That pairs with a hint drawn only while the variable is false, which the reader dismisses by doing the thing it describes. A `Global` [variable](variables.md) makes it once per player rather than once per save.
+
+## The variable builder
+
+`AddVariable` returns this rather than the book builder, the same way `AddPage` does. Keep your own reference to the book builder for `TryRegister`.
+
+| Method | Sets |
+| --- | --- |
+| `Set(field, value)` | Any [variable field](variables.md#variable-fields) by name. |
+| `Type(variableType)` | `Type`, one of `"Boolean"`, `"Number"`, `"Text"` |
+| `Default(defaultValue)` | `Default` |
+| `Scope(variableScope)` | `Scope`, either `"Save"` or `"Global"` |
+| `Min(min)` | `Min` |
+| `Max(max)` | `Max` |
+| `Range(min, max)` | `Min` and `Max` together |
+| `AllowedValue(value)` | Adds one entry to `AllowedValues`. Call it more than once to build the list. |
+
+```cs title="Declaring two variables"
+var book = api.CreateBook($"{ModManifest.UniqueID}_Almanac");
+
+book.AddVariable("showSpoilers").Scope("Global");
+book.AddVariable("units").Type("Text").Default("metric").Scope("Global").AllowedValue("metric").AllowedValue("imperial");
+```
+
+!!! warning "`AllowedValue` needs a `Default`"
+    The starting value has to be one of the allowed ones. A `Text` variable with allowed values and no `Default` starts as empty text, which isn't in the list, and registration fails. Set `Default` whenever you call `AllowedValue`.
 
 ## The element builder
 
@@ -94,7 +201,7 @@ Most methods are named after the field they set, so anything you've written in a
 | Method | Sets |
 | --- | --- |
 | `Set(field, value)` | Any [element field](elements/index.md) by name. |
-| `WithId(id)` | `Id` |
+| `WithId(id)` | `Id`. Needed by anything that names the element later, such as `ShowElement`. |
 | `Text(text)` | `Text` |
 | `Alignment(alignment)` | `Alignment`, one of `"Left"`, `"Center"`, `"Right"` |
 | `VerticalAlignment(alignment)` | `VerticalAlignment`, one of `"Top"`, `"Center"`, `"Bottom"`. Only used on a placed element |
@@ -113,11 +220,30 @@ Most methods are named after the field they set, so anything you've written in a
 | `Item(itemId)` | `ItemId` |
 | `Action(action)` / `Action(action, sound)` | A click [action](../concepts/actions.md). Call it more than once to build a list. |
 | `HoverAction(action)` | A hover action. Call it more than once to build a list. |
+| `SubmitAction(action)` | An action run when enter is pressed in an [`Input`](elements/input.md). Call it more than once to build a list. |
+| `TextChangedAction(action)` | An action run once an `Input`'s text settles. Call it more than once to build a list. |
+| `TextChangedDelay(textChangedDelay)` | An `Input`'s `TextChangedDelay` |
+| `InputId(inputId)` | An `Input`'s `InputId` |
+| `Placeholder(placeholder)` | An `Input`'s `Placeholder` |
+| `MaxLength(maxLength)` | An `Input`'s `MaxLength` |
 | `Sound(sound)` | `Sound` |
 | `Condition(condition)` | `Condition` |
+| `IgnoreCursor(ignoreCursor)` | `IgnoreCursor`. The argument is optional and defaults to `true`. |
+| `Lifetime(lifetime)` | `Lifetime` |
+| `FadeAfter(fadeAfter)` | `FadeAfter` |
 | `Sizing(mode)` | `Sizing`, one of `"Fill"`, `"ShrinkToFit"`, `"Fixed"` |
-| `Width(width)` / `Height(height)` | `Width` and `Height`. `Width` is taken by a [`Panel`](elements/panel.md), [`Divider`](elements/divider.md) or [`Banner`](elements/banner.md) with a `Fixed` `Sizing`, and by a [`Paragraph`](elements/paragraph.md) on its own. `Height` is a Panel's. |
+| `Width(width)` / `Height(height)` | `Width` and `Height`. `Width` is taken by a [`Panel`](elements/panel.md), [`Divider`](elements/divider.md), [`Banner`](elements/banner.md) or [`Input`](elements/input.md) with a `Fixed` `Sizing`, and by a [`Paragraph`](elements/paragraph.md) on its own. `Height` is a Panel's or an `Input`'s. |
 | `Padding(padding)` | `Padding` |
+| `Columns(columns)` / `Rows(rows)` | A [`Grid`](elements/grid.md)'s `Columns` and `Rows` |
+| `CellWidth(width)` / `CellHeight(height)` | A `Grid`'s `CellWidth` and `CellHeight` |
+| `CellSpacing(columnSpacing, rowSpacing)` | A `Grid`'s `ColumnSpacing` and `RowSpacing` |
+| `Source(itemQuery)` | Fills a `Grid`'s cells from an item query. See [Source](elements/grid.md#source). |
+| `SourceFilter(inputId)` | The [`Input`](elements/input.md) narrowing those candidates. |
+| `SourceCondition(perItemCondition)` | A game state query each candidate must pass. |
+| `SourceOrder(order)` | The [item property](../concepts/actions.md#item-properties) the candidates are sorted by, such as `"Name"` or `"Price"`, or `"None"`. |
+| `SourceOrderDescending(descending)` | Reverses that order. |
+| `SourceCount(count)` | How many cells the results fill, when the grid has no `Rows`. |
+| `AddSourceTemplate(elementType)` | The element each cell is built from. Returns **the template's** builder. |
 | `Scope(scope)` | A PageNumber's `Scope`, either `"Book"` or `"Chapter"` |
 | `Format(format)` | A PageNumber's `Format`, such as `"Page {0}"` |
 | `Spacing(spacingAfter)` | `SpacingAfter` |
@@ -127,7 +253,11 @@ Most methods are named after the field they set, so anything you've written in a
 | `AddFrameInPlace(duration, scale, condition)` | An animation frame that keeps whatever the element already draws. Every argument is optional. |
 | `AddHoverFrame(x, y, duration, scale, condition)` | A [hover frame](elements/image.md#hover-frames), played while the cursor is over the element. |
 | `AddHoverFrameInPlace(duration, scale, condition)` | A hover frame that keeps whatever the element already draws. |
+| `FrameOffset(x, y)` | Shifts the frame added last. See [Frame offset](elements/image.md#frame-offset). |
+| `FrameAction(action)` | A [trigger action](elements/image.md#frame-actions) run when the frame added last starts. Call it more than once to build a list. |
 | `AddChild(type)` | A child element on a container such as a Panel |
+| `AddBackground(type)` | An element behind a container's children, placed by `Position` within its content area |
+| `AddForeground(type)` | An element over a container's children, placed the same way |
 
 Not every method applies to every element type. `Padding` on a `Heading` isn't valid, and asking for it fails at registration with a message naming the fields that type does accept.
 
@@ -198,6 +328,22 @@ Every argument after `y` is optional, so `AddFrame(48, 0)` is a frame at the ele
 junimo.AddHoverFrame(48, 0, 120, 1.15f);
 junimo.AddHoverFrame(64, 0, 120);
 ```
+
+`FrameOffset` shifts whatever frame you added last, in unscaled sprite pixels × the element's scale, without moving where the element sits. It reads as a modifier on the line above it, and it doesn't care which of the four `Add` methods put the frame there:
+
+```csharp
+junimo.AddFrame(48, 0, 400);
+junimo.AddFrame(48, 0, 400).FrameOffset(0, -1);           // the same cell, a pixel higher
+junimo.AddHoverFrameInPlace().FrameOffset(0, -2);         // a whole hover lift
+```
+
+`FrameAction` works the same way, attaching an action to the frame above it:
+
+```csharp
+junimo.AddFrame(80, 0, 400).FrameAction("PeacefulEnd.Parchment_SetFlag danceDone");
+```
+
+Calling either before any frame exists fails registration with a message saying so, rather than passing silently.
 
 `AddFrameInPlace` and `AddHoverFrameInPlace` are the same thing without a coordinate, for a frame that keeps whatever the element already draws and varies only its timing, scale or condition. That's what animates an [item icon](elements/image.md#animating-an-item), which has no source rectangle of your own to point at:
 

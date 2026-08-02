@@ -1,6 +1,9 @@
+﻿using Microsoft.Xna.Framework;
+using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Data.Pages;
+using Parchment.Framework.Utilities.Helpers;
 using System.Collections.Generic;
 
 namespace Parchment.Framework.API.Builders
@@ -14,19 +17,30 @@ namespace Parchment.Framework.API.Builders
         private readonly List<ElementBuilder> _elements = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _background = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _foreground = new List<ElementBuilder>();
+        private readonly List<string> _tags = new List<string>();
         private readonly List<(string Action, string? Condition)> _onView = new List<(string Action, string? Condition)>();
+        private readonly List<KeybindBuilder> _onKeyPress = new List<KeybindBuilder>();
+        private readonly BookBuilder? _owner;
 
         public string PageId { get { return _pageId; } }
 
-        internal PageBuilder(string pageId, string? chapterId)
+        internal PageBuilder(string pageId, string? chapterId, BookBuilder? owner = null)
         {
             _pageId = pageId ?? string.Empty;
             _chapterId = chapterId;
+            _owner = owner;
         }
 
         public IPageBuilder Set(string field, object? value)
         {
             _fields.Add((field, value));
+
+            return this;
+        }
+
+        public IPageBuilder Tag(string tag)
+        {
+            _tags.Add(tag);
 
             return this;
         }
@@ -61,6 +75,13 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder AddBanner(string text) { return Add("Banner").Text(text); }
         public IElementBuilder AddDivider() { return Add("Divider"); }
         public IElementBuilder AddPanel() { return Add("Panel"); }
+        public IElementBuilder AddGrid(int cellWidth, int cellHeight, int columns, int? rows = null)
+        {
+            IElementBuilder grid = Add("Grid").CellWidth(cellWidth).CellHeight(cellHeight).Columns(columns);
+
+            // Left unset rather than set to a default, so the grid stays as tall as its children need
+            return rows is int rowCount ? grid.Rows(rowCount) : grid;
+        }
         public IElementBuilder AddPageNumber() { return Add("PageNumber"); }
         public IElementBuilder AddImage(string texturePath) { return Add("Image").Texture(texturePath); }
         public IElementBuilder AddItemImage(string itemId) { return Add("Image").Item(itemId); }
@@ -78,6 +99,77 @@ namespace Parchment.Framework.API.Builders
             _onView.Add((action, condition));
 
             return this;
+        }
+
+        public IKeybindBuilder OnKeyPress(string keybind)
+        {
+            var keybindBuilder = new KeybindBuilder(keybind);
+            _onKeyPress.Add(keybindBuilder);
+
+            return keybindBuilder;
+        }
+
+        public IPageBuilder RemoveLast()
+        {
+            if (_elements.Count > 0)
+            {
+                _elements.RemoveAt(_elements.Count - 1);
+            }
+
+            return this;
+        }
+
+        public float GetAvailableWidth()
+        {
+            return GetPageContentSize().X;
+        }
+
+        public float GetAvailableHeight()
+        {
+            return GetPageContentSize().Y;
+        }
+
+        public float GetContentHeight()
+        {
+            Point pageSize = GetPageContentSize();
+            if (pageSize.X <= 0)
+            {
+                return 0f;
+            }
+
+            // Built fresh each call, since the point of measuring is to see the effect of whatever was just added
+            if (TryBuild(out PageData pageData, out _) is false)
+            {
+                return 0f;
+            }
+
+            var page = new Page(pageData, 0, Parchment.bookManager.ElementRegistry, Parchment.bookManager.FontResolver);
+
+            return Page.MeasureStack(page.Elements, pageSize.X);
+        }
+
+        public float GetRemainingHeight()
+        {
+            return GetAvailableHeight() - GetContentHeight();
+        }
+
+        public bool WouldOverflow()
+        {
+            float availableHeight = GetAvailableHeight();
+
+            // A page whose size can't be worked out yet is never reported as overflowing, so callers degrade to a single page rather than to none
+            return availableHeight > 0f && GetContentHeight() > availableHeight;
+        }
+
+        /// <summary>Get the page's content area, or an empty size when there is nothing to measure against yet.</summary>
+        private Point GetPageContentSize()
+        {
+            if (_owner is null || Parchment.bookManager is null)
+            {
+                return Point.Zero;
+            }
+
+            return PageLayoutHelper.GetPageContentSize(_owner.GetLayoutData());
         }
 
         /// <summary>Creates a fresh data object from the recorded fields.</summary>
@@ -122,6 +214,11 @@ namespace Parchment.Framework.API.Builders
                 data.Foreground = foreground;
             }
 
+            if (_tags.Count > 0)
+            {
+                data.Tags = new List<string>(_tags);
+            }
+
             if (_onView.Count > 0)
             {
                 var triggers = new List<PageTriggerData>();
@@ -131,6 +228,24 @@ namespace Parchment.Framework.API.Builders
                 }
 
                 data.OnView = triggers;
+            }
+
+            if (_onKeyPress.Count > 0)
+            {
+                var keybinds = new List<KeybindData>();
+
+                foreach (KeybindBuilder keybindBuilder in _onKeyPress)
+                {
+                    if (keybindBuilder.TryBuild(out KeybindData keybind, out error) is false)
+                    {
+                        error = $"keybind \"{keybindBuilder.Keybind}\": {error}";
+                        return false;
+                    }
+
+                    keybinds.Add(keybind);
+                }
+
+                data.OnKeyPress = keybinds;
             }
 
             page = data;

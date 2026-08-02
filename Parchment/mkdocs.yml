@@ -119,6 +119,7 @@ nav:
   - Reference:
       - Book: reference/book.md
       - Page: reference/page.md
+      - Variables: reference/variables.md
       - Elements:
           - Overview: reference/elements/index.md
           - Title: reference/elements/title.md
@@ -130,6 +131,8 @@ nav:
           - Banner: reference/elements/banner.md
           - Button: reference/elements/button.md
           - Page number: reference/elements/page-number.md
+          - Grid: reference/elements/grid.md
+          - Input: reference/elements/input.md
       - API: reference/api.md
       - Building books in C#: reference/building-books.md
   - Troubleshooting: troubleshooting.md

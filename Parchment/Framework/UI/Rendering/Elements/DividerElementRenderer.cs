@@ -53,11 +53,11 @@ namespace Parchment.Framework.UI.Rendering.Elements
             {
                 Color lineColor = string.IsNullOrWhiteSpace(data.TintColor) ? Game1.textColor * 0.4f : element.TintColor;
 
-                spriteBatch.Draw(Game1.staminaRect, bounds, null, lineColor, 0f, Vector2.Zero, SpriteEffects.None, LAYER_DEPTH);
+                spriteBatch.Draw(Game1.staminaRect, bounds, null, lineColor * element.DrawAlpha, 0f, Vector2.Zero, SpriteEffects.None, LAYER_DEPTH);
                 return;
             }
 
-            spriteBatch.Draw(element.Texture, bounds, sourceRectangle, element.TintColor, 0f, Vector2.Zero, SpriteEffects.None, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, bounds, sourceRectangle, element.TintColor * element.DrawAlpha, 0f, Vector2.Zero, SpriteEffects.None, LAYER_DEPTH);
         }
     }
 }

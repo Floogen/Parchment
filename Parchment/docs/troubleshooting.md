@@ -64,7 +64,7 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **The hover animation never plays.** The element isn't being hovered. In a page's `Background` or `Foreground` that used to mean it needed a tooltip or an action to be reachable, but `HoverFrames` now counts on its own, so check the cursor is actually reaching it: something in `Foreground` drawn over the top will take the hover first. `parchment_debug` shows the boxes.
 
-**The hover animation starts partway through.** Working as intended. Frame cycles run off absolute game time and don't reset when the cursor arrives, so a hover animation joins mid-cycle. Write it as a loop rather than a one-shot.
+**An animation on a conditional page looks like it already played.** It did, in older versions: cycles used to run off absolute game time, so an animation gated behind a page condition was caught wherever the clock happened to be. Cycles now start when the frame list becomes active, so gating every frame on `PeacefulEnd.Parchment_CurrentPageId <your page>` plays it from the top on arrival. If it still starts late, check the gate is on the frames themselves and not only on the element.
 
 **The hover animation went still.** Every frame in `HoverFrames` was conditioned out, so the element fell back to `Frames`. If `Frames` is empty too, you get `TextureSourceRectangle`. That's the designed cascade, not a failure.
 

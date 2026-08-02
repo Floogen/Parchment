@@ -19,9 +19,6 @@ An image is sized by its sprite: `TextureSourceRectangle` × `Scale`. If that's 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `ItemId` <span class="opt">optional</span> | `string` | — | A qualified item ID such as `(O)24`, whose icon is drawn. When set, `TexturePath` and `TextureSourceRectangle` are ignored. The item's name and description also fill in `DisplayName` and `Description` automatically, so `ItemId` alone gives you the sprite *and* a vanilla-style tooltip. It can still be animated: see [Animating an item](#animating-an-item). |
-| `Frames` <span class="opt">optional</span> | list of [`frames`](#frames) | — | Animation frames. When omitted, the sprite is static. |
-| `HoverFrames` <span class="opt">optional</span> | list of [`frames`](#frames) | — | Animation frames played while the cursor is over the element, replacing `Frames` for as long as it stays there. See [Hover frames](#hover-frames). |
-| `FrameDuration` <span class="opt">optional</span> | `number` | `100` | How long a frame is shown when it doesn't specify its own `Duration`, in milliseconds. |
 | `TextArea` <span class="opt">optional</span> | `Rectangle` | *the whole sprite* | Where text is drawn, in unscaled sprite pixels **relative to `TextureSourceRectangle`'s top-left**, not to the texture. This is how you place a label inside a sign's recessed panel. The text block is centred vertically within this area. |
 | `TextScale` <span class="opt">optional</span> | `number` | `1` | The text's scale, independent of `Scale`, which sizes the sprite. |
 | `TextAlignment` <span class="opt">optional</span> | `Left` \| `Center` \| `Right` | `Center` | How each line of text is aligned within `TextArea`. Distinct from `Alignment`, which places the whole image on the page. |
@@ -30,18 +27,7 @@ An image is sized by its sprite: `TextureSourceRectangle` × `Scale`. If that's 
 
 ### Frames
 
-Each entry in `Frames`:
-
-| Property | Type | Default | Description |
-| --- | --- | --- | --- |
-| `SourcePoint` <span class="opt">optional</span> | `Point` | *the element's own sprite* | The coordinate of the sprite for this frame. Automatically inherits the element's `TextureSourceRectangle` for height and width. Omit it and the frame draws whatever the element already draws, which is how you vary only `Duration`, `Scale` or `Condition`. |
-| `Duration` <span class="opt">optional</span> | `number` | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
-| `Scale` <span class="opt">optional</span> | `number` | `1` | A multiplier on the element's `Scale` while this frame draws. See [Frame scale](#frame-scale). |
-| `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../../concepts/conditions.md) deciding whether this frame plays. When omitted the frame always plays. |
-
-Frames loop, and the cycle runs off game time, so two identical animations on a page play in lockstep.
-
-A frame whose `Condition` fails is **skipped**, not paused on. The cycle gets shorter and the remaining frames close the gap, the same way a hidden element lets the ones below it close up. Conditions are re-checked while the book is open, so an animation can gain and lose frames as the game state changes.
+`Frames`, `HoverFrames` and `FrameDuration` live on [every element type](index.md#animation-fields), and that's where the field tables and the looping rules are. `Image` is the type that reads a frame's `SourcePoint` and `Scale`, so the sections below cover what a frame can do with a sprite that it can't do anywhere else.
 
 When *every* frame's condition fails, the element falls back to drawing `TextureSourceRectangle` on its own. An animation that's entirely conditional therefore goes still rather than disappearing.
 
@@ -105,6 +91,75 @@ A pulse needs no extra art at all, just the same cell drawn bigger for a moment.
 }
 ```
 
+### Frame offset
+
+`Offset` moves what a frame draws without moving where the element lives. Like [frame scale](#frame-scale), the element is measured once and keeps that space and that hitbox, so an offset frame slides over its own bounds rather than pushing the elements below it around or dragging its clickable area along.
+
+Two or three frames are enough for a bob, and none of them needs new art:
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/lantern",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 16, "Height": 16 },
+  "Scale": 4,
+  "Frames": [
+    { "Duration": 500 },
+    { "Duration": 500, "Offset": { "X": 0, "Y": -1 } }
+  ]
+}
+```
+
+At `Scale: 4` that single unscaled pixel is four screen pixels, since `Offset` is a measurement on the sprite rather than a coordinate on the page. That's the opposite of [`Position`](../../concepts/layout.md#placed-elements), which is a coordinate and deliberately doesn't scale.
+
+Paired with [hover frames](#hover-frames), one offset frame gives you art that lifts under the cursor and settles when it leaves:
+
+```json
+"HoverFrames": [
+  { "Offset": { "X": 0, "Y": -2 } }
+]
+```
+
+!!! note "`Offset` carries the text, `Scale` doesn't"
+    A frame's `Scale` leaves any [text on the image](#text-fields) at its own size, since scaling reads as emphasis on the art. An offset moves the whole element, text included, because a label left standing where a sprite used to be reads as a bug rather than as an effect.
+
+Offsets are rounded to whole screen pixels. A still sprite sits happily on a fractional position, but one that moves every tick shimmers there, so the rounding is deliberate rather than incidental.
+
+### Frame actions
+
+A frame can run [trigger actions](../../concepts/actions.md) at the moment it starts. Actions are dispatched every tick, so they keep time with the animation rather than with the slower interval conditions are checked on.
+
+!!! danger "They run on every cycle, forever"
+    A three-frame loop with an action on the middle frame runs it several times a second for as long as the page is open. Nothing rate-limits this. Either keep the actions harmless to repeat, the way [hover actions](index.md#common-fields) have to be, or condition the frames so the loop stops or gets skipped.
+
+### Playing an animation once
+
+There's no `PlayOnce` field, because the pieces already here compose into one. The last frame sets a flag, every frame is conditioned on that flag being unset, and the animation drops out rather than looping:
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/seal",
+  "TextureSourceRectangle": { "X": 0, "Y": 0, "Width": 16, "Height": 16 },
+  "Scale": 4,
+  "FrameDuration": 120,
+  "Frames": [
+    { "SourcePoint": { "X": 16, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasFlag sealPlayed" },
+    { "SourcePoint": { "X": 32, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasFlag sealPlayed" },
+    { "SourcePoint": { "X": 48, "Y": 0 }, "Condition": "!PeacefulEnd.Parchment_HasFlag sealPlayed", "Action": "PeacefulEnd.Parchment_SetFlag sealPlayed" }
+  ]
+}
+```
+
+Two things make this work, and both are easy to get wrong:
+
+**`TextureSourceRectangle` is what's left when it ends.** Conditioning every frame out doesn't hold the last frame, it falls back to the element's own source rectangle. Point that at the resting pose and the animation plays once and settles. Point it anywhere else and the sprite changes into something unrelated the moment the flourish finishes.
+
+**The flag has to outlive the frame, not the save.** A [session flag](../../concepts/actions.md#session-flags) is cleared when the book closes, so the animation plays again next time the reader opens it. A mail flag would make it play once ever, on every save.
+
+!!! note "The last frame is cut short"
+    Actions fire as a frame *starts*, and the flag conditions the frames out within the same tick. The final frame therefore never gets its full `Duration`. It doesn't show, because what replaces it is the fallback sprite, but it's why you shouldn't put the pose you want to end on in the last frame rather than in `TextureSourceRectangle`.
+
 ### Animating an item
 
 `ItemId` animates the same way, with one difference: the item's own icon is the measuring stick that `TextureSourceRectangle` usually is, so you don't need one. Leave `SourcePoint` off every frame and the item's sprite is what each frame draws, leaving `Duration`, `Scale` and `Condition` to do the work.
@@ -163,10 +218,12 @@ Leaving `HoverFrames` out means the normal animation simply keeps playing under 
 
 **An empty hover animation falls back rather than freezing.** If every frame in `HoverFrames` is conditioned out, the element carries on with `Frames` instead of dropping to a still. The order of preference is `HoverFrames`, then `Frames`, then `TextureSourceRectangle`, so a hover animation can come and go with the game state without interrupting the idle loop.
 
-**`HoverFrames` alone makes an element hoverable.** In a page's `Background` or `Foreground`, an element with nothing else to offer is [transparent to the cursor](../page.md#background-and-foreground). A hover animation counts as something to offer, the same way a `HoverTextureSourceRectangle` does, so it will be reachable without needing a tooltip or an action.
+**`HoverFrames` alone makes an element hoverable.** In a page's `Background` or `Foreground`, an element with nothing else to offer is [transparent to the cursor](../page.md#background-and-foreground). A hover animation counts as something to offer, the same way a `HoverTextureSourceRectangle` does, so it will be reachable without needing a tooltip or an action. Setting [`IgnoreCursor`](../page.md#passing-the-cursor-through) takes that back, and logs a warning that the hover frames will never play.
 
-!!! warning "Hover frames don't restart on hover"
-    Frame cycles run off absolute game time so that identical animations stay in lockstep, and `HoverFrames` is no exception. The hover animation joins at whatever point in its cycle the clock is at, rather than starting from its first frame. That's invisible for a loop, such as a flicker or a jiggle, and noticeable for a one-shot reveal. Write hover animations as loops.
+**Both animations restart on the swap.** The hover animation plays from its first frame when the cursor arrives, and the normal animation plays from its first frame when the cursor leaves. Each is a fresh cycle rather than one picked up wherever the other left it, so a one-shot reveal on hover works as written.
+
+!!! note "Elements without `HoverFrames` are untouched"
+    The restart only happens when a hover animation actually took over. An element whose `Frames` keep playing under the cursor never stops, so it never jumps back to its first frame when the cursor moves away.
 
 ## Text fields
 

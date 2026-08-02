@@ -38,7 +38,7 @@ namespace Parchment.Framework.UI.Fonts
             }
         }
 
-        // TextColor does nothing for SpriteText
+        // TextColor does nothing for SpriteText, though how strongly to draw it still comes from the colour's alpha
         public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float scale)
         {
             float previousFontPixelZoom = SpriteText.fontPixelZoom;
@@ -47,10 +47,11 @@ namespace Parchment.Framework.UI.Fonts
             try
             {
                 float currentY = position.Y;
+                float alpha = color.A / 255f;
 
                 foreach (string line in text.Split('\n'))
                 {
-                    SpriteText.drawString(spriteBatch, line, (int)position.X, (int)currentY);
+                    SpriteText.drawString(spriteBatch, line, (int)position.X, (int)currentY, alpha: alpha);
                     currentY += SpriteText.getHeightOfString(line);
                 }
             }
