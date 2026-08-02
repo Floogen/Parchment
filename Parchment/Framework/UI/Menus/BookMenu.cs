@@ -103,6 +103,9 @@ namespace Parchment.Framework.UI.Menus
 
         private readonly bool _previousHudState;
 
+        // The game replaces the active menu by assignment in places such as createQuestionDialogue, so the session can be put down from either the menu's exit or the manager watching for that. This keeps it to once
+        private bool _hasEndedSession = false;
+
         /// <summary>What the owning mod runs when something asks the book to rebuild itself, set through the builder's OnRefresh. Null for a book with nothing to rebuild from, such as one out of the books asset.</summary>
         private Action? _onRefresh;
 
@@ -120,8 +123,8 @@ namespace Parchment.Framework.UI.Menus
             // Only a book being opened starts off screen, as a refresh leaves the reader's book where it already sits
             _currentPosition = _startPosition;
 
-            // Cache HUD state
-            _previousHudState = Game1.displayHUD;
+            // Cache HUD state. A book opened straight over another takes on what the first one found, so whichever closes last restores the reader's own setting rather than the hidden one
+            _previousHudState = Game1.activeClickableMenu is BookMenu outgoingBook ? outgoingBook._previousHudState : Game1.displayHUD;
             Game1.displayHUD = false;
         }
 
@@ -1941,11 +1944,26 @@ namespace Parchment.Framework.UI.Menus
             Game1.playSound(sound);
         }
 
-        protected override void cleanupBeforeExit()
+        /// <summary>Puts down the reading session, restoring what the menu changed outside itself and clearing what only lasts as long as the book is open.
+        /// Runs from the menu's own exit, or from <see cref="Managers.BookManager"/> when the game replaces the menu by assignment rather than closing it, whichever comes first.
+        /// </summary>
+        public void EndSession()
         {
-            Game1.displayHUD = _previousHudState;
+            if (_hasEndedSession is true)
+            {
+                return;
+            }
+            _hasEndedSession = true;
 
             ClearInputFocus();
+
+            // A book handed straight over to another book leaves the rest to the new one, which is already holding the reader and has taken on the HUD state to restore
+            if (Game1.activeClickableMenu is BookMenu incomingBook && ReferenceEquals(incomingBook, this) is false)
+            {
+                return;
+            }
+
+            Game1.displayHUD = _previousHudState;
 
             // Input text and flags are per reading session, so they don't survive the book being put down
             Parchment.inputManager.ClearAll();
@@ -1956,19 +1974,18 @@ namespace Parchment.Framework.UI.Menus
 
             // A book edited while it was being read is reloaded now rather than under the reader
             Parchment.bookManager.ApplyPendingBookReload();
+        }
+
+        protected override void cleanupBeforeExit()
+        {
+            EndSession();
 
             base.cleanupBeforeExit();
         }
 
         public override void emergencyShutDown()
         {
-            Game1.displayHUD = _previousHudState;
-
-            ClearInputFocus();
-            Parchment.inputManager.ClearAll();
-            Parchment.flagManager.ClearAll();
-            Parchment.variableManager.Save();
-            Parchment.bookManager.ApplyPendingBookReload();
+            EndSession();
 
             base.emergencyShutDown();
         }

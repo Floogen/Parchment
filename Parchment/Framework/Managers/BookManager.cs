@@ -76,6 +76,7 @@ namespace Parchment.Framework.Managers
             helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
             helper.Events.Content.AssetRequested += OnAssetRequested;
             helper.Events.Content.AssetsInvalidated += OnAssetInvalidated;
+            helper.Events.Display.MenuChanged += OnMenuChanged;
         }
 
         private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
@@ -89,6 +90,16 @@ namespace Parchment.Framework.Managers
         {
             _playerToSeenPages.Clear();
             _playerToSeenChapters.Clear();
+        }
+
+        // The game replaces the active menu by assignment in plenty of places, such as a trigger action calling createQuestionDialogue, which drops a book without ever running its exit.
+        // Watching for the swap is what lets the book put its session down anyway, rather than leaving the HUD hidden and the reader's inputs and flags behind.
+        private void OnMenuChanged(object? sender, MenuChangedEventArgs e)
+        {
+            if (e.OldMenu is BookMenu bookMenu && ReferenceEquals(e.NewMenu, bookMenu) is false)
+            {
+                bookMenu.EndSession();
+            }
         }
 
         private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
