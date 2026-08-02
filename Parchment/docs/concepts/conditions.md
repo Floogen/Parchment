@@ -249,6 +249,40 @@ Frame conditions are checked on the same schedule as element conditions and they
 
 Because a changed frame list is a changed animation, the cycle restarts from its first frame whenever one of these conditions flips. Gate *every* frame on `PeacefulEnd.Parchment_CurrentPageId <your page>` and you get an animation that plays from the top each time the reader turns to that page.
 
+## Tokens in conditions
+
+A `Condition` understands the same [tokens](actions.md#tokens) an action does, resolved just before the query is asked. That covers an element's `Condition`, an [animation frame](#animation-frames)'s, a [keybind](../reference/book.md)'s and a page's [`OnView`](../reference/page.md) condition.
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "You picked well.",
+  "Condition": "PeacefulEnd.Parchment_HasFlag %Variable:chosenPath%"
+}
+```
+
+Values arrive quoted, the same as in an action, so a variable holding a phrase stays one argument rather than becoming several.
+
+The game's [tokenizable strings](actions.md#game-tokens) work too, and unlike in an action they're resolved by Parchment rather than being passed along, since a query goes to the game's condition parser rather than to its string parser.
+
+```json
+{
+  "Type": "Image",
+  "TexturePath": "{{ModId}}/seal",
+  "Condition": "PeacefulEnd.Parchment_InputEquals guess [FarmerName]"
+}
+```
+
+Those are quoted for you as well, so a farm name of two words stays one argument. Parchment resolves each `[Token]` on its own for exactly that reason, since the game would otherwise hand back a finished string with no way to tell a substituted space from an authored one.
+
+Quotes you write around a token are taken over rather than doubled up, so `"[FarmerName]"` and `[FarmerName]` come out the same.
+
+!!! note "`[EscapedText]` is for a different problem"
+    A space inside a token's **own** arguments still needs `[EscapedText]`, as it always has: `[LocalizedText [EscapedText Strings\\BundleNames:Quality Fish]]`. That's a matter between a token and the token holding it, settled before the result ever reaches the query. A space in what the token **produces** is the query's problem, and that's the one Parchment quotes for you.
+
+!!! tip "Reach for the query before the token"
+    `PeacefulEnd.Parchment_InputMatches search Tulip` and `PeacefulEnd.Parchment_HasVariable path forest` read the live value themselves, from the ID you give them. Writing `%Input:search%` or `%Variable:path%` into a query instead bakes the value into the text of the query, which is both slower and something the game holds on to (see [Gotchas](#gotchas)). Use a token for the arguments that have no query behind them.
+
 ## When conditions are checked
 
 Several times a second for as long as the menu is up, from the moment the book starts sliding in through to it leaving. On top of that they're re-checked immediately whenever something might have changed the answer: on every change of book state, and when an element's action runs.
@@ -258,6 +292,12 @@ That means a condition can react to the player gaining an item from a button on 
 An element with a `Condition` starts hidden and appears once the query first passes, so a book never flashes content it shouldn't.
 
 ## Gotchas
+
+**A token is meant to be a whole argument.** `PeacefulEnd.Parchment_HasFlag %Variable:path%` is fine. `PeacefulEnd.Parchment_HasFlag path_%Variable:path%` isn't, as Parchment quotes its own values and the quotes would land in the middle of the argument. A game token glued to other text has the opposite problem: it's left unquoted there, since quoting would break the argument in two rather than hold it together, so a space in what it produces splits the argument. Build the joined-up value with [`SetVariable`](actions.md#variables) first, then read it whole.
+
+**A token that doesn't resolve leaves the element hidden.** An unresolved token stays in the text rather than being blanked, which reads as a visible typo in a paragraph. In a query it becomes a junk argument, the query fails and the element quietly isn't there. The SMAPI log names the token, so check it before the query itself.
+
+**A token that changes freely grows the game's query cache.** The game keeps every distinct query string it has parsed, for the life of the session. A condition holding `%Input%` adds one entry per keystroke, and one holding `%GridDisplayed:someId%` adds one per count the grid passes through. Nothing breaks, but the memory isn't reclaimed. Point a token at something that settles (a variable, a page ID) rather than at something that moves under the reader's hands, and use the [queries that take an ID](#reader-input) for the rest.
 
 **A malformed query is false.** A typo hides the element rather than raising an error, which looks identical to a condition that simply didn't pass. If an element won't appear and you can't see why, check the query by hand. The failure is quiet.
 

@@ -281,13 +281,14 @@ Setting a variable doesn't rewrite anything by itself. A [`Condition`](condition
 
 ## Tokens
 
-A token is a placeholder replaced with something the book knows at the moment it's needed. They work in three places, and mean the same thing in each:
+A token is a placeholder replaced with something the book knows at the moment it's needed. They work in four places, and mean the same thing in each:
 
 | Where | Resolved |
 | --- | --- |
 | An `Action` or `HoverAction` | Just before the action runs. |
 | An element's [`Text`](../reference/elements/index.md) | As the element is laid out. |
 | An element's `DisplayName` and `Description` | As the cursor arrives, then again alongside conditions while it rests there. |
+| A [`Condition`](conditions.md#tokens-in-conditions) | Just before the query is asked. |
 
 These are Parchment's own tokens. Text and tooltips also understand the game's [tokenizable strings](#game-tokens), which are written in square brackets instead.
 
@@ -352,7 +353,7 @@ The list is fixed rather than reaching into the item for whatever it happens to 
 }
 ```
 
-In an **action** a value is substituted already quoted, so a typed phrase arrives as one argument rather than several, and quotes the reader typed are dropped since trigger actions have no way to escape them. In **text** it's substituted as-is.
+In an **action** or a [**condition**](conditions.md#tokens-in-conditions) a value is substituted already quoted, so a typed phrase arrives as one argument rather than several, and quotes the reader typed are dropped since neither has a way to escape them. In **text** it's substituted as-is.
 
 !!! warning "Text tokens cost a relayout"
     A token in text changes what the element measures, so the page is laid out again whenever one resolves differently. That's fine at typing speed, and worth thinking about if you ever point a token at something that changes every tick, such as `[FarmerStat stepsTaken]` while the player is walking.

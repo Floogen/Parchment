@@ -2,7 +2,7 @@
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `Keybind` <span class="req">required</span> | `string` | — | The key running the actions. See [Writing a keybind](#writing-a-keybind). |
-| `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../concepts/conditions.md) deciding whether the actions run. When omitted, they always run. Checked at the moment the key is pressed rather than polled. |
+| `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../concepts/conditions.md) deciding whether the actions run. When omitted, they always run. Checked at the moment the key is pressed rather than polled. Understands [tokens](../concepts/conditions.md#tokens-in-conditions). |
 | `Action` <span class="opt">optional</span> | `string` | — | A single [trigger action](../concepts/actions.md), the shorthand for a one-entry `Actions`. |
 | `Actions` <span class="opt">optional</span> | list of `string` | — | [Trigger actions](../concepts/actions.md), run in order. Combined with `Action` rather than replacing it. |
 | `Sound` <span class="opt">optional</span> | `string` | — | A cue played once when the bind fires. Unlike an element's `Sound` this defaults to silence, since a key press has no click to answer. |

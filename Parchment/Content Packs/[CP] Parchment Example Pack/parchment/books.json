@@ -989,6 +989,86 @@
                 }
               ]
             },
+            {
+              "Id": "grid-last",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Input",
+                  "InputId": "search",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/panelFrame1",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "Placeholder": "Search...",
+                  "FontType": "Small",
+                  "Scale": 2,
+                  "Padding": 3,
+                  "MaxLength": 32,
+                  "SpacingAfter": 32
+                },
+                {
+                  "Type": "Grid",
+                  "Columns": 1,
+                  "CellWidth": 128,
+                  "CellHeight": 20,
+                  "ColumnSpacing": 1,
+                  "RowSpacing": 32,
+                  "Scale": 2,
+                  "Children": [
+                    {
+                      "Type": "Panel",
+                      "VerticalAlignment": "Center",
+                      "Background": [
+                        {
+                          "Type": "Image",
+                          "ItemId": "(O)145",
+                          "Scale": 4,
+                          "VerticalAlignment": "Center"
+                        },
+                        {
+                          "Type": "Paragraph",
+                          "Text": "[ItemName (O)145]",
+                          "Scale": 1,
+                          "Position": {
+                            "X": 96,
+                            "Y": 0
+                          },
+                          "VerticalAlignment": "Center"
+                        }
+                      ],
+                      "Condition": "PeacefulEnd.Parchment_InputMatches search [ItemName (O)145]"
+                    },
+                    {
+                      "Type": "Panel",
+                      "VerticalAlignment": "Center",
+                      "Background": [
+                        {
+                          "Type": "Image",
+                          "ItemId": "(O)147",
+                          "Scale": 4,
+                          "VerticalAlignment": "Center"
+                        },
+                        {
+                          "Type": "Paragraph",
+                          "Text": "[ItemName (O)147]\nYou can filter these by searching the name!",
+                          "Scale": 1,
+                          "Position": {
+                            "X": 96,
+                            "Y": 0
+                          },
+                          "VerticalAlignment": "Center"
+                        }
+                      ],
+                      "Condition": "PeacefulEnd.Parchment_InputMatches search [ItemName (O)147]"
+                    }
+                  ]
+                }
+              ]
+            },
 
             {
               "Id": "hopped",

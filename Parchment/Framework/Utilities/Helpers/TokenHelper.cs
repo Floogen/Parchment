@@ -7,6 +7,7 @@ using StardewModdingAPI;
 using StardewValley;
 using StardewValley.TokenizableStrings;
 using System;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Parchment.Framework.Utilities.Helpers
@@ -60,7 +61,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         /// <summary>Replaces every token in a string with what it stands for. An unknown or unresolvable token is left in place and logged, so a typo fails visibly rather than turning into an empty gap.</summary>
         /// <param name="element">The element the string belongs to, used by the tokens that read from it. Null for a string that belongs to no element, such as a page's OnView trigger.</param>
-        /// <param name="quoteValues">Whether a substituted value is wrapped in quotes. True for a trigger action, where a value containing spaces would otherwise become several arguments.</param>
+        /// <param name="quoteValues">Whether a substituted value is wrapped in quotes. True for a trigger action or a condition, where a value containing spaces would otherwise become several arguments.</param>
         /// <param name="parseGameTokens">Whether the result is then handed to the game so its own [Token] forms resolve. False for a trigger action, which the game parses itself once it has the arguments.</param>
         public static string Resolve(string text, Element? element, bool quoteValues, bool parseGameTokens = true)
         {
@@ -79,7 +80,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 return workingText;
             }
 
-            return ResolveGameTokens(workingText, text, element);
+            return ResolveGameTokens(workingText, text, element, quoteValues);
         }
 
         private static string ResolveParchmentTokens(string text, Element? element, bool quoteValues, bool stripBrackets)
@@ -97,25 +98,120 @@ namespace Parchment.Framework.Utilities.Helpers
             return workingText.Replace(ESCAPED_PERCENT_PLACEHOLDER, "%");
         }
 
-        /// <summary>Hands the string to the game so its [Token] forms resolve against the current save. A string the game refuses is kept as it was rather than blanked, which matches how an unknown Parchment token is left in place.</summary>
-        private static string ResolveGameTokens(string text, string source, Element? element)
+        /// <summary>Hands the string to the game so its [Token] forms resolve against the current save. A string the game refuses is kept as it was rather than blanked, which matches how an unknown Parchment token is left in place.
+        /// Where values are quoted the tokens are read one at a time, so each result can be quoted the way Parchment's own are. A trigger action doesn't need that, as the game splits its arguments before parsing them, but a condition is parsed here and split afterwards.
+        /// </summary>
+        private static string ResolveGameTokens(string text, string source, Element? element, bool quoteValues)
+        {
+            // Made once for the whole string rather than per token, so a string holding two of the same random token still gets two different values out of them
+            Random random = CreateTokenRandom(source, element);
+
+            if (quoteValues is false)
+            {
+                TryParseGameText(text, source, random, out string parsedText);
+
+                return parsedText;
+            }
+
+            return ResolveQuotedGameTokens(text, source, random);
+        }
+
+        /// <summary>Resolves each [Token] on its own and quotes what it produces, so a result holding a space stays one argument.
+        /// A token that is only part of an argument, such as one written against a prefix, is left unquoted, since quoting it there would break the argument in two rather than hold it together.
+        /// </summary>
+        private static string ResolveQuotedGameTokens(string text, string source, Random random)
+        {
+            var builder = new StringBuilder();
+            int index = 0;
+
+            while (index < text.Length)
+            {
+                if (text[index] is not '[' || TryReadTokenSpan(text, index, out int tokenEnd) is false)
+                {
+                    builder.Append(text[index]);
+                    index++;
+
+                    continue;
+                }
+
+                // Quotes the author put around the token are taken over rather than kept, so what it produces is quoted once rather than twice
+                bool isAlreadyQuoted = index > 0 && text[index - 1] is '"' && tokenEnd + 1 < text.Length && text[tokenEnd + 1] is '"';
+                if (isAlreadyQuoted is true)
+                {
+                    builder.Length--;
+                }
+
+                int argumentStart = isAlreadyQuoted is true ? index - 1 : index;
+                int argumentEnd = isAlreadyQuoted is true ? tokenEnd + 1 : tokenEnd;
+
+                bool isWholeArgument = (argumentStart is 0 || char.IsWhiteSpace(text[argumentStart - 1]) is true) && (argumentEnd == text.Length - 1 || char.IsWhiteSpace(text[argumentEnd + 1]) is true);
+
+                string token = text.Substring(index, tokenEnd - index + 1);
+                bool hasParsed = TryParseGameText(token, source, random, out string parsedToken);
+
+                // A token the game wouldn't parse is left as it was written, so quoting it would only hide the mistake behind a pair of quotes
+                builder.Append(hasParsed is true && (isAlreadyQuoted is true || isWholeArgument is true) ? Format(parsedToken, quoteValues: true, stripBrackets: false) : parsedToken);
+
+                index = argumentEnd + 1;
+            }
+
+            return builder.ToString();
+        }
+
+        /// <summary>Finds where the token opening at <paramref name="start"/> closes, counting the brackets so a token holding another token is read whole. False when nothing closes it.</summary>
+        private static bool TryReadTokenSpan(string text, int start, out int end)
+        {
+            int depth = 0;
+
+            for (int index = start; index < text.Length; index++)
+            {
+                if (text[index] is '[')
+                {
+                    depth++;
+                }
+                else if (text[index] is ']')
+                {
+                    depth--;
+
+                    if (depth is 0)
+                    {
+                        end = index;
+
+                        return true;
+                    }
+                }
+            }
+
+            end = start;
+
+            return false;
+        }
+
+        /// <summary>Parses one tokenizable string, reporting whether the game took it. What the game refuses is handed back as it was rather than blanked, which matches how an unknown Parchment token is left in place.</summary>
+        private static bool TryParseGameText(string text, string source, Random random, out string parsedText)
         {
             try
             {
-                string? parsedText = TokenParser.ParseText(text, random: CreateTokenRandom(source, element), customParser: null, player: Game1.player);
+                string? gameText = TokenParser.ParseText(text, random: random, customParser: null, player: Game1.player);
 
-                if (parsedText is null)
+                if (gameText is null)
                 {
                     Parchment.monitor.LogOnce($"'{source}' has a tokenizable string the game wouldn't parse. Its own log line names the token it rejected.", LogLevel.Warn);
-                    return text;
+                    parsedText = text;
+
+                    return false;
                 }
 
-                return parsedText;
+                parsedText = gameText;
+
+                return true;
             }
             catch (Exception exception)
             {
                 Parchment.monitor.LogOnce($"'{source}' has a tokenizable string that threw while parsing: {exception.Message}", LogLevel.Warn);
-                return text;
+                parsedText = text;
+
+                return false;
             }
         }
 
