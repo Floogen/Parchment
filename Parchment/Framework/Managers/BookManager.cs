@@ -503,6 +503,9 @@ namespace Parchment.Framework.Managers
 
         public Book? CreateBook(string bookDataId)
         {
+            // A reload held back while a book was being read is taken up here, since opening a book ends whatever session it was being held for
+            ApplyPendingBookReload();
+
             var bookData = Books.FirstOrDefault(b => b.Id.EqualsIgnoreCase(bookDataId));
             if (bookData is null)
             {

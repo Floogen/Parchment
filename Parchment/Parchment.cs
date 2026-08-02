@@ -158,7 +158,18 @@ namespace Parchment
 
         public static void OpenBook(string command, string[] args)
         {
-            if (ArgUtility.TryGet(args, 0, out string bookId, out string error) is false || (bookManager.CreateBook(bookId) is var book && book is null))
+            if (ArgUtility.TryGet(args, 0, out string bookId, out string error) is false)
+            {
+                return;
+            }
+
+            // Assigning over a menu never runs its exit, which would leave the HUD hidden and the previous reading session's inputs, flags and held back reload in place
+            if (Game1.activeClickableMenu is not null)
+            {
+                Game1.activeClickableMenu.exitThisMenu(playSound: false);
+            }
+
+            if (bookManager.CreateBook(bookId) is not Book book)
             {
                 return;
             }
