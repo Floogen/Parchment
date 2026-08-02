@@ -1299,7 +1299,7 @@ namespace Parchment.Framework.UI.Menus
             string pageId = _pages[pageIndex].Data.Id;
             foreach (PageTriggerData trigger in triggers)
             {
-                if (string.IsNullOrWhiteSpace(trigger.Condition) is false && GameStateQuery.CheckConditions(trigger.Condition) is false)
+                if (ConditionHelper.Check(trigger.Condition) is false)
                 {
                     continue;
                 }
@@ -1389,7 +1389,7 @@ namespace Parchment.Framework.UI.Menus
                     continue;
                 }
 
-                if (string.IsNullOrWhiteSpace(keybind.Condition) is false && GameStateQuery.CheckConditions(keybind.Condition) is false)
+                if (ConditionHelper.Check(keybind.Condition) is false)
                 {
                     continue;
                 }

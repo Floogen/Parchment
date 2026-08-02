@@ -23,7 +23,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>Rebuilds an element's active frames from its per-frame conditions, and reports whether either active set changed.</summary>
         public static bool RefreshActiveFrames(Element element)
         {
-            bool hasFramesChanged = TryBuildActiveFrames(element.Data.Frames, element.ActiveFrames, out List<AnimationFrameData>? activeFrames);
+            bool hasFramesChanged = TryBuildActiveFrames(element, element.Data.Frames, element.ActiveFrames, out List<AnimationFrameData>? activeFrames);
             if (hasFramesChanged is true)
             {
                 element.ActiveFrames = activeFrames;
@@ -33,7 +33,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 element.LastPlayedFrame = null;
             }
 
-            bool hasHoverFramesChanged = TryBuildActiveFrames(element.Data.HoverFrames, element.ActiveHoverFrames, out List<AnimationFrameData>? activeHoverFrames);
+            bool hasHoverFramesChanged = TryBuildActiveFrames(element, element.Data.HoverFrames, element.ActiveHoverFrames, out List<AnimationFrameData>? activeHoverFrames);
             if (hasHoverFramesChanged is true)
             {
                 element.ActiveHoverFrames = activeHoverFrames;
@@ -45,7 +45,7 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Filters one authored frame list by its per-frame conditions, and reports whether the result differs from what's already cached.</summary>
-        private static bool TryBuildActiveFrames(List<AnimationFrameData>? frames, List<AnimationFrameData>? currentFrames, out List<AnimationFrameData>? updatedFrames)
+        private static bool TryBuildActiveFrames(Element element, List<AnimationFrameData>? frames, List<AnimationFrameData>? currentFrames, out List<AnimationFrameData>? updatedFrames)
         {
             if (frames is null || frames.Count is 0)
             {
@@ -65,7 +65,7 @@ namespace Parchment.Framework.Utilities.Helpers
             var activeFrames = new List<AnimationFrameData>();
             foreach (AnimationFrameData frame in frames)
             {
-                if (string.IsNullOrWhiteSpace(frame.Condition) is false && GameStateQuery.CheckConditions(frame.Condition) is false)
+                if (ConditionHelper.Check(frame.Condition, element) is false)
                 {
                     continue;
                 }

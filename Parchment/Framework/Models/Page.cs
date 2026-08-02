@@ -167,7 +167,7 @@ namespace Parchment.Framework.Models
             if (string.IsNullOrEmpty(element.Data.Condition) is false || element.Data.Lifetime is not null)
             {
                 // An element on a timer has to pass both, so it can still be conditioned on where the reader is as well as on how long it has been up
-                bool isVisible = (string.IsNullOrEmpty(element.Data.Condition) || GameStateQuery.CheckConditions(element.Data.Condition)) && element.IsWithinLifetime;
+                bool isVisible = ConditionHelper.Check(element.Data.Condition, element) is true && element.IsWithinLifetime;
 
                 if (isVisible != element.IsVisible)
                 {
