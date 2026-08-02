@@ -101,6 +101,12 @@ Understood by [`Image`](image.md), [`Panel`](panel.md), [`Grid`](grid.md), [`Ban
 
 --8<-- "sprite.md"
 
+## Animation fields
+
+Understood by every element type. On an [`Image`](image.md) a frame steps through a sprite sheet. Everywhere else it moves the element, times a [trigger action](../../concepts/actions.md), or both.
+
+--8<-- "animation.md"
+
 ---
 
 ## Font types

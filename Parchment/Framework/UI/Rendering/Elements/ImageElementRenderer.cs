@@ -24,6 +24,12 @@ namespace Parchment.Framework.UI.Rendering.Elements
     {
         private const float LAYER_DEPTH = 0.86f;
 
+        /// <summary>An Image can be drawn below its own Scale when the sprite is wider than the space available, so an offset follows the scale it actually drew at rather than the one it asked for.</summary>
+        protected override float GetOffsetScale(Element element)
+        {
+            return element.LayoutState is ImageLayout imageLayout ? imageLayout.DrawScale : element.Data.Scale;
+        }
+
         protected override Vector2 Measure(ImageElementData data, Element element, ElementRenderContext context)
         {
             element.LayoutState = null;
@@ -118,13 +124,13 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return;
             }
 
-            if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle sourceRectangle)
+            // Already moved to the current frame's source point, since that is where every sprite element reads its art from
+            if (SpriteHelper.GetDrawSourceRectangle(data, element) is not Rectangle frameRectangle)
             {
                 return;
             }
 
             AnimationFrameData? activeFrame = AnimationHelper.GetActiveFrame(element, data.FrameDuration);
-            Rectangle frameRectangle = AnimationHelper.GetFrameRectangle(sourceRectangle, activeFrame);
 
             // The layout was measured at the element's own scale, so a frame scale above 1 deliberately overhangs the bounds rather than relaying the page out mid-animation
             float frameScale = imageLayout.DrawScale * AnimationHelper.GetFrameScale(activeFrame);
@@ -133,18 +139,15 @@ namespace Parchment.Framework.UI.Rendering.Elements
             // This uses the layout's scale rather than frameScale on purpose: compensating with the frame scale would move the pivot as the frame grew, turning a pulse into a drift.
             Vector2 drawPosition = new Vector2(bounds.X + imageLayout.Origin.X * imageLayout.DrawScale, bounds.Y + imageLayout.Origin.Y * imageLayout.DrawScale);
 
-            // A frame offset is a plain screen-space shift applied after the origin compensation, so rotation and the frame scale don't turn it into an arc
-            Vector2 frameOffset = AnimationHelper.GetFrameOffset(activeFrame, imageLayout.DrawScale);
-
-            spriteBatch.Draw(element.Texture, drawPosition + frameOffset, frameRectangle, element.TintColor * element.DrawAlpha, imageLayout.Rotation, imageLayout.Origin, frameScale, data.SpriteEffects, LAYER_DEPTH);
+            spriteBatch.Draw(element.Texture, drawPosition, frameRectangle, element.TintColor * element.DrawAlpha, imageLayout.Rotation, imageLayout.Origin, frameScale, data.SpriteEffects, LAYER_DEPTH);
 
             if (imageLayout.WrappedText is null)
             {
                 return;
             }
 
-            // Text rides along with the offset, unlike the frame scale, as a label left behind by a moving sprite reads as a bug rather than as emphasis
-            Rectangle textRegion = new Rectangle(bounds.X + imageLayout.TextArea.X + (int)frameOffset.X, bounds.Y + imageLayout.TextArea.Y + (int)frameOffset.Y, imageLayout.TextArea.Width, imageLayout.TextArea.Height);
+            // Text rides along with the offset, unlike the frame scale, as a label left behind by a moving sprite reads as a bug rather than as emphasis. Both come from the bounds, which arrived already shifted
+            Rectangle textRegion = new Rectangle(bounds.X + imageLayout.TextArea.X, bounds.Y + imageLayout.TextArea.Y, imageLayout.TextArea.Width, imageLayout.TextArea.Height);
             Rectangle textBounds = new Rectangle(textRegion.X, textRegion.Y + (int)((textRegion.Height - imageLayout.WrappedText.Size.Y) / 2f), textRegion.Width, (int)imageLayout.WrappedText.Size.Y);
 
             StringHelper.DrawLines(spriteBatch, element, imageLayout.WrappedText, textBounds, data.TextAlignment, element.TextColor, imageLayout.TextScale);

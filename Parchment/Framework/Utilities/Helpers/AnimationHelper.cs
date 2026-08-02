@@ -23,9 +23,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>Rebuilds an element's active frames from its per-frame conditions, and reports whether either active set changed.</summary>
         public static bool RefreshActiveFrames(Element element)
         {
-            ImageElementData? imageData = element.Data as ImageElementData;
-
-            bool hasFramesChanged = TryBuildActiveFrames(imageData?.Frames, element.ActiveFrames, out List<AnimationFrameData>? activeFrames);
+            bool hasFramesChanged = TryBuildActiveFrames(element.Data.Frames, element.ActiveFrames, out List<AnimationFrameData>? activeFrames);
             if (hasFramesChanged is true)
             {
                 element.ActiveFrames = activeFrames;
@@ -35,7 +33,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 element.LastPlayedFrame = null;
             }
 
-            bool hasHoverFramesChanged = TryBuildActiveFrames(imageData?.HoverFrames, element.ActiveHoverFrames, out List<AnimationFrameData>? activeHoverFrames);
+            bool hasHoverFramesChanged = TryBuildActiveFrames(element.Data.HoverFrames, element.ActiveHoverFrames, out List<AnimationFrameData>? activeHoverFrames);
             if (hasHoverFramesChanged is true)
             {
                 element.ActiveHoverFrames = activeHoverFrames;
@@ -207,12 +205,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// </summary>
         public static bool HasFrameActions(Element element)
         {
-            if (element.Data is not ImageElementData imageData)
-            {
-                return false;
-            }
-
-            return HasFrameActions(imageData.Frames) || HasFrameActions(imageData.HoverFrames);
+            return HasFrameActions(element.Data.Frames) || HasFrameActions(element.Data.HoverFrames);
         }
 
         /// <summary>Walks element lists and their nested lists, gathering everything carrying a frame action.

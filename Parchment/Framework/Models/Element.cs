@@ -62,7 +62,7 @@ namespace Parchment.Framework.Models
         // The frames whose Condition currently passes, refreshed alongside element conditions. Null when the element has no frames and empty when every frame's condition failed, which makes the element draw its source rectangle statically.
         public List<AnimationFrameData>? ActiveFrames { get; set; }
 
-        // The same for ImageElementData.HoverFrames, cached separately so hovering picks between two ready lists rather than re-running frame conditions every time the cursor moves.
+        // The same for ElementData.HoverFrames, cached separately so hovering picks between two ready lists rather than re-running frame conditions every time the cursor moves.
         public List<AnimationFrameData>? ActiveHoverFrames { get; set; }
 
         // When the element's normal animation last started, on the same clock as Game1.currentGameTime. Cycles are measured from here rather than from absolute game time, so a frame set that only just became active plays from its first frame instead of joining a cycle already in progress.
@@ -178,7 +178,7 @@ namespace Parchment.Framework.Models
         /// Absolutely positioned layers such as <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/> use this so purely decorative art passes the cursor through to whatever sits under it.
         /// Always false when <see cref="ElementData.IgnoreCursor"/> is set, since that element is stepped over wherever it sits.
         /// </summary>
-        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data is ImageElementData imageElementData && imageElementData.HoverFrames is not null && imageElementData.HoverFrames.Count is not 0));
+        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0));
 
         public IReadOnlyList<Element> Children { get; init; } = Array.Empty<Element>();
 

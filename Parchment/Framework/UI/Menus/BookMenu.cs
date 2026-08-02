@@ -1625,12 +1625,12 @@ namespace Parchment.Framework.UI.Menus
 
             foreach (Element element in frameActionElements)
             {
-                if (element.IsVisible is false || element.Data is not ImageElementData imageData)
+                if (element.IsVisible is false)
                 {
                     continue;
                 }
 
-                AnimationFrameData? activeFrame = AnimationHelper.GetActiveFrame(element, imageData.FrameDuration);
+                AnimationFrameData? activeFrame = AnimationHelper.GetActiveFrame(element, element.Data.FrameDuration);
                 if (ReferenceEquals(element.LastPlayedFrame, activeFrame) is true)
                 {
                     continue;

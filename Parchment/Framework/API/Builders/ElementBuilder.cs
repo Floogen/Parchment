@@ -374,23 +374,14 @@ namespace Parchment.Framework.API.Builders
                 return false;
             }
 
-            if (_frames.Count > 0 || _hoverFrames.Count > 0)
+            if (_frames.Count > 0)
             {
-                if (data is not ImageElementData imageData)
-                {
-                    error = $"[{Label}] frames can only be added to an Image";
-                    return false;
-                }
+                data.Frames = CreateFrames(_frames);
+            }
 
-                if (_frames.Count > 0)
-                {
-                    imageData.Frames = CreateFrames(_frames);
-                }
-
-                if (_hoverFrames.Count > 0)
-                {
-                    imageData.HoverFrames = CreateFrames(_hoverFrames);
-                }
+            if (_hoverFrames.Count > 0)
+            {
+                data.HoverFrames = CreateFrames(_hoverFrames);
             }
 
             if (_sourceItemQuery is not null || _sourceTemplate is not null)

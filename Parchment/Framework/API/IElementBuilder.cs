@@ -156,7 +156,8 @@ namespace Parchment.Framework.API
         /// <summary>The hover tooltip's title and body.</summary>
         IElementBuilder Tooltip(string displayName, string description);
 
-        /// <summary>Adds an animation frame, on an Image. The frame takes its size from the element's source rectangle.</summary>
+        /// <summary>Adds an animation frame with a source point, on an element that draws a sprite of its own. The frame takes its size from the element's source rectangle.
+        /// Use <see cref="AddFrameInPlace"/> on anything else, where a frame moves and times the element rather than reaching into a sheet.</summary>
         /// <param name="x">The frame's source X, in the texture.</param>
         /// <param name="y">The frame's source Y, in the texture.</param>
         /// <param name="duration">How long the frame is shown, in milliseconds. 0 leaves it to the element's FrameDuration.</param>
@@ -166,8 +167,9 @@ namespace Parchment.Framework.API
         /// falls back to drawing its source rectangle.</param>
         IElementBuilder AddFrame(int x, int y, float duration = 0f, float scale = 1f, string? condition = null);
 
-        /// <summary>Adds an animation frame that keeps whatever the element already draws, varying only its timing, scale or condition.
-        /// This is how an item's icon is animated, since Item draws a sprite whose place in the sheet isn't yours to know.</summary>
+        /// <summary>Adds an animation frame that keeps whatever the element already draws, varying only its timing, offset, scale or condition.
+        /// Understood by every element type, so this is what animates a Panel or a Heading as well as how an item's icon is animated, since Item draws a sprite whose place in the sheet isn't yours to know.
+        /// Registration fails if a scale other than 1 is given on an element with no sprite of its own to grow.</summary>
         /// <param name="duration">How long the frame is shown, in milliseconds. 0 leaves it to the element's FrameDuration.</param>
         /// <param name="scale">A multiplier on the element's scale while this frame draws.</param>
         /// <param name="condition">A game state query deciding whether the frame plays.</param>
@@ -181,7 +183,7 @@ namespace Parchment.Framework.API
         IElementBuilder AddHoverFrameInPlace(float duration = 0f, float scale = 1f, string? condition = null);
 
         /// <summary>Shifts the frame added last, whether idle or hover, without moving where the element sits. Measured in unscaled sprite pixels multiplied by the element's scale.
-        /// A draw-time effect like a frame's scale, so the element keeps the space and the hitbox it was measured with. Unlike scale it carries any text along with the sprite.
+        /// A draw-time effect like a frame's scale, so the element keeps the space and the hitbox it was measured with. Unlike scale it works on any element type, and a container carries its children and its own layers along with it.
         /// Registration fails when no frame has been added yet, since there would be nothing for the offset to belong to.
         /// </summary>
         /// <param name="x">How far right to shift the frame. Negative moves left.</param>

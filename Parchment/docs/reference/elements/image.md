@@ -19,9 +19,6 @@ An image is sized by its sprite: `TextureSourceRectangle` × `Scale`. If that's 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `ItemId` <span class="opt">optional</span> | `string` | — | A qualified item ID such as `(O)24`, whose icon is drawn. When set, `TexturePath` and `TextureSourceRectangle` are ignored. The item's name and description also fill in `DisplayName` and `Description` automatically, so `ItemId` alone gives you the sprite *and* a vanilla-style tooltip. It can still be animated: see [Animating an item](#animating-an-item). |
-| `Frames` <span class="opt">optional</span> | list of [`frames`](#frames) | — | Animation frames. When omitted, the sprite is static. |
-| `HoverFrames` <span class="opt">optional</span> | list of [`frames`](#frames) | — | Animation frames played while the cursor is over the element, replacing `Frames` for as long as it stays there. See [Hover frames](#hover-frames). |
-| `FrameDuration` <span class="opt">optional</span> | `number` | `100` | How long a frame is shown when it doesn't specify its own `Duration`, in milliseconds. |
 | `TextArea` <span class="opt">optional</span> | `Rectangle` | *the whole sprite* | Where text is drawn, in unscaled sprite pixels **relative to `TextureSourceRectangle`'s top-left**, not to the texture. This is how you place a label inside a sign's recessed panel. The text block is centred vertically within this area. |
 | `TextScale` <span class="opt">optional</span> | `number` | `1` | The text's scale, independent of `Scale`, which sizes the sprite. |
 | `TextAlignment` <span class="opt">optional</span> | `Left` \| `Center` \| `Right` | `Center` | How each line of text is aligned within `TextArea`. Distinct from `Alignment`, which places the whole image on the page. |
@@ -30,26 +27,7 @@ An image is sized by its sprite: `TextureSourceRectangle` × `Scale`. If that's 
 
 ### Frames
 
-Each entry in `Frames`:
-
-| Property | Type | Default | Description |
-| --- | --- | --- | --- |
-| `SourcePoint` <span class="opt">optional</span> | `Point` | *the element's own sprite* | The coordinate of the sprite for this frame. Automatically inherits the element's `TextureSourceRectangle` for height and width. Omit it and the frame draws whatever the element already draws, which is how you vary only `Duration`, `Scale` or `Condition`. |
-| `Duration` <span class="opt">optional</span> | `number` | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
-| `Scale` <span class="opt">optional</span> | `number` | `1` | A multiplier on the element's `Scale` while this frame draws. See [Frame scale](#frame-scale). |
-| `Offset` <span class="opt">optional</span> | `Point` | `{ X: 0, Y: 0 }` | How far this frame is shifted from where the element sits, in unscaled sprite pixels × `Scale`. Positive moves right and down. See [Frame offset](#frame-offset). |
-| `Action` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) run each time this frame starts. See [Frame actions](#frame-actions). |
-| `Actions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order each time this frame starts. Combined with `Action` rather than replacing it. |
-| `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../../concepts/conditions.md) deciding whether this frame plays. When omitted the frame always plays. |
-
-Frames loop, and the cycle is timed from the moment the animation starts, so the first frame is the one that draws when it does.
-
-A frame whose `Condition` fails is **skipped**, not paused on. The cycle gets shorter and the remaining frames close the gap, the same way a hidden element lets the ones below it close up. Conditions are re-checked while the book is open, so an animation can gain and lose frames as the game state changes.
-
-**Gaining or losing a frame starts the animation over.** A cycle whose frame list changed isn't the cycle that was playing, so it restarts rather than resuming partway. That's what lets an animation gated behind a condition play properly: gate every frame on `PeacefulEnd.Parchment_CurrentPageId <your page>` and the whole thing plays from the top when the reader arrives, instead of catching it mid-cycle.
-
-!!! tip "Timing a pause into a loop"
-    Since the animation restarts when it becomes active, a long final frame reads as a delay before the next repeat. A ten-frame flourish followed by a frame of `60000` plays once on arrival then holds still for a minute, over and over, without needing anything to trigger it.
+`Frames`, `HoverFrames` and `FrameDuration` live on [every element type](index.md#animation-fields), and that's where the field tables and the looping rules are. `Image` is the type that reads a frame's `SourcePoint` and `Scale`, so the sections below cover what a frame can do with a sprite that it can't do anywhere else.
 
 When *every* frame's condition fails, the element falls back to drawing `TextureSourceRectangle` on its own. An animation that's entirely conditional therefore goes still rather than disappearing.
 

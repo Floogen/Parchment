@@ -169,7 +169,7 @@ namespace Parchment.Framework.Utilities.Helpers
             if (string.IsNullOrEmpty(data.DisplayName) is false) { unreachableFields.Add("DisplayName"); }
             if (string.IsNullOrEmpty(data.Description) is false) { unreachableFields.Add("Description"); }
             if (data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) { unreachableFields.Add("HoverTextureSourceRectangle"); }
-            if (data is ImageElementData hoverImageData && hoverImageData.HoverFrames is not null && hoverImageData.HoverFrames.Count is not 0) { unreachableFields.Add("HoverFrames"); }
+            if (data.HoverFrames is not null && data.HoverFrames.Count is not 0) { unreachableFields.Add("HoverFrames"); }
 
             if (unreachableFields.Count is 0)
             {

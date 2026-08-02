@@ -1,5 +1,7 @@
 using Microsoft.Xna.Framework;
+using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Enums;
+using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.Utilities;
 using System;
 using System.Collections.Generic;
@@ -97,6 +99,25 @@ namespace Parchment.Framework.Models.Data.Elements
         /// This is what makes an element transparent in a list that is hit-tested whatever it holds, such as <see cref="PageData.Elements"/> or a book's Underlay and Overlay.
         /// </summary>
         public bool IgnoreCursor { get; set; } = false;
+
+        /// <summary>The animation frames. When null or empty, the element draws as it was laid out.
+        /// Every element understands these, though only the ones that draw a sprite of their own act on a frame's <see cref="AnimationFrameData.SourcePoint"/> and <see cref="AnimationFrameData.Scale"/>.
+        /// Everywhere else a frame is a way to move the element with <see cref="AnimationFrameData.Offset"/>, to time something with <see cref="AnimationFrameData.Actions"/>, or both.
+        /// </summary>
+        public List<AnimationFrameData>? Frames { get; set; }
+
+        /// <summary>The animation frames played while the cursor is over the element, replacing <see cref="Frames"/> for as long as it stays there.
+        /// When null, empty or fully conditioned out, the element carries on with <see cref="Frames"/> rather than going still, so a hover animation can drop away without interrupting the idle one.
+        /// </summary>
+        public List<AnimationFrameData>? HoverFrames { get; set; }
+
+        /// <summary>The default duration for frames that don't specify one, in milliseconds.</summary>
+        public float FrameDuration { get; set; } = 100f;
+
+        /// <summary>Whether a frame's <see cref="AnimationFrameData.Scale"/> means anything on this element, which needs a sprite drawn as a single quad it can grow without anything inside it coming loose.
+        /// False everywhere else, including the other sprite types, where the element is nine-sliced or holds children measured against a size a frame has no way to change.
+        /// </summary>
+        public virtual bool SupportsFrameScale => false;
 
         /// <summary>Whether this element claims the cursor whatever else it carries. Overridden by types that must be clickable to work at all, such as Input.</summary>
         public virtual bool IsAlwaysInteractive => false;
@@ -202,6 +223,64 @@ namespace Parchment.Framework.Models.Data.Elements
             if (IgnoreCursor && (HasActions || HasHoverActions))
             {
                 return (false, $"\"IgnoreCursor\" cannot be combined with \"Action\", \"Actions\", \"HoverAction\" or \"HoverActions\", as the cursor never reaches the element to run them.");
+            }
+
+            var frameResult = ValidateFrames(Frames, nameof(Frames));
+            if (frameResult.Result is false)
+            {
+                return frameResult;
+            }
+
+            var hoverFrameResult = ValidateFrames(HoverFrames, nameof(HoverFrames));
+            if (hoverFrameResult.Result is false)
+            {
+                return hoverFrameResult;
+            }
+
+            if (FrameDuration <= 0f)
+            {
+                return (false, $"\"FrameDuration\" must be positive.");
+            }
+
+            return (true, string.Empty);
+        }
+
+        /// <summary>Validates one frame list against what this element can act on. The sprite fields are rejected rather than ignored on an element that has no sprite to move around a sheet,
+        /// so a frame that would quietly do nothing fails at load instead.
+        /// </summary>
+        protected (bool Result, string Error) ValidateFrames(List<AnimationFrameData>? frames, string fieldName)
+        {
+            if (frames is null || frames.Count is 0)
+            {
+                return (true, string.Empty);
+            }
+
+            foreach (AnimationFrameData frame in frames)
+            {
+                if (frame.Duration is float duration && duration <= 0f)
+                {
+                    return (false, $"A frame in \"{fieldName}\" has a non-positive \"frame.Duration\"");
+                }
+
+                if (frame.Scale <= 0f)
+                {
+                    return (false, $"A frame in \"{fieldName}\" has a non-positive \"frame.Scale\"");
+                }
+
+                if (frame.Actions is not null && frame.Actions.Any(string.IsNullOrWhiteSpace))
+                {
+                    return (false, $"A frame in \"{fieldName}\" has an empty entry in \"frame.Actions\"");
+                }
+
+                if (frame.SourcePoint is not null && this is not ISprite)
+                {
+                    return (false, $"A frame in \"{fieldName}\" sets \"frame.SourcePoint\", which a {Type} element has no sprite sheet to read it from. Use \"frame.Offset\" to move the element instead.");
+                }
+
+                if (frame.Scale is not 1f && SupportsFrameScale is false)
+                {
+                    return (false, $"A frame in \"{fieldName}\" sets \"frame.Scale\", which a {Type} element cannot apply, as it is drawn from a size its own layout settled on rather than as one sprite. Use \"frame.SourcePoint\" to swap the art instead.");
+                }
             }
 
             return (true, string.Empty);
