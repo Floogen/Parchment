@@ -75,7 +75,7 @@ Flags, input text and seen pages all survive, since the book is swapped inside t
 
 ### Refreshing from inside the book
 
-A button in the book can ask for the rebuild itself, without your mod watching for the click. Hand the builder an `OnRefresh` when you open it:
+A button in the book can ask for the rebuild itself, without your mod watching for the click. Hand the builder an `OnRefresh` before you open or register it:
 
 ```csharp
 book.OnRefresh(RefreshLogbook);
@@ -95,6 +95,8 @@ The callback carries over each time, so the builder you pass to `TryRefresh` doe
 
 The action reports plainly when the open book has no callback, which is every book from a content pack.
 
+This works for a registered book as well as one opened with `TryOpen`. A registered book is opened from the books asset rather than from your builder, so Parchment finds its callback through the registration instead. Give `OnRefresh` to the builder you register and the button works however the reader got there (item, tile action or `TryOpenBook`).
+
 | Returns false when | |
 | --- | --- |
 | Nothing is open | Or the open menu isn't a book |
@@ -107,8 +109,10 @@ None of those are worth treating as a problem, so log at `Trace` rather than `Wa
 !!! tip "Conditions are often enough"
     A refresh rebuilds everything. When the change is only *which* of a few known things to show, a [`Condition`](../concepts/conditions.md) on each variant is lighter and updates on its own within a few ticks. Reach for `TryRefresh` when the page count, ordering or content genuinely can't be known ahead of time.
 
-!!! warning "Registered books refresh differently"
-    `TryRefresh` is for books opened with `TryOpen`. A registered book comes from the books asset, so `TryRegister` plus an asset invalidation is how it updates, and a book edited while it's being read is reloaded when the reader closes it rather than under them.
+!!! note "Registered books refresh in two places"
+    `TryRefresh` swaps the rebuilt book into the open menu, which leaves the copy in the books asset as it was. Call `TryRegister` on the fresh builder too when the change should outlast the reading, and the reader stays on their page either way (a re-registration under an open book is held until the menu closes rather than applied under them).
+
+    Re-registering without restating `OnRefresh` keeps the callback the earlier registration was given, so a rebuild only needs to mention it when you want to replace it.
 
 ## The book builder
 

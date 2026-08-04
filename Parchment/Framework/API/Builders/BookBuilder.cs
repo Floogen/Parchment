@@ -28,6 +28,9 @@ namespace Parchment.Framework.API.Builders
 
         internal string ModId { get { return _modId; } }
 
+        /// <summary>The callback given to <see cref="OnRefresh"/>, read by whatever ends up putting this book on screen.</summary>
+        internal Action? RefreshCallback { get { return _onRefresh; } }
+
         internal BookBuilder(string modId, string bookId)
         {
             _modId = modId;
@@ -48,6 +51,19 @@ namespace Parchment.Framework.API.Builders
             _onRefresh = onRefresh;
 
             return this;
+        }
+
+        /// <summary>Takes on the callback of the registration this builder is replacing, so a rebuild that doesn't restate OnRefresh keeps the book refreshable.
+        /// Left alone when this builder was given one of its own, which is what lets a rebuild replace the callback as well as the content.
+        /// </summary>
+        internal void AdoptRefreshCallback(Action onRefresh)
+        {
+            if (_onRefresh is not null)
+            {
+                return;
+            }
+
+            _onRefresh = onRefresh;
         }
 
         public IKeybindBuilder OnKeyPress(string keybind)

@@ -106,7 +106,9 @@ namespace Parchment.Framework.UI.Menus
         // The game replaces the active menu by assignment in places such as createQuestionDialogue, so the session can be put down from either the menu's exit or the manager watching for that. This keeps it to once
         private bool _hasEndedSession = false;
 
-        /// <summary>What the owning mod runs when something asks the book to rebuild itself, set through the builder's OnRefresh. Null for a book with nothing to rebuild from, such as one out of the books asset.</summary>
+        /// <summary>What the owning mod runs when something asks the book to rebuild itself, handed over by the builder that opened this menu.
+        /// Null for a book the menu wasn't opened from a builder for, being a registered book (whose callback is found through its registration instead) or one out of a content pack (which has nothing to rebuild from).
+        /// </summary>
         private Action? _onRefresh;
 
         // Guards against a refresh callback whose own actions ask for another refresh, which would otherwise recurse until the stack ran out
@@ -215,9 +217,16 @@ namespace Parchment.Framework.UI.Menus
         /// </summary>
         public bool TryRunRefreshCallback(out string error)
         {
-            if (_onRefresh is null)
+            // A registered book is opened from the books asset rather than from its builder, so its callback comes from the registration
+            Action? onRefresh = _onRefresh;
+            if (onRefresh is null && Parchment.bookManager.TryGetRegisteredRefreshCallback(Book.Data.Id, out Action registeredRefresh) is true)
             {
-                error = $"the book '{Book.Data.Id}' has no refresh callback, which is set through the C# builder's OnRefresh";
+                onRefresh = registeredRefresh;
+            }
+
+            if (onRefresh is null)
+            {
+                error = $"the book '{Book.Data.Id}' has no refresh callback, which is set through the C# builder's OnRefresh before the book is opened or registered";
                 return false;
             }
 
@@ -231,7 +240,7 @@ namespace Parchment.Framework.UI.Menus
 
             try
             {
-                _onRefresh();
+                onRefresh();
             }
             finally
             {

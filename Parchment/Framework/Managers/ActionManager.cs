@@ -217,8 +217,8 @@ namespace Parchment.Framework.Managers
             return bookMenu.TryJumpToLastPage(out error, skipAnimation);
         }
 
-        /// <summary>Asks the open book to rebuild itself. Only a book opened from C# can, and only when its builder was given an OnRefresh callback,
-        /// as rebuilding means re-running the mod's own generating code. A book out of the books asset reports that plainly rather than appearing to work.
+        /// <summary>Asks the open book to rebuild itself. Only a book that came from C# can, whether it was opened with TryOpen or registered by a mod, and only when its
+        /// builder was given an OnRefresh callback, as rebuilding means re-running the mod's own generating code. A book out of a content pack reports that plainly rather than appearing to work.
         /// </summary>
         public bool RefreshBook(string[] args, TriggerActionContext context, out string error)
         {
