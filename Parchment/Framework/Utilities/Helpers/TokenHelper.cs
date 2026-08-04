@@ -237,6 +237,8 @@ namespace Parchment.Framework.Utilities.Helpers
                     return ResolveInput(match, source, argument, element, quoteValues, stripBrackets);
                 case "item":
                     return ResolveItem(match, source, property, element, quoteValues, stripBrackets);
+                case "tags":
+                    return ResolveTags(match, source, element, quoteValues, stripBrackets);
                 case "variable":
                     return ResolveVariable(match, source, argument, quoteValues, stripBrackets);
                 case "griddisplayed":
@@ -297,6 +299,20 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return Format(ItemPropertyResolver.Resolve(property, element.AssignedItemData, element.AssignedItem) ?? string.Empty, quoteValues, stripBrackets);
+        }
+
+        /// <summary>The element's own tags, joined into one value so a condition can ask about them.
+        /// This is how an element reaches its own tags at all, since a query is handed a resolved string rather than the element the condition belongs to.
+        /// </summary>
+        private static string ResolveTags(Match match, string source, Element? element, bool quoteValues, bool stripBrackets)
+        {
+            if (element is null)
+            {
+                Parchment.monitor.LogOnce($"'{source}' uses {match.Value}, which only works on an element.", LogLevel.Warn);
+                return match.Value;
+            }
+
+            return Format(TagHelper.Join(element.GetTags()), quoteValues, stripBrackets);
         }
 
         private static string ResolveVariable(Match match, string source, string variableId, bool quoteValues, bool stripBrackets)

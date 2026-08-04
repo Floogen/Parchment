@@ -202,6 +202,32 @@ namespace Parchment.Framework.Models
             }
         }
 
+        /// <summary>Whether this element carries a tag, ignoring case. Reads <see cref="GetTags"/>, so a derived item tag counts alongside the authored ones.</summary>
+        public bool HasTag(string? tag)
+        {
+            return string.IsNullOrWhiteSpace(tag) is false && GetTags().Any(elementTag => string.Equals(elementTag, tag, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>Whether any of this element's tags contains the given text, ignoring case.
+        /// Empty text matches an element with any tag at all, which is what leaves an untouched search box showing everything. An element with no tags never matches.
+        /// </summary>
+        public bool HasTagMatching(string? text)
+        {
+            var tags = GetTags().ToList();
+
+            if (tags.Count is 0)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(text) is true)
+            {
+                return true;
+            }
+
+            return tags.Any(elementTag => elementTag.Contains(text, StringComparison.OrdinalIgnoreCase));
+        }
+
         public IReadOnlyList<Element> Children { get; init; } = Array.Empty<Element>();
 
         /// <summary>Placed elements drawn behind <see cref="Children"/>, from <see cref="Interfaces.ILayeredContainer.Background"/>. Empty on anything that isn't a layered container.</summary>

@@ -298,6 +298,7 @@ These are Parchment's own tokens. Text and tooltips also understand the game's [
 | `%Input:someId%` | The text in the input with that `InputId`, from any element. |
 | `%Item%` | The qualified item ID the element is showing. Only valid inside a [`Grid`](../reference/elements/grid.md#source) result cell. |
 | `%Item.Something%` | A property of that item. See [Item properties](#item-properties). |
+| `%Tags%` | This element's [tags](../reference/tags.md), joined with commas. Written for `Parchment_TagsInclude` and `Parchment_TagsMatchInput`, which is how an element asks about its own tags. |
 | `%Variable:someId%` | The current value of one of the open book's [variables](../reference/variables.md). |
 | `%GridDisplayed:someId%` | How many cells a grid is currently showing. |
 | `%GridMatched:someId%` | How many candidates matched, which is larger than the above once the matches outnumber the cells. |

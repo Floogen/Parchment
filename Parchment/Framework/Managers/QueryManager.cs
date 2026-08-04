@@ -1,6 +1,8 @@
+using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Variables;
 using Parchment.Framework.UI.Menus;
+using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Delegates;
@@ -22,6 +24,7 @@ namespace Parchment.Framework.Managers
 
         public const string IS_HOVERING_LEFT_PAGE = "PeacefulEnd.Parchment_IsHoveringLeftPage";
         public const string IS_HOVERING_RIGHT_PAGE = "PeacefulEnd.Parchment_IsHoveringRightPage";
+        public const string IS_HOVERING_TAG = "PeacefulEnd.Parchment_IsHoveringTag";
         public const string IS_FIRST_PAGE = "PeacefulEnd.Parchment_IsFirstPage";
         public const string IS_LAST_PAGE = "PeacefulEnd.Parchment_IsLastPage";
         public const string IS_GOING_FORWARD = "PeacefulEnd.Parchment_IsPagingForward";
@@ -39,6 +42,11 @@ namespace Parchment.Framework.Managers
         public const string CURRENT_PAGE_HAS_TAG = "PeacefulEnd.Parchment_CurrentPageHasTag";
         public const string PAGE_HAS_TAG = "PeacefulEnd.Parchment_PageHasTag";
         public const string PAGE_TAG_MATCHES_INPUT = "PeacefulEnd.Parchment_PageTagMatchesInput";
+
+        public const string ELEMENT_HAS_TAG = "PeacefulEnd.Parchment_ElementHasTag";
+        public const string ELEMENT_TAG_MATCHES_INPUT = "PeacefulEnd.Parchment_ElementTagMatchesInput";
+        public const string TAGS_INCLUDE = "PeacefulEnd.Parchment_TagsInclude";
+        public const string TAGS_MATCH_INPUT = "PeacefulEnd.Parchment_TagsMatchInput";
 
         public const string HAS_FLAG = "PeacefulEnd.Parchment_HasFlag";
 
@@ -60,6 +68,7 @@ namespace Parchment.Framework.Managers
 
             GameStateQuery.Register(IS_HOVERING_LEFT_PAGE, IsHoveringLeftPage);
             GameStateQuery.Register(IS_HOVERING_RIGHT_PAGE, IsHoveringRightPage);
+            GameStateQuery.Register(IS_HOVERING_TAG, IsHoveringTag);
 
             GameStateQuery.Register(IS_FIRST_PAGE, IsFirstPage);
             GameStateQuery.Register(IS_LAST_PAGE, IsLastPage);
@@ -78,6 +87,11 @@ namespace Parchment.Framework.Managers
             GameStateQuery.Register(CURRENT_PAGE_HAS_TAG, CurrentPageHasTag);
             GameStateQuery.Register(PAGE_HAS_TAG, PageHasTag);
             GameStateQuery.Register(PAGE_TAG_MATCHES_INPUT, PageTagMatchesInput);
+
+            GameStateQuery.Register(ELEMENT_HAS_TAG, ElementHasTag);
+            GameStateQuery.Register(ELEMENT_TAG_MATCHES_INPUT, ElementTagMatchesInput);
+            GameStateQuery.Register(TAGS_INCLUDE, TagsInclude);
+            GameStateQuery.Register(TAGS_MATCH_INPUT, TagsMatchInput);
 
             GameStateQuery.Register(HAS_FLAG, HasFlag);
 
@@ -354,6 +368,118 @@ namespace Parchment.Framework.Managers
             }
 
             return pageData.HasTagMatching(Parchment.inputManager.GetText(inputId));
+        }
+
+        /// <summary>Whether the element the cursor is over carries any of the given tags. This reads the hovered element itself rather than a named one, so it is the one tag query that needs no ID.</summary>
+        private bool IsHoveringTag(string[] query, GameStateQueryContext context)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu) is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(query, 1, out string _, out string error, name: "string tag") is false)
+            {
+                return false;
+            }
+
+            for (int index = 1; index < query.Length; index++)
+            {
+                foreach (string hoveredTag in bookMenu.HoveredTags)
+                {
+                    if (string.Equals(hoveredTag, query[index], StringComparison.OrdinalIgnoreCase) is true)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether an element with the given ID carries any of the given tags. The element is looked up across the whole book, and an ID that several elements share matches when any one of them does.</summary>
+        private bool ElementHasTag(string[] query, GameStateQueryContext context)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu) is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(query, 1, out string elementId, out string error, name: "string elementId") is false || ArgUtility.TryGet(query, 2, out string _, out error, name: "string tag") is false)
+            {
+                return false;
+            }
+
+            foreach (Element element in bookMenu.Book.FindElementsById(elementId))
+            {
+                for (int index = 2; index < query.Length; index++)
+                {
+                    if (element.HasTag(query[index]) is true)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether the text typed into an input appears in any of a named element's tags, which is what a searchable list of authored entries filters itself with.
+        /// An empty input matches every tagged element, and an element with no tags never matches.
+        /// </summary>
+        private bool ElementTagMatchesInput(string[] query, GameStateQueryContext context)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu) is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(query, 1, out string elementId, out string error, name: "string elementId") is false || ArgUtility.TryGet(query, 2, out string inputId, out error, name: "string inputId") is false)
+            {
+                return false;
+            }
+
+            string text = Parchment.inputManager.GetText(inputId);
+
+            foreach (Element element in bookMenu.Book.FindElementsById(elementId))
+            {
+                if (element.HasTagMatching(text) is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether a joined tag list holds any of the given tags. Written against the %Tags% token, which is how an element asks about its own tags without naming itself.</summary>
+        private bool TagsInclude(string[] query, GameStateQueryContext context)
+        {
+            if (ArgUtility.TryGet(query, 1, out string tagList, out string error, name: "string tags") is false || ArgUtility.TryGet(query, 2, out string _, out error, name: "string tag") is false)
+            {
+                return false;
+            }
+
+            for (int index = 2; index < query.Length; index++)
+            {
+                if (TagHelper.ListHasTag(tagList, query[index]) is true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether the text typed into an input appears in any tag of a joined list. The %Tags% counterpart to <see cref="ElementTagMatchesInput"/>, for an element with no ID to name.</summary>
+        private bool TagsMatchInput(string[] query, GameStateQueryContext context)
+        {
+            if (ArgUtility.TryGet(query, 1, out string tagList, out string error, name: "string tags") is false || ArgUtility.TryGet(query, 2, out string inputId, out error, name: "string inputId") is false)
+            {
+                return false;
+            }
+
+            return TagHelper.ListHasTagMatching(tagList, Parchment.inputManager.GetText(inputId));
         }
 
         /// <summary>Whether any of the given session flags is set. Unlike the rest, this needs no book open, as a flag lasts the reading session rather than belonging to what is on screen.</summary>

@@ -1,6 +1,8 @@
 using Parchment.Framework.Models;
 using StardewValley;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Parchment.Framework.Utilities.Helpers
 {
@@ -17,6 +19,59 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // Every prefix Parchment acts on, which is what a prefix with nothing behind it is reported against at load
         private static readonly string[] KnownPrefixes = new string[] { NPC_PREFIX, ITEM_PREFIX };
+
+        /// <summary>What the %Tags% token joins an element's tags with, and what the queries reading that token split them back on.
+        /// A tag holding this character can't survive the round trip, which is why the queries taking tags directly are the ones to reach for when a tag has to carry punctuation.
+        /// </summary>
+        public const char LIST_SEPARATOR = ',';
+
+        /// <summary>Joins an element's tags into the single value the %Tags% token stands for.</summary>
+        public static string Join(IEnumerable<string> tags)
+        {
+            return string.Join(LIST_SEPARATOR, tags);
+        }
+
+        /// <summary>The tags in a joined list, with the empty entries a trailing separator would leave dropped.</summary>
+        public static IEnumerable<string> Split(string? tagList)
+        {
+            if (string.IsNullOrWhiteSpace(tagList) is true)
+            {
+                return Enumerable.Empty<string>();
+            }
+
+            return tagList.Split(LIST_SEPARATOR, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
+
+        /// <summary>Whether a joined tag list holds a tag, ignoring case.</summary>
+        public static bool ListHasTag(string? tagList, string? tag)
+        {
+            if (string.IsNullOrWhiteSpace(tag) is true)
+            {
+                return false;
+            }
+
+            return Split(tagList).Any(listTag => string.Equals(listTag, tag, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>Whether any tag in a joined list contains the given text, ignoring case.
+        /// Empty text matches a list with anything at all in it, which is what leaves an untouched search box showing everything.
+        /// </summary>
+        public static bool ListHasTagMatching(string? tagList, string? text)
+        {
+            var tags = Split(tagList).ToList();
+
+            if (tags.Count is 0)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(text) is true)
+            {
+                return true;
+            }
+
+            return tags.Any(listTag => listTag.Contains(text, StringComparison.OrdinalIgnoreCase));
+        }
 
         /// <summary>The value behind a tag's prefix, or null when the tag doesn't use that prefix.
         /// A prefix with nothing behind it also gives null, since it names nothing.

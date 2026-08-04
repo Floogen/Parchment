@@ -94,6 +94,50 @@ The tag sits on the `Panel`, so the portrait and the line of text are both looku
 
 An NPC who isn't loaded in the current save resolves to nothing and the lookup key does nothing. That's a save without that character rather than a mistake in your pack, so it doesn't warn.
 
+## Asking about tags in a condition
+
+Tags are readable from a [condition](../concepts/conditions.md#element-tags), which is what turns them from markers other mods read into something your own book can act on.
+
+**Asking about the element you're writing on** needs the `%Tags%` token. A query receives a resolved string rather than the element the condition belongs to, so the token resolves the tags first and the query reads them:
+
+```json
+{
+    "Type": "Panel",
+    "Height": 40,
+    "Tags": [ "Fish", "Ocean", "Crab Pot" ],
+    "Condition": "PeacefulEnd.Parchment_TagsMatchInput %Tags% search"
+}
+```
+
+That's a search box filtering a hand-written list, the same thing [page tags](page.md#tags) do for a table of contents, without every entry needing its own page. Swap `TagsMatchInput` for `TagsInclude` to test against fixed tags instead:
+
+```json
+"Condition": "PeacefulEnd.Parchment_TagsInclude %Tags% Ocean"
+```
+
+**Asking about a different element** names it by `Id`:
+
+```json
+"Condition": "PeacefulEnd.Parchment_ElementHasTag summaryPanel Ocean"
+```
+
+**Asking about whatever the cursor is over** needs no ID at all:
+
+```json
+"Condition": "PeacefulEnd.Parchment_IsHoveringTag Fish"
+```
+
+Since the derived `ItemId.` tag counts everywhere, that last one reaches an item without any tagging:
+
+```json
+"Condition": "PeacefulEnd.Parchment_IsHoveringTag ItemId.(O)145"
+```
+
+!!! note "Tags with spaces need quoting, tags with commas don't work in `%Tags%`"
+    A game state query splits its arguments on spaces, so a tag containing one has to be quoted: `PeacefulEnd.Parchment_ElementHasTag entry "Crab Pot"`. Since that's inside a JSON string the quotes need escaping too, so the field reads `"Condition": "PeacefulEnd.Parchment_ElementHasTag entry \"Crab Pot\""`.
+
+    The `%Tags%` token quotes itself, so a tag with a space passes through `TagsInclude` and `TagsMatchInput` untouched. A **comma** is the one character it can't carry, since that's what the token joins tags with. Use `ElementHasTag` or `IsHoveringTag` for a tag that has to contain one.
+
 ## Reading tags from your own mod
 
 If you're writing a C# mod and want to read Parchment's tags yourself, `BookMenu` exposes what the cursor is over:
