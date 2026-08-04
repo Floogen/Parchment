@@ -26,6 +26,7 @@ namespace Parchment.Framework.API.Builders
         // The frame FrameOffset applies to, being whichever was added last from either list
         private FrameRecipe? _lastFrame;
         private bool _hasOrphanFrameModifier = false;
+        private readonly List<string> _tags = new List<string>();
         private readonly List<string> _actions = new List<string>();
         private readonly List<string> _hoverActions = new List<string>();
         private readonly List<string> _submitActions = new List<string>();
@@ -83,6 +84,13 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder Tint(string tintColor) { return Set("TintColor", tintColor); }
         public IElementBuilder Item(string itemId) { return Set("ItemId", itemId); }
         public IElementBuilder Sound(string sound) { return Set("Sound", sound); }
+
+        public IElementBuilder WithTag(string tag)
+        {
+            _tags.Add(tag);
+
+            return this;
+        }
 
         public IElementBuilder Action(string action)
         {
@@ -306,6 +314,12 @@ namespace Parchment.Framework.API.Builders
             {
                 error = $"the element type \"{_elementType}\" isn't backed by element data";
                 return false;
+            }
+
+            // Copied rather than handed over, so a registered book rebuilt a second time doesn't share the list with the build before it
+            if (_tags.Count > 0)
+            {
+                data.Tags = new List<string>(_tags);
             }
 
             // The first action goes to the singular field, which keeps a one-action element reading the way it always has, and any

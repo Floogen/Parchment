@@ -57,6 +57,29 @@ These read a page's [`Tags`](../reference/page.md#tags), the keywords a page car
 | `PeacefulEnd.Parchment_PageHasTag` | `<pageId> <tag>...` | The named page carries any of the tags, wherever it sits in the book. |
 | `PeacefulEnd.Parchment_PageTagMatchesInput` | `<pageId> <inputId>` | What's typed into an [`Input`](../reference/elements/input.md) appears in any of the named page's tags. An empty input matches every tagged page, and a page with no tags never matches. |
 
+### Element tags
+
+These read an element's [`Tags`](../reference/tags.md). Matching ignores case, and the derived `ItemId.` tag counts alongside the authored ones.
+
+| Query | Arguments | True when |
+| --- | --- | --- |
+| `PeacefulEnd.Parchment_ElementHasTag` | `<elementId> <tag>...` | An element with that `Id` carries any of the tags, wherever it sits in the book. |
+| `PeacefulEnd.Parchment_ElementTagMatchesInput` | `<elementId> <inputId>` | What's typed into an [`Input`](../reference/elements/input.md) appears in any of that element's tags. An empty input matches every tagged element, and an element with no tags never matches. |
+| `PeacefulEnd.Parchment_TagsInclude` | `<tags> <tag>...` | The tag list holds any of the tags. Write `%Tags%` as the first argument to ask about the element the condition is on. |
+| `PeacefulEnd.Parchment_TagsMatchInput` | `<tags> <inputId>` | What's typed into an input appears in any tag of the list. The `%Tags%` counterpart to `ElementTagMatchesInput`. |
+
+!!! tip "Use `%Tags%` to ask about the element you're writing on"
+    A query is handed a resolved string, not the element the condition belongs to, so it can't reach that element's tags on its own. The [`%Tags%` token](actions.md#tokens) resolves to them first, which is what `TagsInclude` and `TagsMatchInput` read:
+
+    ```json
+    "Condition": "PeacefulEnd.Parchment_TagsMatchInput %Tags% search"
+    ```
+
+    `ElementHasTag` and `ElementTagMatchesInput` are for asking about a **different** element, named by its `Id`.
+
+!!! warning "An `Id` isn't unique"
+    Several elements can share one, and a [`Grid`](../reference/elements/grid.md#source) filling its cells from a template gives every cell the template's `Id`. `ElementHasTag` and `ElementTagMatchesInput` are true when **any** of them matches, so on a grid cell the condition passes on every cell the moment one matches. Use `%Tags%` there instead.
+
 ### Session flags
 
 | Query | Arguments | True when |
@@ -109,6 +132,7 @@ The direction of `InputMatches` is the thing to keep straight: the typed text is
 | --- | --- | --- |
 | `PeacefulEnd.Parchment_IsHoveringLeftPage` | — | The cursor is over the left page's content area. |
 | `PeacefulEnd.Parchment_IsHoveringRightPage` | — | The cursor is over the right page's content area. |
+| `PeacefulEnd.Parchment_IsHoveringTag` | `<tag>...` | The element under the cursor carries any of the [tags](../reference/tags.md). Needs no `Id`, since it reads whatever is hovered. |
 
 !!! tip "Prefer `CurrentPageId` over `CurrentPageIndex`"
     A page ID survives you inserting a page halfway through the book. An index doesn't, and neither does anything written against it.
@@ -293,7 +317,9 @@ An element with a `Condition` starts hidden and appears once the query first pas
 
 ## Gotchas
 
-**A token is meant to be a whole argument.** `PeacefulEnd.Parchment_HasFlag %Variable:path%` is fine. `PeacefulEnd.Parchment_HasFlag path_%Variable:path%` isn't, as Parchment quotes its own values and the quotes would land in the middle of the argument. A game token glued to other text has the opposite problem: it's left unquoted there, since quoting would break the argument in two rather than hold it together, so a space in what it produces splits the argument. Build the joined-up value with [`SetVariable`](actions.md#variables) first, then read it whole.
+**A game token glued to other text loses its quoting.** `PeacefulEnd.Parchment_InputEquals guess [FarmerName]` is fine. `PeacefulEnd.Parchment_InputEquals guess farm_[FarmerName]` isn't. Parchment only quotes a `[Token]` standing alone as an argument, since quoting one in the middle would be quoting a fragment rather than the value, so glued to other text it's left bare and a space in what it produces splits the argument in two. Build the joined-up value with [`SetVariable`](actions.md#variables) first, then read it whole.
+
+Parchment's own `%tokens%` don't have this limit. `PeacefulEnd.Parchment_HasFlag path_%Variable:path%` works, since the game's parser strips quotes wherever they sit in an argument and rejoins what surrounds them. Writing a token as a whole argument is still the clearer habit, and it's the only form that works for both kinds.
 
 **A token that doesn't resolve leaves the element hidden.** An unresolved token stays in the text rather than being blanked, which reads as a visible typo in a paragraph. In a query it becomes a junk argument, the query fails and the element quietly isn't there. The SMAPI log names the token, so check it before the query itself.
 

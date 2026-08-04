@@ -309,12 +309,14 @@ namespace Parchment.Framework.Models
                 }
 
                 Rectangle screenBounds = new Rectangle(element.Bounds.X + containerBounds.X, element.Bounds.Y + containerBounds.Y, element.Bounds.Width, element.Bounds.Height);
-                if (screenBounds.Contains(screenPosition) is false)
+                Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
+
+                // Whether anything inside is worth testing, measured against everything the element reaches rather than the box it settled on.
+                // A placed layer draws from the content area without contributing to the size that produced it, so it can hang outside the container or be the only thing a sizeless one shows
+                if (GetHitBounds(element, screenBounds, contentBounds).Contains(screenPosition) is false)
                 {
                     continue;
                 }
-
-                Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
 
                 // A container's own layers are anchored to its content area, so they are tested against the same rectangle its children are
                 // Both are always interactiveOnly, whatever the outer list is, so decorative art inside a panel doesn't swallow the cursor
@@ -336,6 +338,12 @@ namespace Parchment.Framework.Models
                     return hitLayer;
                 }
 
+                // The element's own bounds decide whether it is the answer, so a container never claims a point that only its contents reached past
+                if (screenBounds.Contains(screenPosition) is false)
+                {
+                    continue;
+                }
+
                 // Checked after the children and layers above, so a container the cursor passes through still lets the elements inside it be reached
                 if (element.Data.IgnoreCursor || (interactiveOnly && element.IsInteractive is false))
                 {
@@ -346,6 +354,43 @@ namespace Parchment.Framework.Models
             }
 
             return null;
+        }
+
+        /// <summary>Everything an element reaches on screen, being its own bounds unioned with whatever it holds.
+        /// This is what decides whether the contents are worth walking, since a container can be smaller than what it shows or carry no size at all when nothing inside it stacks.
+        /// Only the immediate contents are unioned, as a layer that overflows a container that itself overflows is far enough into the weeds to leave to the bounds it settled on.
+        /// </summary>
+        private static Rectangle GetHitBounds(Element element, Rectangle screenBounds, Rectangle contentBounds)
+        {
+            if (element.Children.Count is 0 && element.Background.Count is 0 && element.Foreground.Count is 0)
+            {
+                return screenBounds;
+            }
+
+            Rectangle hitBounds = screenBounds;
+
+            hitBounds = UnionContents(hitBounds, element.Children, contentBounds);
+            hitBounds = UnionContents(hitBounds, element.Background, contentBounds);
+            hitBounds = UnionContents(hitBounds, element.Foreground, contentBounds);
+
+            return hitBounds;
+        }
+
+        /// <summary>Grows a rectangle to take in a list of contents, whose own bounds are measured from the container's content area.</summary>
+        private static Rectangle UnionContents(Rectangle bounds, IReadOnlyList<Element> elements, Rectangle contentBounds)
+        {
+            foreach (Element element in elements)
+            {
+                // An element sized out of the layout is not drawn, so it reaches nothing
+                if (element.Bounds == Rectangle.Empty)
+                {
+                    continue;
+                }
+
+                bounds = Rectangle.Union(bounds, new Rectangle(element.Bounds.X + contentBounds.X, element.Bounds.Y + contentBounds.Y, element.Bounds.Width, element.Bounds.Height));
+            }
+
+            return bounds;
         }
     }
 }

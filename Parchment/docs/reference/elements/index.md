@@ -134,17 +134,19 @@ In every mode the result is clamped to the space available, so an element can ne
 
 ## Colors
 
-Colour fields accept any of:
+Color fields accept any of:
 
 | Form | Example |
 | --- | --- |
-| A colour name | `"SkyBlue"` |
+| A color name | `"SkyBlue"` |
 | RGB hex | `"#8B4513"` |
 | RGBA hex | `"#8B4513FF"` |
 | 8-bit RGB | `"34 139 34"` |
 | 8-bit RGBA | `"34 139 34 255"` |
 
-Values are space-separated, not comma-separated. An unparsable colour logs a warning and falls back to the default.
+Values are space-separated, not comma-separated. An unparsable color logs a warning and falls back to the default.
+
+Alpha is optional and full strength when left off. Write the color you want at full strength and let the alpha fade it, the same way the game does elsewhere: `"255 0 0 128"` is a half-faded red rather than a brighter one. The channels are scaled by the alpha before anything is drawn, so a translucent color fades towards whatever is behind it instead of washing out towards white.
 
 ## Rectangles and points
 

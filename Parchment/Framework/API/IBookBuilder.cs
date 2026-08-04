@@ -40,7 +40,8 @@ namespace Parchment.Framework.API
 
         /// <summary>What to run when something asks this book to rebuild itself, being the PeacefulEnd.Parchment_RefreshBook action or a call to TryRefresh.
         /// Assemble a fresh builder from your current state inside the callback and call TryRefresh on that one, as this builder holds the values it was already given.
-        /// Only takes effect on a book opened with TryOpen, since a registered book comes from the books asset rather than from a builder.
+        /// Works for a registered book as well as one opened with TryOpen, as the callback is found through the registration whenever a book comes out of the books asset.
+        /// Registering the same book again without restating this keeps the callback the earlier registration was given.
         /// </summary>
         IBookBuilder OnRefresh(Action onRefresh);
 

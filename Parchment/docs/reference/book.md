@@ -104,8 +104,8 @@ Everything about how the book itself is drawn. All defaults describe Parchment's
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `TexturePath` <span class="opt">optional</span> | `string` | *the built-in book* | The book's sprite sheet. Frames run **horizontally**, each `FrameWidth` × `FrameHeight`: first the open frames (index 0 fully closed, the last fully open), then the page-turn frames. The close animation is the open frames played backwards, so you don't supply those separately. |
-| `GrayscaleTexturePath` <span class="opt">optional</span> | `string?` | *the built-in book* | An optional greyscale layer drawn beneath `TexturePath` and tinted by the book's `TintColor`. Multiplying a colour into greyscale art gives you that colour. Set to `null` to skip the recoloring. |
-| `TintColor` <span class="opt">optional</span> | [`color`](elements/index.md#colors) | *white* | A colour multiplied into the book's greyscale layer. |
+| `GrayscaleTexturePath` <span class="opt">optional</span> | `string?` | *the built-in book* | An optional greyscale layer drawn beneath `TexturePath` and tinted by the book's `TintColor`. Multiplying a color into greyscale art gives you that color. Set to `null` to skip the recoloring. |
+| `TintColor` <span class="opt">optional</span> | [`color`](elements/index.md#colors) | *white* | A color multiplied into the book's greyscale layer. |
 | `FrameWidth` <span class="opt">optional</span> | `int` | `219` | The width of one frame, in unscaled sprite pixels. |
 | `FrameHeight` <span class="opt">optional</span> | `int` | `158` | The height of one frame, in unscaled sprite pixels. |
 | `OpenFrameCount` <span class="opt">optional</span> | `int` | `4` | How many open frames the sheet starts with. |

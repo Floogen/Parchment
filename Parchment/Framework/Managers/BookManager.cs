@@ -268,6 +268,12 @@ namespace Parchment.Framework.Managers
                 monitor.LogOnce($"{modId} registered the book \"{bookData.Id}\", whose ID isn't prefixed with its mod ID. Prefixed IDs keep books from colliding between mods.", LogLevel.Warn);
             }
 
+            // Matches how a refresh carries its callback over, so a mod rebuilding its book doesn't have to restate OnRefresh to keep it refreshable
+            if (builder.RefreshCallback is null && TryGetRegisteredBuilder(bookData.Id, out BookBuilder previousBuilder) is true && previousBuilder.RefreshCallback is not null)
+            {
+                builder.AdoptRefreshCallback(previousBuilder.RefreshCallback);
+            }
+
             if (_modIdToRegisteredBooks.ContainsKey(modId) is false)
             {
                 _modIdToRegisteredBooks[modId] = new Dictionary<string, BookBuilder>(StringComparer.OrdinalIgnoreCase);
@@ -302,6 +308,39 @@ namespace Parchment.Framework.Managers
         public bool TryGetLiveBuilder(string bookId, out BookBuilder builder)
         {
             return _bookIdToLiveBuilder.TryGetValue(bookId, out builder!);
+        }
+
+        /// <summary>The builder a book was registered with, whichever mod registered it.</summary>
+        private bool TryGetRegisteredBuilder(string bookId, out BookBuilder builder)
+        {
+            foreach (var modEntry in _modIdToRegisteredBooks)
+            {
+                if (modEntry.Value.TryGetValue(bookId, out builder!) is true)
+                {
+                    return true;
+                }
+            }
+
+            builder = null!;
+
+            return false;
+        }
+
+        /// <summary>The refresh callback a registered book was given, for a menu showing a book that came out of the books asset rather than from a builder.
+        /// Looked up on each refresh rather than held onto, so a book re-registered while it's being read refreshes through its current callback.
+        /// </summary>
+        public bool TryGetRegisteredRefreshCallback(string bookId, out Action onRefresh)
+        {
+            onRefresh = null!;
+
+            if (string.IsNullOrWhiteSpace(bookId) is true || TryGetRegisteredBuilder(bookId, out BookBuilder builder) is false || builder.RefreshCallback is null)
+            {
+                return false;
+            }
+
+            onRefresh = builder.RefreshCallback!;
+
+            return true;
         }
 
         /// <summary>Removes a book previously registered by the given mod. A mod can only remove its own books.</summary>

@@ -72,6 +72,11 @@ Both layers are anchored to the panel's **content area**, the same rectangle the
 !!! warning "A placed layer can't size the panel"
     A `ShrinkToFit` panel hugs its widest **child**, and a panel without `Height` is as tall as its **children** need. Neither layer contributes, since the panel has to know its own size before it can place anything inside it. A background wider than the panel is simply clipped by nothing (it draws past the frame). Size the panel with `Width` and `Height` when the layer is what matters.
 
+!!! note "A panel with no `Children` reserves no space"
+    A panel whose only content is placed measures **no height at all**, so whatever stacks after it draws over the top. The layers themselves are fine: they draw where you put them and the cursor reaches them normally.
+
+    Give the panel a `Height` when it should hold space open for itself. Parchment logs a trace message when it spots this, so check your SMAPI log with trace output on if a panel isn't pushing the next element down.
+
 Placed elements are only reachable by the cursor when they have something to offer, such as a `Description`, `DisplayName` or an `Action`. Purely decorative art in either layer passes the cursor through to the children beneath it, which holds regardless of whether the panel itself is in a page's stacked `Elements` or in one of its layers.
 
 The panel itself is reachable in the stacked list whatever it holds, so a panel with no tooltip of its own still claims the cursor over its own padding. Set [`IgnoreCursor`](../page.md#passing-the-cursor-through) on it to hand that back to whatever is drawn beneath, without affecting the children.

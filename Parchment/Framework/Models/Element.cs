@@ -178,7 +178,55 @@ namespace Parchment.Framework.Models
         /// Absolutely positioned layers such as <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/> use this so purely decorative art passes the cursor through to whatever sits under it.
         /// Always false when <see cref="ElementData.IgnoreCursor"/> is set, since that element is stepped over wherever it sits.
         /// </summary>
-        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0));
+        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data.Tags is not null && Data.Tags.Count is not 0) || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0));
+
+        /// <summary>This element's authored tags, followed by the ones Parchment derives from what it is currently holding, being the item a Grid cell or an item Image is showing.
+        /// Composed on each call rather than merged into <see cref="ElementData.Tags"/>, as the deserialized data is shared across the books using it and a cell's item changes as its filter narrows.
+        /// </summary>
+        public IEnumerable<string> GetTags()
+        {
+            if (Data.Tags is not null)
+            {
+                foreach (string tag in Data.Tags)
+                {
+                    if (string.IsNullOrWhiteSpace(tag) is false)
+                    {
+                        yield return tag;
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(AssignedItemId) is false)
+            {
+                yield return $"{TagHelper.ITEM_PREFIX}{AssignedItemId}";
+            }
+        }
+
+        /// <summary>Whether this element carries a tag, ignoring case. Reads <see cref="GetTags"/>, so a derived item tag counts alongside the authored ones.</summary>
+        public bool HasTag(string? tag)
+        {
+            return string.IsNullOrWhiteSpace(tag) is false && GetTags().Any(elementTag => string.Equals(elementTag, tag, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>Whether any of this element's tags contains the given text, ignoring case.
+        /// Empty text matches an element with any tag at all, which is what leaves an untouched search box showing everything. An element with no tags never matches.
+        /// </summary>
+        public bool HasTagMatching(string? text)
+        {
+            var tags = GetTags().ToList();
+
+            if (tags.Count is 0)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(text) is true)
+            {
+                return true;
+            }
+
+            return tags.Any(elementTag => elementTag.Contains(text, StringComparison.OrdinalIgnoreCase));
+        }
 
         public IReadOnlyList<Element> Children { get; init; } = Array.Empty<Element>();
 

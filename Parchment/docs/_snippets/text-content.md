@@ -3,4 +3,4 @@
 | --- | --- | --- | --- |
 | `Text` <span class="opt">optional</span> | `string` | — | The text to draw. Wraps automatically to the available width, including breaking words that are too long for a line on their own. `\n` forces a line break. Can carry [tokens](../../concepts/actions.md#tokens), both Parchment's `%Token%` forms and the game's [tokenizable strings](../../concepts/actions.md#game-tokens). |
 | `FontType` <span class="opt">optional</span> | [`font type`](../elements/index.md#font-types) | *varies* | Which font to draw with. The default differs per element type. |
-| `TextColor` <span class="opt">optional</span> | [`color`](../elements/index.md#colors) | *the book's default* | The text colour. |
+| `TextColor` <span class="opt">optional</span> | [`color`](../elements/index.md#colors) | *the book's default* | The text color. |

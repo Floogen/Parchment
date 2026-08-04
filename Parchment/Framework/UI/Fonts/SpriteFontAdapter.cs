@@ -25,7 +25,7 @@ namespace Parchment.Framework.UI.Fonts
         }
 
         /// <summary>Draws the text, telling the shadow how strongly to come through as well as the glyphs.
-        /// The shadow is drawn in the game's own colour rather than the one passed in, so a faded colour on its own would leave it behind while the text underneath went.
+        /// The shadow is drawn in the game's own color rather than the one passed in, so a faded color on its own would leave it behind while the text underneath went.
         /// </summary>
         public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float scale)
         {

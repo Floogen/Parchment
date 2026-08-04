@@ -986,6 +986,42 @@
                   "Alignment": "Center",
                   "Action": "PeacefulEnd.Parchment_JumpToChapter chapter-2",
                   "Sound": "bigSelect"
+                },
+                {
+                  "Type": "Paragraph",
+                  "Font": "Small",
+                  "Text": "Lookup Anything support! Press F1 while hovering on the objects below.",
+                  "Alignment": "Center"
+                },
+                {
+                  "Type": "Image",
+                  "ItemId": "(O)145",
+                  "Scale": 4,
+                  "Alignment": "Center"
+                },
+                {
+                  "Type": "Image",
+                  "TexturePath": "LooseSprites/emojis",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 99,
+                    "Width": 9,
+                    "Height": 9
+                  },
+                  "Scale": 4,
+                  "Alignment": "Center",
+                  "Tags": [
+                    "NpcId.Abigail"
+                  ]
+                },
+                {
+                  "Type": "Image",
+                  "ItemId": "(O)146",
+                  "Scale": 4,
+                  "Alignment": "Center",
+                  "Tags": [
+                    "ItemId.(O)146" // Not required since it automatically populates when using the ItemId above
+                  ]
                 }
               ]
             },

@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using StardewValley;
 using System;
 using System.Collections.Generic;
@@ -24,9 +24,20 @@ namespace Parchment.Framework.Utilities.Helpers
             {
                 return false;
             }
-            color = parsedColor.Value;
+            color = Premultiply(parsedColor.Value);
 
             return true;
+        }
+
+        /// <summary>Scales a color's channels by its own alpha, which mirrors how the game handles it.</summary>
+        public static Color Premultiply(Color color)
+        {
+            if (color.A is byte.MaxValue)
+            {
+                return color;
+            }
+
+            return Color.FromNonPremultiplied(color.R, color.G, color.B, color.A);
         }
     }
 }

@@ -16,6 +16,12 @@ namespace Parchment.Framework.API
         /// <summary>Sets the element's ID, which page actions and queries use to refer to it.</summary>
         IElementBuilder WithId(string id);
 
+        /// <summary>Adds a tag to the element, which other mods can read off whatever the cursor is over. Calling this more than once builds a list, so there's no
+        /// need to decide up front between one tag and several. Tagging an element also makes it reachable by the cursor, since a tag is only useful on something that can be hovered.
+        /// Parchment leaves most tags alone, acting only on the ones it recognises, such as "NpcId.Abigail" naming the NPC the element is about.
+        /// </summary>
+        IElementBuilder WithTag(string tag);
+
         IElementBuilder Text(string text);
 
         /// <summary>How the element sits across its container's width: "Left", "Center" or "Right".</summary>
@@ -47,7 +53,7 @@ namespace Parchment.Framework.API
         IElementBuilder TextureSource(int x, int y, int width, int height);
         IElementBuilder HoverTextureSource(int x, int y, int width, int height);
 
-        /// <summary>A colour multiplied over the sprite, as a name such as "Red" or a value such as "255 128 0".</summary>
+        /// <summary>A color multiplied over the sprite, as a name such as "Red" or a value such as "255 128 0".</summary>
         IElementBuilder Tint(string tintColor);
 
         /// <summary>Draws an item's icon instead of a texture, using a qualified item ID such as "(O)24".</summary>

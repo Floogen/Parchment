@@ -61,7 +61,7 @@ Each page also places a [`PageNumber`](../reference/elements/page-number.md) in 
 
 ## The Guide Book
 
-`PeacefulEnd.Parchment.ExamplePack_GuideBook` is the more robust example. Its `Appearance` sets nothing but a colour:
+`PeacefulEnd.Parchment.ExamplePack_GuideBook` is the more robust example. Its `Appearance` sets nothing but a color:
 
 ```json title="parchment/books.json"
 "Appearance": {
@@ -69,7 +69,7 @@ Each page also places a [`PageNumber`](../reference/elements/page-number.md) in 
 }
 ```
 
-That's the built-in book art recoloured through its greyscale layer, which is all a book needs.
+That's the built-in book art recolored through its greyscale layer, which is all a book needs.
 
 ### Book-wide layers
 

@@ -20,7 +20,7 @@ namespace Parchment.Framework.Models.Data.Elements
         /// <summary>Text shown while the input is empty. Purely a prompt, so conditions see an empty input rather than this.</summary>
         public string? Placeholder { get; set; }
 
-        /// <summary>The colour of <see cref="Placeholder"/>, as a name such as "Gray" or a value such as "128 128 128". Falls back to a faded <see cref="TextColor"/>.</summary>
+        /// <summary>The color of <see cref="Placeholder"/>, as a name such as "Gray" or a value such as "128 128 128". Falls back to a faded <see cref="TextColor"/>.</summary>
         public string? PlaceholderColor { get; set; }
 
         /// <summary>The most characters the reader can type. When null the length is unbounded.</summary>

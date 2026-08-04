@@ -84,6 +84,17 @@ namespace Parchment.Framework.UI.Menus
 
         private Element? _hoveredElement;
 
+        /// <summary>The item the cursor is over, or null when whatever it is over isn't about an item.
+        /// Declared as a plain field rather than a property because that is what Lookup Anything looks for when it reflects over a custom menu.
+        /// </summary>
+        public Item? HoveredItem;
+
+        /// <summary>The NPC the cursor is over, named by an "NpcId." tag. Read the same way <see cref="HoveredItem"/> is, and null when nothing under the cursor names one.</summary>
+        public NPC? HoveredNpc;
+
+        /// <summary>Every tag on the element the cursor is over, for any mod that wants to read them. Empty when nothing is hovered.</summary>
+        public IReadOnlyList<string> HoveredTags = Array.Empty<string>();
+
         // The hovered element's tooltip with its tokens resolved. Held here rather than resolved in the draw, which runs every frame while a tooltip is only worth resolving when something about it could have moved
         private string? _hoveredDisplayName;
         private string? _hoveredDescription;
@@ -106,7 +117,9 @@ namespace Parchment.Framework.UI.Menus
         // The game replaces the active menu by assignment in places such as createQuestionDialogue, so the session can be put down from either the menu's exit or the manager watching for that. This keeps it to once
         private bool _hasEndedSession = false;
 
-        /// <summary>What the owning mod runs when something asks the book to rebuild itself, set through the builder's OnRefresh. Null for a book with nothing to rebuild from, such as one out of the books asset.</summary>
+        /// <summary>What the owning mod runs when something asks the book to rebuild itself, handed over by the builder that opened this menu.
+        /// Null for a book the menu wasn't opened from a builder for, being a registered book (whose callback is found through its registration instead) or one out of a content pack (which has nothing to rebuild from).
+        /// </summary>
         private Action? _onRefresh;
 
         // Guards against a refresh callback whose own actions ask for another refresh, which would otherwise recurse until the stack ran out
@@ -215,9 +228,16 @@ namespace Parchment.Framework.UI.Menus
         /// </summary>
         public bool TryRunRefreshCallback(out string error)
         {
-            if (_onRefresh is null)
+            // A registered book is opened from the books asset rather than from its builder, so its callback comes from the registration
+            Action? onRefresh = _onRefresh;
+            if (onRefresh is null && Parchment.bookManager.TryGetRegisteredRefreshCallback(Book.Data.Id, out Action registeredRefresh) is true)
             {
-                error = $"the book '{Book.Data.Id}' has no refresh callback, which is set through the C# builder's OnRefresh";
+                onRefresh = registeredRefresh;
+            }
+
+            if (onRefresh is null)
+            {
+                error = $"the book '{Book.Data.Id}' has no refresh callback, which is set through the C# builder's OnRefresh before the book is opened or registered";
                 return false;
             }
 
@@ -231,7 +251,7 @@ namespace Parchment.Framework.UI.Menus
 
             try
             {
-                _onRefresh();
+                onRefresh();
             }
             finally
             {
@@ -1162,6 +1182,8 @@ namespace Parchment.Framework.UI.Menus
         /// </summary>
         private void RefreshHoverText()
         {
+            RefreshHoveredContent();
+
             if (_hoveredElement is null)
             {
                 _hoveredDisplayName = null;
@@ -1172,6 +1194,31 @@ namespace Parchment.Framework.UI.Menus
 
             _hoveredDisplayName = ResolveHoverText(_hoveredElement.DisplayName, _hoveredElement);
             _hoveredDescription = ResolveHoverText(_hoveredElement.Description, _hoveredElement);
+        }
+
+        /// <summary>Points the fields other mods read at whatever the cursor is over, being the item or NPC the hovered element is about and every tag it carries.
+        /// Refreshed alongside the tooltip, so a Grid cell whose item changed under a resting cursor is followed rather than frozen at the moment the cursor arrived.
+        /// </summary>
+        private void RefreshHoveredContent()
+        {
+            if (_hoveredElement is null)
+            {
+                ClearHoveredContent();
+
+                return;
+            }
+
+            HoveredItem = TagHelper.ResolveItem(_hoveredElement);
+            HoveredNpc = TagHelper.ResolveNpc(_hoveredElement);
+            HoveredTags = _hoveredElement.GetTags().ToList();
+        }
+
+        /// <summary>Drops what the hovered content fields point at, so nothing reading them finds an item from a book that has already been put down.</summary>
+        private void ClearHoveredContent()
+        {
+            HoveredItem = null;
+            HoveredNpc = null;
+            HoveredTags = Array.Empty<string>();
         }
 
         private static string? ResolveHoverText(string? text, Element element)
@@ -1956,6 +2003,7 @@ namespace Parchment.Framework.UI.Menus
             _hasEndedSession = true;
 
             ClearInputFocus();
+            ClearHoveredContent();
 
             // A book handed straight over to another book leaves the rest to the new one, which is already holding the reader and has taken on the HUD state to restore
             if (Game1.activeClickableMenu is BookMenu incomingBook && ReferenceEquals(incomingBook, this) is false)

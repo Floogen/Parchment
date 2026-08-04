@@ -45,7 +45,7 @@ Unlike every other text element, `PageNumber` takes no `Text`. Giving it one is 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `FontType` <span class="opt">optional</span> | [`font type`](index.md#font-types) | `Small` | Which font to draw the number with. |
-| `TextColor` <span class="opt">optional</span> | [`color`](index.md#colors) | *the book's default* | The number's colour. |
+| `TextColor` <span class="opt">optional</span> | [`color`](index.md#colors) | *the book's default* | The number's color. |
 
 ## Common fields
 

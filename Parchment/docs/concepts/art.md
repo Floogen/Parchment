@@ -36,7 +36,7 @@ The easy convention is to stack the two states vertically in the sheet, so the r
 "HoverTextureSourceRectangle": { "X": 0, "Y": 18, "Width": 18, "Height": 18 }
 ```
 
-A hover state is normally a recolour or a small highlight, not a redraw, so this is rarely a constraint in practice.
+A hover state is normally a recolor or a small highlight, not a redraw, so this is rarely a constraint in practice.
 
 An [`Image`](../reference/elements/image.md#hover-frames) can animate its hover state instead, with `HoverFrames`. The same rule applies for the same reason: those frames are drawn at the size `TextureSourceRectangle` measured, so the whole hover row wants to match the normal row cell for cell. Stacking the idle row and the hover row vertically keeps that honest, since the two lists then differ only in `Y`.
 
@@ -88,7 +88,7 @@ A frame's [`Scale`](../reference/elements/image.md#frame-scale) sidesteps the sa
 
 `TintColor` multiplies. Red on grey gives red. Red on blue gives near-black. Anything on black stays black.
 
-So a sprite you intend to be recolourable should be drawn in greys. That's exactly why the book's own art has a separate greyscale layer. The greyscale takes the cover colour, and the coloured layer on top carries the details that shouldn't tint.
+So a sprite you intend to be recolorable should be drawn in greys. That's exactly why the book's own art has a separate greyscale layer. The greyscale takes the cover color, and the colored layer on top carries the details that shouldn't tint.
 
 ## A quick checklist
 

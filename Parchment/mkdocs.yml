@@ -120,6 +120,7 @@ nav:
       - Book: reference/book.md
       - Page: reference/page.md
       - Variables: reference/variables.md
+      - Tags: reference/tags.md
       - Elements:
           - Overview: reference/elements/index.md
           - Title: reference/elements/title.md
