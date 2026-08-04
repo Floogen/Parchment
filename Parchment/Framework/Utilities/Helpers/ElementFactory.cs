@@ -136,6 +136,7 @@ namespace Parchment.Framework.Utilities.Helpers
             AdoptDescendants(element);
 
             WarnOnUnreachableContent(data);
+            LogUnmeasurableContainer(data);
 
             // Prep the active frames, so a conditional animation is correct on the first draw rather than after the first condition refresh
             AnimationHelper.RefreshActiveFrames(element);
@@ -147,6 +148,40 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return element;
+        }
+
+        /// <summary>Notes a Panel whose only content is placed, which measures no height and so reserves no space for whatever stacks after it.
+        /// The cursor still reaches everything on it, so this is a layout surprise rather than a broken element, which is why it is a trace rather than a warning.
+        /// Logged once per element type and ID, as a Grid builds one element per cell from the same template.
+        /// </summary>
+        private static void LogUnmeasurableContainer(ElementData data)
+        {
+            if (data is not PanelElementData panelData)
+            {
+                return;
+            }
+
+            // Only the stacked children give the panel height, so one with any of them measures something
+            if (panelData.Children is not null && panelData.Children.Count is not 0)
+            {
+                return;
+            }
+
+            bool hasPlacedContent = (panelData.Background is not null && panelData.Background.Count is not 0) || (panelData.Foreground is not null && panelData.Foreground.Count is not 0);
+            if (hasPlacedContent is false)
+            {
+                return;
+            }
+
+            // Each of these gives the panel a height of its own, whether that is an authored one, the padding around a content area or the border a nine-sliced frame draws
+            if (panelData.Height is not null || panelData.Padding is not 0 || string.IsNullOrWhiteSpace(panelData.TexturePath) is false)
+            {
+                return;
+            }
+
+            string elementLabel = string.IsNullOrWhiteSpace(data.Id) ? $"A {data.Type} element" : $"The {data.Type} element \"{data.Id}\"";
+
+            Parchment.monitor.LogOnce($"{elementLabel} has a \"Background\" or \"Foreground\" but no \"Children\", so it measures no height and whatever stacks after it draws over the top. Give it a \"Height\" when it should reserve space.", LogLevel.Trace);
         }
 
         /// <summary>Points everything an element holds back at it, so a fade or anything else that carries down has a chain to walk.

@@ -1057,7 +1057,6 @@
                   "Children": [
                     {
                       "Type": "Panel",
-                      "Height": 40,
                       "VerticalAlignment": "Center",
                       "Background": [
                         {
@@ -1081,7 +1080,6 @@
                     },
                     {
                       "Type": "Panel",
-                      "Height": 40,
                       "VerticalAlignment": "Center",
                       "Background": [
                         {
