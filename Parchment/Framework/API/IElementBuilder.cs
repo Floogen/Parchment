@@ -47,7 +47,7 @@ namespace Parchment.Framework.API
         IElementBuilder TextureSource(int x, int y, int width, int height);
         IElementBuilder HoverTextureSource(int x, int y, int width, int height);
 
-        /// <summary>A colour multiplied over the sprite, as a name such as "Red" or a value such as "255 128 0".</summary>
+        /// <summary>A color multiplied over the sprite, as a name such as "Red" or a value such as "255 128 0".</summary>
         IElementBuilder Tint(string tintColor);
 
         /// <summary>Draws an item's icon instead of a texture, using a qualified item ID such as "(O)24".</summary>

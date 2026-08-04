@@ -24,7 +24,7 @@ A text box the reader types into. What they type is held for as long as the book
 | --- | --- | --- | --- |
 | `InputId` <span class="req">required</span> | `string` | — | The name conditions and actions use to reach this input's text. Expected to be unique within the book. |
 | `Placeholder` <span class="opt">optional</span> | `string` | — | A prompt shown while the box is empty. Conditions see an empty input, not this. |
-| `PlaceholderColor` <span class="opt">optional</span> | `string` | *a faded `TextColor`* | The prompt's colour, as a name such as `"Gray"` or a value such as `"128 128 128"`. |
+| `PlaceholderColor` <span class="opt">optional</span> | `string` | *a faded `TextColor`* | The prompt's color, as a name such as `"Gray"` or a value such as `"128 128 128"`. |
 | `MaxLength` <span class="opt">optional</span> | `int?` | — | The most characters the reader can type. Unbounded when omitted. |
 | `Padding` <span class="opt">optional</span> | `int` | `0` | Space between the frame's inner edge and the text, in unscaled sprite pixels × `Scale`. |
 | `Sizing` <span class="opt">optional</span> | [`sizing mode`](index.md#sizing-modes) | `Fill` | How wide the box is. `ShrinkToFit` hugs the `Placeholder` rather than the typed text, so the box doesn't grow and shrink under the reader as they type. |
