@@ -64,6 +64,11 @@ namespace Parchment.Framework.Utilities.Helpers
             Texture2D? texture = null;
             Rectangle? sourceRectangle = null;
 
+            // An authored item is assigned the same way a Grid cell's is, so %Item% tokens and anything reading the hovered element's item work on it too
+            string? assignedItemId = null;
+            ParsedItemData? assignedItemData = null;
+            Item? assignedItem = null;
+
             if (data is ImageElementData imageData && string.IsNullOrWhiteSpace(imageData.ItemId) is false)
             {
                 ParsedItemData? itemData = ItemRegistry.GetData(imageData.ItemId);
@@ -76,6 +81,12 @@ namespace Parchment.Framework.Utilities.Helpers
                 {
                     texture = itemData.GetTexture();
                     sourceRectangle = itemData.GetSourceRect();
+
+                    assignedItemId = imageData.ItemId;
+                    assignedItemData = itemData;
+
+                    // Built once here rather than per token resolution, matching what a Grid cell does when it is pointed at an item
+                    assignedItem = ItemRegistry.Create(imageData.ItemId, allowNull: true);
 
                     if (displayName is null)
                     {
@@ -113,6 +124,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 TextureAssetName = textureAssetName,
                 SourceRectangle = sourceRectangle,
                 Texture = texture,
+                AssignedItemId = assignedItemId,
+                AssignedItemData = assignedItemData,
+                AssignedItem = assignedItem,
                 Children = CreateChildren(data, registry, fontResolver),
                 Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver),
                 Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver)
