@@ -3,6 +3,7 @@ using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.Utilities;
+using Parchment.Framework.Utilities.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -77,6 +78,12 @@ namespace Parchment.Framework.Models.Data.Elements
 
         /// <summary>The trigger actions to run, in order, when the cursor moves onto this element. Combined with <see cref="HoverAction"/> rather than replacing it.</summary>
         public List<string>? HoverActions { get; set; }
+
+        /// <summary>Free-form markers on this element, which other mods can read off whatever the cursor is over.
+        /// Parchment leaves most of them alone, acting only on the ones it recognises, currently <see cref="TagHelper.NPC_PREFIX"/> naming the NPC the element is about.
+        /// A tagged element is reachable by the cursor wherever it sits, since a tag is only useful on something that can be hovered.
+        /// </summary>
+        public List<string>? Tags { get; set; }
 
         /// <summary>The sound to play when this element is clicked. Only used when <see cref="Action"/> or <see cref="Actions"/> is set, and played once regardless of how many actions run.</summary>
         public string? Sound { get; set; } = "bigSelect";
@@ -170,6 +177,22 @@ namespace Parchment.Framework.Models.Data.Elements
             if (HoverActions is not null && HoverActions.Any(string.IsNullOrWhiteSpace))
             {
                 return (false, $"\"HoverActions\" contains an empty entry.");
+            }
+
+            if (Tags is not null)
+            {
+                foreach (string tag in Tags)
+                {
+                    if (string.IsNullOrWhiteSpace(tag) is true)
+                    {
+                        return (false, $"\"Tags\" contains an empty entry.");
+                    }
+
+                    if (TagHelper.IsEmptyKnownPrefix(tag) is true)
+                    {
+                        return (false, $"\"Tags\" entry \"{tag}\" uses a prefix Parchment acts on but names nothing after it.");
+                    }
+                }
             }
 
             if (Scale <= 0f)

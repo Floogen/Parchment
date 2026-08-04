@@ -16,6 +16,12 @@ namespace Parchment.Framework.API
         /// <summary>Sets the element's ID, which page actions and queries use to refer to it.</summary>
         IElementBuilder WithId(string id);
 
+        /// <summary>Adds a tag to the element, which other mods can read off whatever the cursor is over. Calling this more than once builds a list, so there's no
+        /// need to decide up front between one tag and several. Tagging an element also makes it reachable by the cursor, since a tag is only useful on something that can be hovered.
+        /// Parchment leaves most tags alone, acting only on the ones it recognises, such as "NpcId.Abigail" naming the NPC the element is about.
+        /// </summary>
+        IElementBuilder WithTag(string tag);
+
         IElementBuilder Text(string text);
 
         /// <summary>How the element sits across its container's width: "Left", "Center" or "Right".</summary>
