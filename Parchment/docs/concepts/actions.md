@@ -1,4 +1,4 @@
-# Trigger actions
+﻿# Trigger actions
 
 Any element can carry an `Action`, something the game does when the element is clicked. An element with an `Action` is interactive. One without it isn't.
 
@@ -64,7 +64,9 @@ So a button can give a reward, start a quest, play a sound or set a mail flag. V
 
 ## Parchment's actions
 
-These only work while a book is open, apart from `MarkSeen`, `ClearSeen` and the variable actions, which read and write saved state and so work anywhere. Elsewhere the rest fail with a message in the SMAPI log rather than doing something strange.
+These only work while a book is on screen, apart from `MarkSeen`, `ClearSeen` and the variable actions, which read and write saved state and so work anywhere. Elsewhere the rest fail with a message in the SMAPI log rather than doing something strange.
+
+The navigating ones also work on a shut [cover](../reference/book.md#cover-view), where they open the book onto wherever they were sending the reader. See [Navigating from the cover](#navigating-from-the-cover).
 
 | Action | Arguments | What it does |
 | --- | --- | --- |
@@ -91,7 +93,7 @@ These only work while a book is open, apart from `MarkSeen`, `ClearSeen` and the
 | `PeacefulEnd.Parchment_ToggleVariable` | `<bookId> <variableId>...` | Flip one or more `Boolean` variables. |
 | `PeacefulEnd.Parchment_IncrementVariable` | `<bookId> <variableId> [amount]` | Move a `Number` variable by `amount`, which defaults to `1`. Negative steps down. |
 | `PeacefulEnd.Parchment_ShowElement` | `<elementId>` | Put up an element carrying a `Lifetime`. See [Timed elements](#timed-elements). |
-| `PeacefulEnd.Parchment_RefreshBook` | | Ask the open book to rebuild itself. Only works for a [book built in C#](../reference/building-books.md#refreshing-an-open-book) whose builder was given an `OnRefresh`. |
+| `PeacefulEnd.Parchment_RefreshBook` | | Ask the book to rebuild itself, whether it's open or shut on its cover. Only works for a [book built in C#](../reference/building-books.md#refreshing-an-open-book) whose builder was given an `OnRefresh`. |
 
 ### Skipping the turn
 
@@ -116,6 +118,21 @@ Nothing is heard either. The turn sound belongs to a page being turned, and a sw
 
 !!! note "`ViewCover` and `CloseBook` aren't included"
     Neither is a page turn. They play the book's shut and close animations, which are the book's own rather than the page's, and skipping those would need a different field on [`Animation`](../reference/book.md#animation).
+
+### Navigating from the cover
+
+Every action that moves the reader also runs while the book is shut on its [cover](../reference/book.md#cover-view). There's no spread to turn from there, so instead of a page turn the book opens onto the target, which is what a "Read" button or a key bound on the cover is asking for:
+
+```json
+{
+  "Keybind": "Space",
+  "Actions": [ "PeacefulEnd.Parchment_GoToStart" ]
+}
+```
+
+The book's opening animation plays, rather than the turn, and `skipAnimation` skips that instead. A jump to where the book was already sitting still opens it, since a shut book isn't on that spread in any sense the reader can see.
+
+`NextPage` and `PreviousPage` count from wherever the book was left off, so on a cover reached through `ExitToCover` they open one spread either side of it. On a book that hasn't been opened yet they count from the first spread.
 
 ### Scope
 
@@ -159,7 +176,7 @@ Parchment records every spread the reader leaves, whether they got there by turn
 **It remembers the last 64 spreads.** Past that the oldest entry is dropped. A reader would have to cross-link their way through a very large book to notice.
 
 !!! tip "Pair it with a keybind"
-    `GoBack` on an [`OnKeyPress`](../reference/page.md#on-key-press) bound to `Escape` turns a chapter into something the reader backs out of a step at a time. Put it on the [book](../reference/book.md#on-key-press) instead and it covers every page at once. Holding the key still leaves the book.
+    `GoBack` on an [`OnKeyPress`](../reference/page.md#on-key-press) bound to `Escape` turns a chapter into something the reader backs out of a step at a time. Put it on the [book](../reference/book.md#on-key-press) instead and it covers every page at once, along with the shut cover. Holding the key still leaves the book.
 
 ### Addressing a page
 

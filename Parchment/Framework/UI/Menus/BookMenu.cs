@@ -267,12 +267,13 @@ namespace Parchment.Framework.UI.Menus
         /// This is how content generated in C# responds to something changing under it, as a builder recipe holds the values it was given rather than recomputing them.
         /// The reader is returned to the page they were on by its ID, falling back to the same position when the page is gone and to the start when even that is out of range.
         /// Session state (flags, input text, seen pages) is untouched, as this replaces the book inside the living menu rather than putting up a new one.
+        /// A shut cover rebuilds too, as the book's own layers are on screen there, and the book stays shut rather than being opened by the swap.
         /// </summary>
         public bool TryRefreshBook(Book book, out string error)
         {
-            if (CurrentState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover)
             {
-                error = "the book isn't ready, as it's still opening, turning or closing";
+                error = "the book isn't settled, as it's still sliding, opening, turning or closing";
                 return false;
             }
 
@@ -502,7 +503,7 @@ namespace Parchment.Framework.UI.Menus
         // Public methods for action usage
         public bool TryTurnPage(bool forward, out string error, bool skipAnimation = false)
         {
-            if (CurrentState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover)
             {
                 error = "The book is not ready";
                 return false;
@@ -527,7 +528,7 @@ namespace Parchment.Framework.UI.Menus
         /// </summary>
         public bool TryGoBack(out string error, bool skipAnimation = false)
         {
-            if (CurrentState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover)
             {
                 error = "The book is not ready";
                 return false;
@@ -556,7 +557,7 @@ namespace Parchment.Framework.UI.Menus
 
         public bool TryJumpToChapter(string chapterId, out string error, bool skipAnimation = false)
         {
-            if (CurrentState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover)
             {
                 error = "The book is not ready";
                 return false;
@@ -568,10 +569,7 @@ namespace Parchment.Framework.UI.Menus
                 return false;
             }
 
-            if (chapterIndex != _currentChapterIndex || _currentSpread != 0)
-            {
-                BeginPageTurn(chapterIndex, 0, skipAnimation: skipAnimation);
-            }
+            BeginJump(chapterIndex, 0, skipAnimation);
 
             error = null;
 
@@ -580,7 +578,7 @@ namespace Parchment.Framework.UI.Menus
 
         public bool TryJumpToPage(int pageIndex, out string error, bool skipAnimation = false)
         {
-            if (CurrentState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover)
             {
                 error = "The book is not ready";
                 return false;
@@ -595,10 +593,7 @@ namespace Parchment.Framework.UI.Menus
             int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
             int targetSpread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
 
-            if (chapterIndex != _currentChapterIndex || targetSpread != _currentSpread)
-            {
-                BeginPageTurn(chapterIndex, targetSpread, skipAnimation: skipAnimation);
-            }
+            BeginJump(chapterIndex, targetSpread, skipAnimation);
 
             error = null;
 
@@ -607,7 +602,7 @@ namespace Parchment.Framework.UI.Menus
 
         public bool TryJumpToChapterPage(string chapterId, int pageInChapter, out string error, bool skipAnimation = false)
         {
-            if (CurrentState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover)
             {
                 error = "The book is not ready";
                 return false;
@@ -630,10 +625,7 @@ namespace Parchment.Framework.UI.Menus
 
             int targetSpread = pageInChapter / 2;
 
-            if (chapterIndex != _currentChapterIndex || targetSpread != _currentSpread)
-            {
-                BeginPageTurn(chapterIndex, targetSpread, skipAnimation: skipAnimation);
-            }
+            BeginJump(chapterIndex, targetSpread, skipAnimation);
 
             error = null;
 
@@ -647,7 +639,7 @@ namespace Parchment.Framework.UI.Menus
 
         public bool TryJumpToPageId(string chapterId, string pageId, out string error, bool skipAnimation = false)
         {
-            if (CurrentState is not MenuState.Ready)
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover)
             {
                 error = "The book is not ready";
                 return false;
@@ -1026,6 +1018,19 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
+        /// <summary>Sends the reader to a spread, or leaves them where they are when that spread is the one they're already reading.
+        /// A shut book has no spread to be on, so a jump from the cover always goes through and opens the book onto its target.
+        /// </summary>
+        private void BeginJump(int targetChapterIndex, int targetSpread, bool skipAnimation)
+        {
+            if (CurrentState is not MenuState.Cover && targetChapterIndex == _currentChapterIndex && targetSpread == _currentSpread)
+            {
+                return;
+            }
+
+            BeginPageTurn(targetChapterIndex, targetSpread, skipAnimation: skipAnimation);
+        }
+
         /// <param name="skipAnimation">Whether to land on the target spread immediately rather than playing the turn. Nothing is drawn turning and nothing is heard, since neither belongs to a swap the reader didn't watch happen.</param>
         private void BeginPageTurn(int targetChapterIndex, int targetSpread, bool recordHistory = true, bool skipAnimation = false)
         {
@@ -1037,6 +1042,21 @@ namespace Parchment.Framework.UI.Menus
             _isTurningForward = targetChapterIndex != _currentChapterIndex ? targetChapterIndex > _currentChapterIndex : targetSpread > _currentSpread;
             _pendingChapterIndex = targetChapterIndex;
             _pendingSpread = targetSpread;
+
+            // A shut book has no spread to turn from, so the target is taken up on the spot and the open animation carries the reader in rather than the turn
+            if (CurrentState is MenuState.Cover)
+            {
+                CommitPageTurn();
+
+                if (skipAnimation is true)
+                {
+                    SetMenuState(MenuState.Ready);
+                    return;
+                }
+
+                BeginReopen();
+                return;
+            }
 
             if (skipAnimation is false)
             {
@@ -1373,10 +1393,11 @@ namespace Parchment.Framework.UI.Menus
 
         /// <summary>Runs every keybind the button matches, the visible spread's first and the book's own only when no page bind took it, and reports whether
         /// any of them claimed the button. A claimed button never reaches the menu's own handling, which is how a page takes over the exit button.
+        /// The shut cover has the book's own binds only, as no page is being read there.
         /// </summary>
         private bool HandleKeybinds(SButton button)
         {
-            if (CurrentState is not MenuState.Ready || button is SButton.None)
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover || button is SButton.None)
             {
                 return false;
             }
@@ -1412,7 +1433,8 @@ namespace Parchment.Framework.UI.Menus
 
         private bool DispatchPageKeybinds(int pageIndex, SButton button, ref bool hasRunAny)
         {
-            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            // No page is being read while the book is shut, so a cover press only reaches the book's own binds
+            if (CurrentState is not MenuState.Ready || pageIndex >= _pages.Count || _pages[pageIndex] is null)
             {
                 return false;
             }

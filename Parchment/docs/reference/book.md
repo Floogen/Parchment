@@ -1,4 +1,4 @@
-# Book
+﻿# Book
 
 `BookData`
 
@@ -31,7 +31,7 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 | `PageCurl` <span class="opt">optional</span> | [`PageCurl`](#page-curl) | *the default corners* | The corner curl sprite and its clickable areas. |
 | `Animation` <span class="opt">optional</span> | [`Animation`](#animation) | *see below* | Animation timings and sounds. |
 | `Layout` <span class="opt">optional</span> | [`Layout`](#layout) | *see below* | The page margins. |
-| `OnKeyPress` <span class="opt">optional</span> | list of [`keybinds`](#on-key-press) | empty list | Keys running actions on every page of the book. A page binding the same key takes it over. See [On key press](#on-key-press). |
+| `OnKeyPress` <span class="opt">optional</span> | list of [`keybinds`](#on-key-press) | empty list | Keys running actions on every page of the book and on its shut cover. A page binding the same key takes it over. See [On key press](#on-key-press). |
 | `Variables` <span class="opt">optional</span> | list of [`variables`](variables.md) | empty list | Named values the book sets and reads back, which survive the book being closed. See [Variables](variables.md). |
 | `StartOnCover` <span class="opt">optional</span> | `boolean` | `false` | Whether the book arrives shut and holds on its cover until the reader clicks it open. See [Cover view](#cover-view). |
 | `ExitToCover` <span class="opt">optional</span> | `boolean` | `false` | Whether closing the book shuts it in place first, leaving its cover on screen, rather than leaving the menu. See [Cover view](#cover-view). |
@@ -93,6 +93,9 @@ An overlay element with an `Action` stays clickable on the cover, which is how y
 
 !!! note "Reaching the cover from an action"
     [`PeacefulEnd.Parchment_ViewCover`](../concepts/actions.md#parchments-actions) shuts the book to its cover from a button. Neither flag gates the cover itself, they only decide whether the book goes there on its own.
+
+!!! tip "Opening the book from an action"
+    A navigating action such as [`GoToStart`](../concepts/actions.md#parchments-actions) runs on the cover too, opening the book onto the page it names rather than failing. That's what a "Read" button on the cover puts in its `Action`, and it means a cover can offer several ways in (the start, the last chapter, a bookmark) rather than the one the click gives. See [Navigating from the cover](../concepts/actions.md#navigating-from-the-cover).
 
 !!! warning "`OnView` and the cover"
     A page's [`OnView`](page.md#on-view) triggers run when it's actually on screen, so with `StartOnCover` the first page's triggers wait until the reader opens the book rather than firing as it arrives. Reopening from the cover re-runs them, the same as turning back to a page would, so gate anything that shouldn't repeat on `HasSeenPageId`.
@@ -169,7 +172,7 @@ Together these define each page's content area, which is what every element's wi
 
 ## On key press
 
-`OnKeyPress` binds keys to [trigger actions](../concepts/actions.md) on every page of the book. It's the same schema a page uses, and it's where a bind goes when it should follow the reader through the whole book rather than belong to one spread.
+`OnKeyPress` binds keys to [trigger actions](../concepts/actions.md) on every page of the book and on its shut cover. It's the same schema a page uses, and it's where a bind goes when it should follow the reader through the whole book rather than belong to one spread.
 
 ```json title="books.json"
 {
@@ -198,9 +201,23 @@ A page bind on **either** leaf of the spread takes the key, since both are being
 
 | Behaviour | |
 | --- | --- |
-| **When they fire** | Only while a spread is on screen. A book bind is dead through the opening, turning and closing animations and on a shut cover, the same as a page's. |
+| **When they fire** | While a spread is on screen and on the shut cover. A book bind is dead through the opening, turning and closing animations, the same as a page's. |
 | **How many run** | Every entry whose key matches and whose condition passes, in the order they're listed. |
 | **Getting out** | Holding the exit key for three seconds shuts the book and leaves the menu, whatever the book has bound it to. See [On key press](page.md#on-key-press). |
+
+### They fire on the cover too
+
+A book's binds are live while the cover is shut, which is what lets a key open the book or act on it before the reader ever turns a page. No page is on screen there, so nothing can take a key over and the book's entries always run. A [navigating action](../concepts/actions.md#navigating-from-the-cover) bound there opens the book onto the page it names.
+
+A bind that only makes sense inside the book can say so with a [book state](../concepts/conditions.md#book-states) condition:
+
+```json title="books.json"
+{
+  "Keybind": "Escape",
+  "Condition": "PeacefulEnd.Parchment_CurrentBookState Ready",
+  "Actions": [ "PeacefulEnd.Parchment_GoBack" ]
+}
+```
 
 !!! tip "A book-wide back button"
     `Escape` bound to [`PeacefulEnd.Parchment_GoBack`](../concepts/actions.md#going-back) turns the whole book into something the reader unwinds a step at a time, with the hold still there for leaving outright. A page that needs `Escape` for something else simply binds it and the book's entry stands aside.
