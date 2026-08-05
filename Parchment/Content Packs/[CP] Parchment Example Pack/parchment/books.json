@@ -1105,6 +1105,25 @@
                 }
               ]
             },
+            {
+              "Id": "conditional-last",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Heading",
+                  "Text": "Conditional pages supported!",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "This page only appears while indoors...",
+                  "Alignment": "Center",
+                  "SpacingAfter": 64
+                }
+              ],
+              "Condition": "LOCATION_IS_INDOORS Here"
+            },
 
             {
               "Id": "hopped",
