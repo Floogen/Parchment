@@ -1,4 +1,4 @@
-# Building books in C\#
+﻿# Building books in C\#
 
 A SMAPI mod can build a book in code instead of shipping it as a content pack. This page covers the builder; for fetching the API and opening books that already exist, see [C# API](api.md).
 
@@ -71,6 +71,8 @@ private void RefreshLogbook()
 
 The reader keeps their place. Parchment notes the page they were on and returns them to it by ID, so a rebuild that adds or removes pages doesn't move them. When that page is gone entirely they land at the same position in the book instead.
 
+A book shut on its [cover](book.md#cover-view) rebuilds as readily as an open one, since the book's own `Underlay` and `Overlay` are what's on screen there. It stays shut, so a refresh behind a cover button doesn't open the book out from under the reader.
+
 Flags, input text and seen pages all survive, since the book is swapped inside the open menu rather than a new one being put up. Nothing reopens, so there's no open animation.
 
 ### Refreshing from inside the book
@@ -101,7 +103,7 @@ This works for a registered book as well as one opened with `TryOpen`. A registe
 | --- | --- |
 | Nothing is open | Or the open menu isn't a book |
 | A different book is open | Compared by book ID |
-| The book is mid-animation | Opening, turning, closing or going to its cover |
+| The book is mid-animation | Sliding in, opening, turning, closing or going to its cover |
 | The rebuilt book is invalid | The same validation `TryOpen` runs |
 
 None of those are worth treating as a problem, so log at `Trace` rather than `Warn` unless you know the book should have been open.
@@ -125,7 +127,7 @@ None of those are worth treating as a problem, so log at `Trace` rather than `Wa
 | `AddUnderlay(type)` | Adds an element drawn behind the book sprite. |
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
 | `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. Readable straight away, before the book is registered or opened. |
-| `OnKeyPress(keybind)` | Adds a key pressed on any page of the book and returns its [keybind builder](#the-keybind-builder). A page binding the same key takes it over. |
+| `OnKeyPress(keybind)` | Adds a key pressed on any page of the book, or on its shut cover, and returns its [keybind builder](#the-keybind-builder). A page binding the same key takes it over. |
 | `OnRefresh(onRefresh)` | What to run when the book is asked to rebuild. See [Refreshing an open book](#refreshing-an-open-book). |
 | `TryRegister(out error)` | Validates and registers the book. |
 | `TryOpen(out error)` | Validates and opens the book without registering it. |

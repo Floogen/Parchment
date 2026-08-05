@@ -1,4 +1,4 @@
-using Parchment.Framework.Models.Data.Books;
+﻿using Parchment.Framework.Models.Data.Books;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Data.Variables;
 using System;
@@ -38,8 +38,8 @@ namespace Parchment.Framework.Models.Data
         public List<ElementData>? Overlay { get; set; }
 
         /// <summary>
-        /// Key bindings active on every page of this book, each running its actions when pressed. A page's own <see cref="PageData.OnKeyPress"/> takes precedence:
-        /// when a page binds the same button, only the page's entries run and these are left alone.
+        /// Key bindings active on every page of this book and on its shut cover, each running its actions when pressed. A page's own <see cref="PageData.OnKeyPress"/> takes precedence:
+        /// when a page binds the same button, only the page's entries run and these are left alone. No page is being read on the cover, so a bind there is always the book's own.
         /// </summary>
         public List<KeybindData>? OnKeyPress { get; set; }
 

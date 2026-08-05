@@ -53,6 +53,7 @@
         "PeacefulEnd.Parchment.ExamplePack_Notebook": {
           "Format": "1.5.0",
           "Id": "PeacefulEnd.Parchment.ExamplePack_Notebook",
+          "StartOnCover": true,
           "Appearance": {
             "TexturePath": "Assets/PeacefulEnd.Parchment/notebook",
             "GrayscaleTexturePath": "Assets/PeacefulEnd.Parchment/notebookGrayscale",
@@ -73,6 +74,14 @@
               "Y": 105
             }
           },
+          "OnKeyPress": [
+            {
+              "Keybind": "E",
+              "Actions": [
+                "PeacefulEnd.Parchment_GoToStart"
+              ]
+            }
+          ],
 
           "Pages": [
             {
