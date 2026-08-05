@@ -121,7 +121,7 @@ None of those are worth treating as a problem, so log at `Trace` rather than `Wa
 | `Set(field, value)` | Sets any [book field](book.md) by name. Dotted paths reach nested groups, such as `"Appearance.Scale"`. |
 | `Sprite(path)` | The sprite for the book item. |
 | `AddPage(pageId)` | Adds a page, in reading order. |
-| `AddPage(pageId, chapterId)` | Adds a page belonging to a chapter. Pages sharing a chapter must be added together. |
+| `AddPage(pageId, chapterId)` | Adds a page belonging to a chapter. Pages sharing a chapter are read together wherever they're added, in the order they were added. |
 | `AddUnderlay(type)` | Adds an element drawn behind the book sprite. |
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
 | `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. Readable straight away, before the book is registered or opened. |

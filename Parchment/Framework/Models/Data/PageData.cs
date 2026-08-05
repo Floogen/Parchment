@@ -18,6 +18,7 @@ namespace Parchment.Framework.Models.Data
 
         /// <summary>The chapter this page belongs to (pages sharing the same value belong in same chapter).
         /// Chapters are navigation-isolated and page turning never crosses a chapter boundary unless via button.
+        /// Pages of a chapter need not be listed together, as they are gathered into the order they appear in at the point the chapter first appears.
         /// </summary>
         public string? ChapterId { get; set; }
 

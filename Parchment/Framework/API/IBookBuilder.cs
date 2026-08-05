@@ -18,7 +18,7 @@ namespace Parchment.Framework.API
         /// <summary>Adds a page and returns its builder. Pages appear in the order they're added.</summary>
         IPageBuilder AddPage(string pageId);
 
-        /// <summary>Adds a page belonging to a chapter. Pages sharing a chapter must be added contiguously.</summary>
+        /// <summary>Adds a page belonging to a chapter. Pages sharing a chapter are read together wherever they were added, in the order they were added.</summary>
         IPageBuilder AddPage(string pageId, string chapterId);
 
         /// <summary>Adds an element drawn behind the book sprite, positioned relative to the book's top-left.</summary>

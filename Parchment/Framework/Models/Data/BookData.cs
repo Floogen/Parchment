@@ -26,8 +26,8 @@ namespace Parchment.Framework.Models.Data
         /// </summary>
         public string? SpritePath { get; set; }
 
-        /// <summary>The book's pages, in reading order. Pages are shown in the order they appear here,
-        /// and pages sharing a <see cref="PageData.ChapterId"/> must be kept contiguous or they will be treated as separate chapters.</summary>
+        /// <summary>The book's pages. Pages are read in the order they appear here, except that pages sharing a <see cref="PageData.ChapterId"/> are gathered together
+        /// at the point that chapter first appears, so they need not be listed next to one another.</summary>
         public List<PageData> Pages { get; set; } = new List<PageData>();
 
         /// <summary>Elements drawn behind the book sprite, positioned via <see cref="ElementData.Position"/> relative to the book's top-left. Negative coordinates place content outside the book's edges.</summary>
