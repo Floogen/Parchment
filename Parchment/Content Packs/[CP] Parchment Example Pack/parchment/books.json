@@ -1106,26 +1106,6 @@
               ]
             },
             {
-              "Id": "conditional-last",
-              "ChapterId": "chapter-1",
-              "Elements": [
-                {
-                  "Type": "Heading",
-                  "Text": "Conditional pages supported!",
-                  "Alignment": "Center",
-                  "SpacingAfter": 18
-                },
-                {
-                  "Type": "Heading",
-                  "Text": "This page only appears while indoors...",
-                  "Alignment": "Center",
-                  "SpacingAfter": 64
-                }
-              ],
-              "Condition": "LOCATION_IS_INDOORS Here"
-            },
-
-            {
               "Id": "hopped",
               "ChapterId": "chapter-2",
               "Background": [
@@ -1209,6 +1189,25 @@
                   "Sound": "bigSelect"
                 }
               ]
+            },
+            {
+              "Id": "conditional-last",
+              "ChapterId": "chapter-1", // This is purposely added out of order, to show Parchment handling of chapter sorting (chapter pages added out of order will still link together)
+              "Elements": [
+                {
+                  "Type": "Heading",
+                  "Text": "Conditional pages supported!",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "This page only appears while indoors...",
+                  "Alignment": "Center",
+                  "SpacingAfter": 64
+                }
+              ],
+              "Condition": "LOCATION_IS_INDOORS Here"
             }
           ]
         }
