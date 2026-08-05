@@ -1114,7 +1114,7 @@ namespace Parchment.Framework.UI.Menus
 
         private Element? GetElementAt(Point screenPosition)
         {
-            if (CurrentState is not MenuState.Ready and not MenuState.Cover)
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover and not MenuState.Turning)
             {
                 return null;
             }
@@ -1292,7 +1292,10 @@ namespace Parchment.Framework.UI.Menus
             _animationTimer = 0f;
             _animationFrame = 0;
 
-            ClearHoverState();
+            // An element on the book's own layers is on screen whatever page is being read, so the cursor never left it and it keeps its hover frames through a turn. One on a page goes with the page
+            bool keepHoveredElement = (menuState is MenuState.Ready or MenuState.Turning) && _hoveredElement is not null && Book.OwnsElement(_hoveredElement) is true;
+
+            ClearHoverState(keepHoveredElement);
 
             // An input on the book's own layers is on screen whatever page is being read, so it keeps the keyboard through a turn rather than being dropped halfway. One on a page goes with the page, and a book that is shutting or closing drops focus whatever holds it
             if (menuState is not MenuState.Ready and not MenuState.Turning || _focusedElement is null || Book.OwnsElement(_focusedElement) is false)
@@ -1611,9 +1614,13 @@ namespace Parchment.Framework.UI.Menus
             RefreshVisiblePages();
         }
 
-        private void ClearHoverState()
+        /// <param name="keepHoveredElement">Whether the element under the cursor stays hovered. The corners are dropped either way, as which of them can be turned isn't settled until the turn lands.</param>
+        private void ClearHoverState(bool keepHoveredElement = false)
         {
-            SetHoveredElement(null);
+            if (keepHoveredElement is false)
+            {
+                SetHoveredElement(null);
+            }
 
             _isHoveringPreviousPage = false;
             _isHoveringNextPage = false;
@@ -2209,7 +2216,8 @@ namespace Parchment.Framework.UI.Menus
 
         public override void performHoverAction(int x, int y)
         {
-            if (CurrentState is MenuState.Cover)
+            // Neither state has pages to hover, one because the book is shut and the other because they are mid-turn, so only the book's own layers are followed and the corner hotspots stay dark
+            if (CurrentState is MenuState.Cover or MenuState.Turning)
             {
                 base.performHoverAction(x, y);
                 SetHoveredElement(GetElementAt(new Point(x, y)));

@@ -59,7 +59,7 @@ Unlike every other text element, `PageNumber` takes no `Text`. Giving it one is 
 
 **Numbering follows the book, not the reader.** A page shows the same number however the reader arrived at it. Which page is number 1 depends on `Scope`, not on where they started reading.
 
-**A repeated chapter ID restarts the count.** Chapters are contiguous runs of pages, so pages sharing a `ChapterId` in two separate runs are two chapters (Parchment already warns about this at load). With `Scope` set to `Chapter`, the second run counts from `1` again.
+**A book-scoped number counts reading order.** Pages sharing a `ChapterId` are [read together wherever they're listed](../page.md#where-a-chapters-pages-are-listed), so in a book whose chapters are spread about, a page's number is its position in the order the reader reaches it rather than its position in `Pages`.
 
 **A bad `Format` drops the element.** It's checked at load, so `"Page {1}"` (there's only ever a `{0}`) fails validation with the reason in the SMAPI log. For a literal brace, double it: `"{{0}}"` draws `{0}`. Content Patcher reads `{{` as the start of a token, so put a literal brace in a `Format` only via a CP token holding it.
 

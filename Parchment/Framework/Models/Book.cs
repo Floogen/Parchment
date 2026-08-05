@@ -56,10 +56,14 @@ namespace Parchment.Framework.Models
         public Book(BookData data, ElementRegistry elementRegistry, FontResolver fontResolver)
         {
             Data = data;
-            Pages = CreatePages(elementRegistry, fontResolver);
+
+            // Worked out once and handed to both, so the chapters don't have to rediscover the grouping the pages were laid out by
+            List<PageGroup> pageGroups = GroupPages();
+
+            Pages = CreatePages(pageGroups, elementRegistry, fontResolver);
             Underlay = ElementFactory.CreateList(Data.Underlay, elementRegistry, fontResolver);
             Overlay = ElementFactory.CreateList(Data.Overlay, elementRegistry, fontResolver);
-            Chapters = CreateChapters();
+            Chapters = CreateChapters(pageGroups);
 
             FrameActionElements = new List<Element>();
             AnimationHelper.CollectFrameActionElements(Underlay, FrameActionElements);
@@ -127,42 +131,24 @@ namespace Parchment.Framework.Models
             LastLayoutContext = null;
         }
 
-        private List<Chapter> CreateChapters()
+        private List<Chapter> CreateChapters(List<PageGroup> pageGroups)
         {
             var chapters = new List<Chapter>();
-
-            if (Pages.Count is 0)
-            {
-                return chapters;
-            }
-
-            string? currentChapterId = Pages[0].Data.ChapterId;
             int firstPageIndex = 0;
 
-            for (int pageIndex = 1; pageIndex < Pages.Count; pageIndex++)
+            foreach (PageGroup pageGroup in pageGroups)
             {
-                string? chapterId = Pages[pageIndex].Data.ChapterId;
+                chapters.Add(new Chapter(pageGroup.ChapterId, firstPageIndex, pageGroup.Pages.Count));
 
-                if (string.Equals(chapterId, currentChapterId, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                chapters.Add(new Chapter(currentChapterId, firstPageIndex, pageIndex - firstPageIndex));
-
-                currentChapterId = chapterId;
-                firstPageIndex = pageIndex;
+                firstPageIndex += pageGroup.Pages.Count;
             }
 
-            chapters.Add(new Chapter(currentChapterId, firstPageIndex, Pages.Count - firstPageIndex));
-
-            WarnOnNonContiguousChapters(chapters);
             AssignChapterPageIndexes(chapters);
 
             return chapters;
         }
 
-        /// <summary>Records each page's position within its own chapter. Chapters are contiguous runs of pages, so a repeated chapter ID restarts the count rather than continuing the earlier run.</summary>
+        /// <summary>Records each page's position within its own chapter, counted in reading order rather than in the order the pages were listed.</summary>
         private void AssignChapterPageIndexes(List<Chapter> chapters)
         {
             foreach (Chapter chapter in chapters)
@@ -170,24 +156,6 @@ namespace Parchment.Framework.Models
                 for (int offset = 0; offset < chapter.PageCount; offset++)
                 {
                     Pages[chapter.FirstPageIndex + offset].IndexInChapter = offset;
-                }
-            }
-        }
-
-        private void WarnOnNonContiguousChapters(List<Chapter> chapters)
-        {
-            var seenChapterIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (Chapter chapter in chapters)
-            {
-                if (string.IsNullOrWhiteSpace(chapter.Id))
-                {
-                    continue;
-                }
-
-                if (seenChapterIds.Add(chapter.Id) is false)
-                {
-                    Parchment.monitor.Log($"Book '{Data.Id}' has non-contiguous pages for chapter '{chapter.Id}', they will be treated as separate chapters!", LogLevel.Warn);
                 }
             }
         }
@@ -220,37 +188,99 @@ namespace Parchment.Framework.Models
             return 0;
         }
 
-        private List<Page> CreatePages(ElementRegistry elementRegistry, FontResolver fontResolver)
+        private List<Page> CreatePages(List<PageGroup> pageGroups, ElementRegistry elementRegistry, FontResolver fontResolver)
         {
             var pages = new List<Page>();
 
-            int pageIndex = 0;
-            foreach (PageData pageData in Data.Pages ?? Enumerable.Empty<PageData>())
+            foreach (PageGroup pageGroup in pageGroups)
             {
-                // The page's own index is its position in the built list rather than the loop counter, so a skipped page doesn't leave a gap in the numbering the reader sees
-                var page = CreatePage(pageData, pages.Count, $"{Data.Id}/page[{pageIndex}]", elementRegistry, fontResolver);
-
-                pageIndex++;
-                if (page is null)
+                foreach (PageData pageData in pageGroup.Pages)
                 {
-                    continue;
+                    // The page's own index is its position in the built list rather than in the authored one, so a skipped page leaves no gap and a page gathered into an earlier chapter counts from where it is read
+                    pages.Add(new Page(pageData, pages.Count, elementRegistry, fontResolver));
                 }
-
-                pages.Add(page);
             }
 
             return pages;
         }
 
-        private Page? CreatePage(PageData pageData, int index, string pageDescription, ElementRegistry elementRegistry, FontResolver fontResolver)
+        /// <summary>Sorts the pages that made it into the book into the order they will be read, as a run of pages per chapter.
+        /// A named chapter is gathered into the run it opened wherever its pages were listed, so an author or a content pack can add to a chapter without having to place the page next to the rest of it.
+        /// Pages with no chapter carry no name to be gathered by, so a run of them ends wherever a chapter is named and the next one starts a chapter of its own.
+        /// </summary>
+        private List<PageGroup> GroupPages()
+        {
+            var pageGroups = new List<PageGroup>();
+            PageGroup? currentGroup = null;
+
+            int pageIndex = 0;
+            foreach (PageData pageData in Data.Pages ?? Enumerable.Empty<PageData>())
+            {
+                string pageDescription = $"{Data.Id}/page[{pageIndex}]";
+                pageIndex++;
+
+                if (IsPageIncluded(pageData, pageDescription) is false)
+                {
+                    continue;
+                }
+
+                // A page carrying on the run it was listed in stays where it is, which is every page of a book whose chapters are already listed together
+                if (currentGroup is not null && string.Equals(currentGroup.ChapterId, pageData.ChapterId, StringComparison.OrdinalIgnoreCase))
+                {
+                    currentGroup.Pages.Add(pageData);
+                    continue;
+                }
+
+                currentGroup = null;
+                if (string.IsNullOrWhiteSpace(pageData.ChapterId) is false)
+                {
+                    currentGroup = pageGroups.FirstOrDefault(pageGroup => string.Equals(pageGroup.ChapterId, pageData.ChapterId, StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (currentGroup is null)
+                {
+                    currentGroup = new PageGroup(pageData.ChapterId);
+                    pageGroups.Add(currentGroup);
+                }
+                else
+                {
+                    Parchment.monitor.Log($"Page '{pageData.Id}' at {pageDescription} is read with the rest of chapter '{pageData.ChapterId}' rather than where it is listed.", LogLevel.Trace);
+                }
+
+                currentGroup.Pages.Add(pageData);
+            }
+
+            return pageGroups;
+        }
+
+        private static bool IsPageIncluded(PageData pageData, string pageDescription)
         {
             if (pageData is null)
             {
                 Parchment.monitor.Log($"Skipping null page at {pageDescription}.", LogLevel.Warn);
-                return null;
+                return false;
             }
 
-            return new Page(pageData, index, elementRegistry, fontResolver);
+            // Checked here rather than while the book is open, so a page that fails is never part of the book the reader turns through
+            if (ConditionHelper.Check(pageData.Condition) is false)
+            {
+                Parchment.monitor.Log($"Skipping page '{pageData.Id}' at {pageDescription}, as its \"Condition\" did not pass.", LogLevel.Trace);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>A run of pages read one after another, for everything one chapter holds.</summary>
+        private class PageGroup
+        {
+            public string? ChapterId { get; }
+            public List<PageData> Pages { get; } = new List<PageData>();
+
+            public PageGroup(string? chapterId)
+            {
+                ChapterId = chapterId;
+            }
         }
 
         public bool RefreshConditions()

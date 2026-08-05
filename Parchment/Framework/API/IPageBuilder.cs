@@ -9,6 +9,11 @@
         /// <summary>Sets any field on the page by name, for anything the methods below don't cover.</summary>
         IPageBuilder Set(string field, object? value);
 
+        /// <summary>Sets a game state query deciding whether this page is part of the book. Checked once as the book is built rather than while it is open,
+        /// so a page that fails is left out entirely rather than hidden.
+        /// </summary>
+        IPageBuilder Condition(string condition);
+
         /// <summary>Adds an element to the page's stacked content, by element type name such as "Heading" or "Image".</summary>
         IElementBuilder Add(string elementType);
 

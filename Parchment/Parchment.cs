@@ -152,7 +152,10 @@ namespace Parchment
                 // Consume the button press
                 Helper.Input.Suppress(e.Button);
 
-                Game1.activeClickableMenu = new BookMenu(bookManager.CreateBook("PeacefulEnd.Parchment.ExamplePack_Notebook"));
+                if (bookManager.CreateBook("PeacefulEnd.Parchment.ExamplePack_Notebook") is Book exampleBook)
+                {
+                    Game1.activeClickableMenu = new BookMenu(exampleBook);
+                }
             }
         }
 

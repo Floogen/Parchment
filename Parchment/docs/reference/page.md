@@ -2,7 +2,7 @@
 
 `PageData`
 
-A page is a stack of elements. Two consecutive pages make a spread. Page 0 and 1 are the first spread's left and right leaves, 2 and 3 the second, and so on.
+A page is a stack of elements. Two pages read one after another make a spread. Page 0 and 1 are the first spread's left and right leaves, 2 and 3 the second, and so on.
 
 ```json
 {
@@ -19,13 +19,43 @@ A page is a stack of elements. Two consecutive pages make a spread. Page 0 and 1
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `Id` <span class="req">required</span> | `string` | — | An identifier for the page, unique within the book. Actions and conditions can refer to a page by ID, which survives inserting pages in a way that a page number doesn't. |
-| `ChapterId` <span class="opt">optional</span> | `string` | — | The chapter this page belongs to. Pages sharing a value belong to the same chapter and **must be listed consecutively**. See [Chapters](#chapters). |
+| `ChapterId` <span class="opt">optional</span> | `string` | — | The chapter this page belongs to. Pages sharing a value belong to the same chapter and are read together wherever they're listed. See [Chapters](#chapters). |
+| `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../concepts/conditions.md) deciding whether the page is part of the book. Checked once as the book is built, so a page that fails is left out entirely rather than hidden. See [Hiding a page](#hiding-a-page). |
 | `Tags` <span class="opt">optional</span> | list of `string` | empty list | Keywords describing what's on the page, never shown to the reader. A contents entry or a search box matches against them. See [Tags](#tags). |
 | `Elements` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | The page's content, stacked top to bottom in order. |
 | `Background` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **behind** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. They can carry a tooltip or an action, see [Background and foreground](#background-and-foreground). |
 | `Foreground` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **over** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. They can carry a tooltip or an action, see [Background and foreground](#background-and-foreground). |
 | `OnView` <span class="opt">optional</span> | list of [`triggers`](#on-view) | empty list | Actions run each time the page becomes visible, without the reader clicking anything. See [On view](#on-view). |
 | `OnKeyPress` <span class="opt">optional</span> | list of [`keybinds`](#on-key-press) | empty list | Keys running actions while the page is on screen, which can take a key over from the menu and from the [book's own binds](book.md#on-key-press). See [On key press](#on-key-press). |
+
+---
+
+## Hiding a page
+
+`Condition` decides whether a page exists at all. When the query fails the page is dropped as the book is built, so nothing downstream ever sees it: the page numbers close the gap, its chapter is one page shorter and looking it up by ID or by tag finds nothing.
+
+```json
+{
+  "Id": "the-locked-passage",
+  "Condition": "PLAYER_HAS_MAIL Current foundTheKey Any",
+  "Elements": [
+    { "Type": "Paragraph", "Text": "..." }
+  ]
+}
+```
+
+!!! warning "Asked once, not continuously"
+    An element's `Condition` is a live question, re-asked several times a second. A page's is asked once, while the book is being built, and the answer holds for the whole reading session. A page can't appear or vanish under the reader.
+
+    It's asked again whenever the book is rebuilt, so [`RefreshBook`](../concepts/actions.md) re-evaluates the page set. That only reaches books built in C# with an `OnRefresh` callback.
+
+!!! note "There's no book open yet"
+    The build happens before the menu does, so anything belonging to a reading session reads as empty on the first open: [session flags](../concepts/conditions.md#session-flags) were cleared when the last book closed and nothing has been typed into an `Input`. The `%Variable%` token can't resolve either, as it finds the book it belongs to through the open menu, and [an unresolved token fails the query](../concepts/conditions.md#gotchas).
+
+    [Variables](../concepts/conditions.md#variables) outlive the reading, so `PeacefulEnd.Parchment_HasVariable` naming the book works normally. Otherwise reach for world state: mail, quests, season, friendship, [seen pages](../concepts/conditions.md#reading-history).
+
+!!! danger "Must have at least one page"
+    A book whose every page is conditioned away can't open. Parchment logs a warning and puts up nothing rather than an empty menu.
 
 ---
 
@@ -93,7 +123,7 @@ It doesn't carry down to what the element contains. A `Panel` with `IgnoreCursor
 
 ## Chapters
 
-A chapter is a run of consecutive pages sharing a `ChapterId`. Chapters are **navigation-isolated**: turning a page never crosses a chapter boundary, and the corner curls disappear at a chapter's first and last spread the same way they do at the book's ends.
+A chapter is the pages sharing a `ChapterId`. Chapters are **navigation-isolated**: turning a page never crosses a chapter boundary, and the corner curls disappear at a chapter's first and last spread the same way they do at the book's ends.
 
 The only way in or out of a chapter is an [action](../concepts/actions.md), usually a `Button`. That's the point: it lets you build a book where a section is only reachable from a table of contents, or where the reader can't wander out of an appendix by turning pages.
 
@@ -101,8 +131,41 @@ Pages with no `ChapterId` form a chapter of their own, so a book that never ment
 
 Each chapter's spreads start fresh, so a chapter with an odd number of pages ends with a blank right leaf and the next chapter starts on a new spread. That's how a printed book behaves too.
 
-!!! warning "Chapters must be contiguous"
-    A chapter is derived from where its pages sit in the list, not declared separately. If pages with the same `ChapterId` appear in two separate runs, they become two chapters and only the first is reachable by ID. Parchment logs a warning when this happens.
+### Where a chapter's pages are listed
+
+A chapter's pages don't have to sit together in `Pages`. Parchment gathers them as it builds the book, so a page joins its chapter wherever it was listed and the chapter is read at the point it first appears.
+
+```json title="The same book written two ways"
+{
+  "Pages": [
+    { "Id": "contents" },
+    { "Id": "spring", "ChapterId": "seasons" },
+    { "Id": "summer", "ChapterId": "seasons" },
+    { "Id": "summary" }
+  ]
+}
+```
+
+```json title="Read identically"
+{
+  "Pages": [
+    { "Id": "contents" },
+    { "Id": "spring", "ChapterId": "seasons" },
+    { "Id": "summary" },
+    { "Id": "summer", "ChapterId": "seasons" }
+  ]
+}
+```
+
+Both give three chapters, read as `contents`, then `spring` and `summer`, then `summary`. That's what lets a Content Patcher pack append a page to `Pages` and have it land in the chapter it names, without anchoring itself to another pack's page ordering.
+
+Order **within** a chapter is still the order the pages appear in, so `MoveEntries` is the way to slot a page between two others.
+
+!!! note "Chapterless pages keep their runs"
+    A page with no `ChapterId` has no name to be gathered by, so a run of them ends wherever a chapter is named. In a book of `[a, chapter-one, b]`, `a` and `b` are two separate chapters rather than one, exactly as before.
+
+!!! warning "Page numbers count reading order"
+    A [`PageNumber`](elements/page-number.md) scoped to the book, `PeacefulEnd.Parchment_CurrentPageIndex` and the page index taken by `PeacefulEnd.Parchment_JumpToPage` all count the order pages are **read** in, which is only the order they're listed in when the chapters are already listed together. Prefer [`JumpToPageId`](../concepts/actions.md) over a page index in a book whose chapters are spread about.
 
 ---
 

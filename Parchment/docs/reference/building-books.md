@@ -121,7 +121,7 @@ None of those are worth treating as a problem, so log at `Trace` rather than `Wa
 | `Set(field, value)` | Sets any [book field](book.md) by name. Dotted paths reach nested groups, such as `"Appearance.Scale"`. |
 | `Sprite(path)` | The sprite for the book item. |
 | `AddPage(pageId)` | Adds a page, in reading order. |
-| `AddPage(pageId, chapterId)` | Adds a page belonging to a chapter. Pages sharing a chapter must be added together. |
+| `AddPage(pageId, chapterId)` | Adds a page belonging to a chapter. Pages sharing a chapter are read together wherever they're added, in the order they were added. |
 | `AddUnderlay(type)` | Adds an element drawn behind the book sprite. |
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
 | `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. Readable straight away, before the book is registered or opened. |
@@ -150,6 +150,7 @@ None of those are worth treating as a problem, so log at `Trace` rather than `Wa
 | `AddImage(texturePath)` | Shorthand for `Add("Image").Texture(texturePath)`. |
 | `AddItemImage(itemId)` | An image drawn from an item's icon, using a qualified ID such as `"(O)24"`. |
 | `AddButton(text, action)` | A button running a [trigger action](../concepts/actions.md) when clicked. |
+| `Condition(condition)` | A [game state query](../concepts/conditions.md) deciding whether the page is part of the book. Checked once as the book is built, so the page is left out rather than hidden. See [Hiding a page](page.md#hiding-a-page). |
 | `Tag(tag)` | Adds a keyword for a contents entry or search box to match against. Call it more than once to build a list. |
 | `OnView(action)` | Runs a trigger action each time the page becomes visible. |
 | `OnView(action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |

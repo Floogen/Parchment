@@ -38,6 +38,8 @@ namespace Parchment.Framework.API.Builders
             return this;
         }
 
+        public IPageBuilder Condition(string condition) { return Set("Condition", condition); }
+
         public IPageBuilder Tag(string tag)
         {
             _tags.Add(tag);
