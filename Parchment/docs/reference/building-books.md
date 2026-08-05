@@ -150,6 +150,7 @@ None of those are worth treating as a problem, so log at `Trace` rather than `Wa
 | `AddImage(texturePath)` | Shorthand for `Add("Image").Texture(texturePath)`. |
 | `AddItemImage(itemId)` | An image drawn from an item's icon, using a qualified ID such as `"(O)24"`. |
 | `AddButton(text, action)` | A button running a [trigger action](../concepts/actions.md) when clicked. |
+| `Condition(condition)` | A [game state query](../concepts/conditions.md) deciding whether the page is part of the book. Checked once as the book is built, so the page is left out rather than hidden. See [Hiding a page](page.md#hiding-a-page). |
 | `Tag(tag)` | Adds a keyword for a contents entry or search box to match against. Call it more than once to build a list. |
 | `OnView(action)` | Runs a trigger action each time the page becomes visible. |
 | `OnView(action, condition)` | The same, gated by a [game state query](../concepts/conditions.md). |

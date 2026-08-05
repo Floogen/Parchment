@@ -21,6 +21,12 @@ namespace Parchment.Framework.Models.Data
         /// </summary>
         public string? ChapterId { get; set; }
 
+        /// <summary>A game state query determining whether this page is part of the book. When null, the page is always included.
+        /// Unlike <see cref="ElementData.Condition"/> this is checked once as the book is built rather than repeatedly while it is open, so a page that fails is left out of the book entirely:
+        /// it takes no page number, adds nothing to its chapter and cannot be found by ID or by tag.
+        /// </summary>
+        public string? Condition { get; set; }
+
         /// <summary>Keywords describing what is on this page, matched by the Parchment_PageHasTag, Parchment_CurrentPageHasTag and Parchment_PageTagMatchesInput queries.
         /// Never shown to the reader, so they exist for a contents page or a search box to filter against rather than as anything the page displays. Matching ignores case.
         /// </summary>

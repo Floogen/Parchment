@@ -14,6 +14,8 @@ When the query is false the element is hidden and the elements below it close th
 
 Conditions work on every element, in every list: a page's `Elements`, `Background` or `Foreground`, the book's `Underlay` or `Overlay` and a panel's `Children`. Individual [animation frames](#animation-frames) take one too.
 
+A [page](../reference/page.md#hiding-a-page) takes one as well, though it behaves differently: it decides whether the page is in the book at all rather than whether something on it is showing.
+
 ## Writing queries
 
 Game state queries are the game's own condition language, shared with Content Patcher and most 1.6 data assets. If you've written `"When": { ... }` in a CP pack, you've used the same vocabulary.
@@ -314,6 +316,8 @@ Several times a second for as long as the menu is up, from the moment the book s
 That means a condition can react to the player gaining an item from a button on the facing page. It also means a condition is a *live* question, not a one-time filter. Don't write one that's expensive to answer.
 
 An element with a `Condition` starts hidden and appears once the query first passes, so a book never flashes content it shouldn't.
+
+A [page's `Condition`](../reference/page.md#hiding-a-page) is the exception. It's asked once, as the book is built, and the answer holds for the whole reading session, since a page is either in the book or it isn't. Write world state there rather than anything the reader changes while reading.
 
 ## Gotchas
 

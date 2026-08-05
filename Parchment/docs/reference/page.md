@@ -20,12 +20,42 @@ A page is a stack of elements. Two consecutive pages make a spread. Page 0 and 1
 | --- | --- | --- | --- |
 | `Id` <span class="req">required</span> | `string` | — | An identifier for the page, unique within the book. Actions and conditions can refer to a page by ID, which survives inserting pages in a way that a page number doesn't. |
 | `ChapterId` <span class="opt">optional</span> | `string` | — | The chapter this page belongs to. Pages sharing a value belong to the same chapter and **must be listed consecutively**. See [Chapters](#chapters). |
+| `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../concepts/conditions.md) deciding whether the page is part of the book. Checked once as the book is built, so a page that fails is left out entirely rather than hidden. See [Hiding a page](#hiding-a-page). |
 | `Tags` <span class="opt">optional</span> | list of `string` | empty list | Keywords describing what's on the page, never shown to the reader. A contents entry or a search box matches against them. See [Tags](#tags). |
 | `Elements` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | The page's content, stacked top to bottom in order. |
 | `Background` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **behind** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. They can carry a tooltip or an action, see [Background and foreground](#background-and-foreground). |
 | `Foreground` <span class="opt">optional</span> | list of [`elements`](elements/index.md) | empty list | Elements drawn **over** `Elements`, placed by their `Position` rather than stacked. They don't affect the layout, so they can't push anything around. Use them for flourishes, watermarks or page texture. They can carry a tooltip or an action, see [Background and foreground](#background-and-foreground). |
 | `OnView` <span class="opt">optional</span> | list of [`triggers`](#on-view) | empty list | Actions run each time the page becomes visible, without the reader clicking anything. See [On view](#on-view). |
 | `OnKeyPress` <span class="opt">optional</span> | list of [`keybinds`](#on-key-press) | empty list | Keys running actions while the page is on screen, which can take a key over from the menu and from the [book's own binds](book.md#on-key-press). See [On key press](#on-key-press). |
+
+---
+
+## Hiding a page
+
+`Condition` decides whether a page exists at all. When the query fails the page is dropped as the book is built, so nothing downstream ever sees it: the page numbers close the gap, its chapter is one page shorter and looking it up by ID or by tag finds nothing.
+
+```json
+{
+  "Id": "the-locked-passage",
+  "Condition": "PLAYER_HAS_MAIL Current foundTheKey Any",
+  "Elements": [
+    { "Type": "Paragraph", "Text": "..." }
+  ]
+}
+```
+
+!!! warning "Asked once, not continuously"
+    An element's `Condition` is a live question, re-asked several times a second. A page's is asked once, while the book is being built, and the answer holds for the whole reading session. A page can't appear or vanish under the reader.
+
+    It's asked again whenever the book is rebuilt, so [`RefreshBook`](../concepts/actions.md) re-evaluates the page set. That only reaches books built in C# with an `OnRefresh` callback.
+
+!!! note "There's no book open yet"
+    The build happens before the menu does, so anything belonging to a reading session reads as empty on the first open: [session flags](../concepts/conditions.md#session-flags) were cleared when the last book closed and nothing has been typed into an `Input`. The `%Variable%` token can't resolve either, as it finds the book it belongs to through the open menu, and [an unresolved token fails the query](../concepts/conditions.md#gotchas).
+
+    [Variables](../concepts/conditions.md#variables) outlive the reading, so `PeacefulEnd.Parchment_HasVariable` naming the book works normally. Otherwise reach for world state: mail, quests, season, friendship, [seen pages](../concepts/conditions.md#reading-history).
+
+!!! danger "Must have at least one page"
+    A book whose every page is conditioned away can't open. Parchment logs a warning and puts up nothing rather than an empty menu.
 
 ---
 

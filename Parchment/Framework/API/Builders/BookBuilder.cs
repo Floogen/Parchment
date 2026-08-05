@@ -144,6 +144,15 @@ namespace Parchment.Framework.API.Builders
             }
 
             var book = new Book(bookData, Parchment.bookManager.ElementRegistry, Parchment.bookManager.FontResolver);
+
+            if (book.Pages.Count is 0)
+            {
+                error = "every page was left out by its \"Condition\"";
+                Parchment.monitor.Log($"{_modId} failed to open the book \"{_bookId}\", because {error}.", LogLevel.Warn);
+
+                return false;
+            }
+
             var bookMenu = new BookMenu(book);
 
             bookMenu.SetRefreshCallback(_onRefresh);

@@ -567,7 +567,16 @@ namespace Parchment.Framework.Managers
 
         public Book? CreateBook(BookData bookData)
         {
-            return new Book(bookData, ElementRegistry, FontResolver);
+            var book = new Book(bookData, ElementRegistry, FontResolver);
+
+            // A page's Condition can empty a book that was valid when it loaded, which the menu has no way to show
+            if (book.Pages.Count is 0)
+            {
+                monitor.Log($"Failed to open book '{bookData.Id}': every page was left out by its \"Condition\".", LogLevel.Warn);
+                return null;
+            }
+
+            return book;
         }
     }
 }

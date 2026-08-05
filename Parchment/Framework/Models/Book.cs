@@ -250,6 +250,13 @@ namespace Parchment.Framework.Models
                 return null;
             }
 
+            // Checked here rather than while the book is open, so a page that fails is never part of the book the reader turns through
+            if (ConditionHelper.Check(pageData.Condition) is false)
+            {
+                Parchment.monitor.Log($"Skipping page '{pageData.Id}' at {pageDescription}, as its \"Condition\" did not pass.", LogLevel.Trace);
+                return null;
+            }
+
             return new Page(pageData, index, elementRegistry, fontResolver);
         }
 
