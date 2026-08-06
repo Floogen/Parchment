@@ -45,6 +45,13 @@ namespace Parchment.Framework.API
         /// </summary>
         IBookBuilder OnRefresh(Action onRefresh);
 
+        /// <summary>What to run just before this book is put on screen, whatever route opened it. Assemble a fresh builder from your current state
+        /// inside the callback and call TryRegister on that one, and the reader gets the rebuilt book from its first frame rather than seeing the old one swapped out.
+        /// Only reached through the registration, so a book opened with TryOpen skips this: that route builds from your builder as it stands, which is already current.
+        /// Registering the same book again without restating this keeps the callback the earlier registration was given.
+        /// </summary>
+        IBookBuilder OnOpening(Action onOpening);
+
         /// <summary>Validates the book and registers it. Registered books are added to Data/PeacefulEnd.Parchment/Books before content
         /// packs are applied, so Content Patcher can still edit them. Registering the same book ID again replaces your earlier registration.</summary>
         /// <param name="error">Why the book was rejected, when this returns false.</param>

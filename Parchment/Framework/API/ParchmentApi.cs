@@ -42,6 +42,17 @@ namespace Parchment.Framework.API
             return Parchment.bookManager.HasBook(bookId);
         }
 
+        public bool TryMarkBookStale(string bookId, out string error)
+        {
+            if (Parchment.bookManager.TryMarkBookStale(_modId, bookId, out error) is false)
+            {
+                Parchment.monitor.Log($"{_modId} failed to mark a book as stale, because {error}.", LogLevel.Warn);
+                return false;
+            }
+
+            return true;
+        }
+
         public bool TryOpenBook(string bookId, string? chapterId = null)
         {
             if (TryCreateMenu(bookId, out BookMenu menu) is false)

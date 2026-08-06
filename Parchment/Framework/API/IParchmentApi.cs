@@ -37,6 +37,12 @@ namespace Parchment.Framework.API
         /// <summary>Gets whether a book with the given ID is loaded, whether it came from a content pack or the C# API.</summary>
         bool HasBook(string bookId);
 
+        /// <summary>Marks a book your mod registered as out of date, so its OnRefresh callback runs before the next time it's opened.
+        /// This is the cheap half of a rebuild: nothing is built here, so a change made while nobody is reading costs one call rather than a full rebuild that may never be seen.</summary>
+        /// <param name="bookId">The BookData.Id value of the book.</param>
+        /// <param name="error">Why the book couldn't be marked, when this returns false.</param>
+        bool TryMarkBookStale(string bookId, out string error);
+
         /// <summary>Reads a variable a book declares, so a mod can mirror a reader's choice into its own config. A Save-scoped variable is read from the local player.</summary>
         /// <param name="bookId">The BookData.Id value of the book declaring the variable.</param>
         /// <param name="variableId">The VariableData.Id value of the variable.</param>
