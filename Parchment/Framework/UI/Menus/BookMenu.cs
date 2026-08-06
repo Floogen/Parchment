@@ -2029,7 +2029,7 @@ namespace Parchment.Framework.UI.Menus
         /// </summary>
         private static bool IsTextEntryPreferred()
         {
-            return Game1.options.snappyMenus;
+            return Game1.options.snappyMenus && Game1.options.gamepadControls;
         }
 
         /// <summary>Whether the on-screen keyboard is up. This and the two methods below it are everywhere Parchment reaches for the game's own entry menu.</summary>

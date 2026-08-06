@@ -45,7 +45,7 @@ The cursor stays where it is through anything that leaves the element in place, 
 
 ## Text inputs
 
-Pressing ++"A"++ on an [Input](../reference/elements/input.md) element opens the game's on-screen keyboard over the book, the same one a vanilla naming box uses. Snappy menus is what decides this: with it on the keyboard comes up, with it off the box takes the hardware keyboard as before.
+Pressing ++"A"++ on an [Input](../reference/elements/input.md) element opens the game's on-screen keyboard over the book, the same one a vanilla naming box uses. Two things decide this: snappy menus being on, and the reader being on a controller. Clicking the same box with a mouse takes the hardware keyboard instead, even in the same session, since the game follows whichever device was last used.
 
 The text is written through to the input as it is entered, so a list filtered on that input is already up to date once the keyboard closes. Closing the keyboard stands in for ++"Enter"++ and runs the input's `SubmitActions`, since a controller reader has no other way to submit.
 

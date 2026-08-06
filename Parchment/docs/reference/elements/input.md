@@ -118,7 +118,7 @@ The text is watched rather than hooked to the keyboard, so **anything** that cha
 
 **The text is per reading session.** Closing the book empties every input. Nothing is saved, so a search box starts blank each time the book is opened.
 
-**Controllers get the on-screen keyboard.** With snappy menus on, pressing ++"A"++ on a box opens the game's own keyboard rather than waiting on a hardware one, and closing it submits. See [controller support](../../concepts/controller.md#text-inputs).
+**Controllers get the on-screen keyboard.** Pressing ++"A"++ on a box with snappy menus on opens the game's own keyboard rather than waiting on a hardware one, and closing it submits. Clicking the box with a mouse still takes the hardware keyboard. See [controller support](../../concepts/controller.md#text-inputs).
 
 ## Sprite fields
 
