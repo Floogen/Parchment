@@ -23,6 +23,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<VariableBuilder> _variables = new List<VariableBuilder>();
         private readonly List<KeybindBuilder> _onKeyPress = new List<KeybindBuilder>();
         private Action? _onRefresh;
+        private Action? _onOpening;
 
         public string BookId { get { return _bookId; } }
 
@@ -30,6 +31,9 @@ namespace Parchment.Framework.API.Builders
 
         /// <summary>The callback given to <see cref="OnRefresh"/>, read by whatever ends up putting this book on screen.</summary>
         internal Action? RefreshCallback { get { return _onRefresh; } }
+
+        /// <summary>The callback given to <see cref="OnOpening"/>, run against the registration before a book is built for the menu.</summary>
+        internal Action? OpeningCallback { get { return _onOpening; } }
 
         internal BookBuilder(string modId, string bookId)
         {
@@ -64,6 +68,24 @@ namespace Parchment.Framework.API.Builders
             }
 
             _onRefresh = onRefresh;
+        }
+
+        public IBookBuilder OnOpening(Action onOpening)
+        {
+            _onOpening = onOpening;
+
+            return this;
+        }
+
+        /// <summary>Takes on the callback of the registration this builder is replacing, matching how <see cref="AdoptRefreshCallback"/> carries a refresh over.</summary>
+        internal void AdoptOpeningCallback(Action onOpening)
+        {
+            if (_onOpening is not null)
+            {
+                return;
+            }
+
+            _onOpening = onOpening;
         }
 
         public IKeybindBuilder OnKeyPress(string keybind)

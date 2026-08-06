@@ -1,4 +1,4 @@
-# C# API
+﻿# C# API
 
 This page is for **SMAPI mod authors** who want to open a book from their own code. If you're using Content Patcher, see [Opening a book](../concepts/opening-books.md) instead.
 
@@ -28,6 +28,9 @@ public interface IParchmentApi
 
     /// <summary>Gets whether a book with the given ID is loaded, from any source.</summary>
     bool HasBook(string bookId);
+
+    /// <summary>Marks a book your mod registered as needing a rebuild before it's next opened.</summary>
+    bool TryMarkBookStale(string bookId, out string error);
 
     /// <summary>Reads a variable a book declares.</summary>
     bool TryGetVariable(string bookId, string variableId, out string value);
@@ -100,6 +103,25 @@ if (parchment.HasBook("someone.Else_Book") is true)
     parchment.TryOpenBook("someone.Else_Book");
 }
 ```
+
+## Keeping a registered book current
+
+A book your mod registered stays as it was registered until you register it again. When its contents follow something that changes often, rebuilding on every change means rebuilding for readings that may never happen.
+
+`TryMarkBookStale` says a rebuild is owed without doing one. Parchment runs the book's `OnRefresh` callback before the next opening, whichever route opens it:
+
+```csharp
+// Cheap, so it can be called on every change
+parchment.TryMarkBookStale("{{ModId}}_Logbook", out string error);
+```
+
+| Returns false when | |
+| --- | --- |
+| No book ID was given | |
+| Your mod hasn't registered that book | A book from a content pack or another mod can't be marked |
+| The book has no refresh callback | Nothing would run at the next opening, so this reports rather than doing nothing |
+
+See [Rebuilding before the book opens](building-books.md#rebuilding-before-the-book-opens) for the callbacks themselves, and for `OnOpening` when the book has to be rebuilt every reading rather than only after a change.
 
 ## Reading a book's variables
 

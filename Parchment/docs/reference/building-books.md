@@ -116,6 +116,51 @@ None of those are worth treating as a problem, so log at `Trace` rather than `Wa
 
     Re-registering without restating `OnRefresh` keeps the callback the earlier registration was given, so a rebuild only needs to mention it when you want to replace it.
 
+## Rebuilding before the book opens
+
+`TryRefresh` swaps a rebuilt book into a menu the reader already has open, which means they see the old copy first and the new one a frame or two later. When the change happened while nobody was reading, there was nothing to swap into and no reason to have rebuilt at all.
+
+`OnOpening` runs your callback just before the book is built for the menu, so the reader gets the current book from its first frame:
+
+```csharp
+book.OnOpening(RebuildLogbook);
+```
+
+The callback assembles a fresh builder and registers it, exactly as a refresh would:
+
+```csharp title="Registering the current contents on the way in"
+private void RebuildLogbook()
+{
+    IBookBuilder book = BuildLogbook();
+
+    if (book.TryRegister(out string error) is false)
+    {
+        Monitor.Log($"Couldn't register the logbook, because {error}.", LogLevel.Warn);
+    }
+}
+```
+
+This runs however the reader got there (item, tile action, trigger action or `TryOpenBook`), since every route builds the book from the books asset. A book opened with `TryOpen` skips it, as that route builds from your builder as it stands and is already current.
+
+### Only when something changed
+
+Rebuilding on every opening is wasteful when the book usually hasn't changed. `TryMarkBookStale` lets you say a rebuild is owed without doing one:
+
+```csharp
+// Called whenever your own state changes, which may be many times between readings
+parchment.TryMarkBookStale("Your.BookId", out string error);
+```
+
+The mark costs nothing, and the rebuild happens at the next opening through the book's `OnRefresh` callback. Twenty changes between readings then cost one rebuild rather than twenty, and a change nobody ever reads costs none. Registering the book again clears the mark, since the registered copy is current by then.
+
+!!! tip "Which of the three to reach for"
+    `TryRefresh` is for a change the reader should see while they're looking at it, such as a button on a settings page. `TryMarkBookStale` is for a change made while they're elsewhere. `OnOpening` is for anything that has to be worked out fresh every reading, such as the time of day or where the player is standing.
+
+!!! warning "Keep it short"
+    Both callbacks run inside the call that opens the book, so whatever they do lands before the first frame is drawn. That's the point, since the work is hidden by the opening animation, but a slow rebuild is a stutter on the way in. Anything that can be worked out ahead of time belongs in your own code rather than here.
+
+A callback which throws is logged and the book opens as it stood, rather than the opening failing. A callback which opens its own book is ignored rather than recursing.
+
 ## The book builder
 
 | Method | What it does |
@@ -129,6 +174,7 @@ None of those are worth treating as a problem, so log at `Trace` rather than `Wa
 | `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. Readable straight away, before the book is registered or opened. |
 | `OnKeyPress(keybind)` | Adds a key pressed on any page of the book, or on its shut cover, and returns its [keybind builder](#the-keybind-builder). A page binding the same key takes it over. |
 | `OnRefresh(onRefresh)` | What to run when the book is asked to rebuild. See [Refreshing an open book](#refreshing-an-open-book). |
+| `OnOpening(onOpening)` | What to run just before the book is put on screen. See [Rebuilding before the book opens](#rebuilding-before-the-book-opens). |
 | `TryRegister(out error)` | Validates and registers the book. |
 | `TryOpen(out error)` | Validates and opens the book without registering it. |
 | `TryRefresh(out error)` | Rebuilds and swaps into the open book, keeping the reader's page. See [Refreshing an open book](#refreshing-an-open-book). |

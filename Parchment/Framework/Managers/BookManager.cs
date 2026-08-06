@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Parchment.Framework.API.Builders;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
@@ -50,6 +50,12 @@ namespace Parchment.Framework.Managers
         // so this is what lets its variable declarations answer before the terminal call that would put it there.
         private readonly Dictionary<string, BookBuilder> _bookIdToLiveBuilder = new Dictionary<string, BookBuilder>(StringComparer.OrdinalIgnoreCase);
 
+        // Books whose owner has said their registered copy is out of date, rebuilt through the refresh callback before the next opening
+        private readonly HashSet<string> _staleBookIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Books whose pre-open callbacks are running right now, so a callback which opens its own book doesn't recurse
+        private readonly HashSet<string> _booksBeingOpened = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         // Whether the books asset has been loaded at least once, so registrations made before then don't need to invalidate it
         private bool _hasLoadedBooks = false;
         private bool _hasPendingBookReload = false;
@@ -90,6 +96,9 @@ namespace Parchment.Framework.Managers
         {
             _playerToSeenPages.Clear();
             _playerToSeenChapters.Clear();
+
+            // Staleness is about the save being left, and a mod loading into the next one registers against that save's state anyway
+            _staleBookIds.Clear();
         }
 
         // The game replaces the active menu by assignment in plenty of places, such as a trigger action calling createQuestionDialogue, which drops a book without ever running its exit.
@@ -269,9 +278,17 @@ namespace Parchment.Framework.Managers
             }
 
             // Matches how a refresh carries its callback over, so a mod rebuilding its book doesn't have to restate OnRefresh to keep it refreshable
-            if (builder.RefreshCallback is null && TryGetRegisteredBuilder(bookData.Id, out BookBuilder previousBuilder) is true && previousBuilder.RefreshCallback is not null)
+            if (TryGetRegisteredBuilder(bookData.Id, out BookBuilder previousBuilder) is true)
             {
-                builder.AdoptRefreshCallback(previousBuilder.RefreshCallback);
+                if (builder.RefreshCallback is null && previousBuilder.RefreshCallback is not null)
+                {
+                    builder.AdoptRefreshCallback(previousBuilder.RefreshCallback);
+                }
+
+                if (builder.OpeningCallback is null && previousBuilder.OpeningCallback is not null)
+                {
+                    builder.AdoptOpeningCallback(previousBuilder.OpeningCallback);
+                }
             }
 
             if (_modIdToRegisteredBooks.ContainsKey(modId) is false)
@@ -280,7 +297,41 @@ namespace Parchment.Framework.Managers
             }
             _modIdToRegisteredBooks[modId][bookData.Id] = builder;
 
+            // The registered copy is current again, so whatever marked it stale has been answered
+            _staleBookIds.Remove(bookData.Id);
+
             RefreshBooksAsset();
+
+            return true;
+        }
+
+        /// <summary>Marks a registered book as out of date, so its refresh callback runs before the next time it's opened. A mod can only mark its own books.</summary>
+        /// <param name="modId">The unique ID of the mod marking the book.</param>
+        /// <param name="bookId">The book's ID.</param>
+        /// <param name="error">Why the book couldn't be marked, when this returns false.</param>
+        public bool TryMarkBookStale(string modId, string bookId, out string error)
+        {
+            if (string.IsNullOrWhiteSpace(bookId) is true)
+            {
+                error = "no book ID was given";
+                return false;
+            }
+
+            if (_modIdToRegisteredBooks.TryGetValue(modId, out var registeredBooks) is false || registeredBooks.TryGetValue(bookId, out BookBuilder builder) is false)
+            {
+                error = $"{modId} hasn't registered a book with the ID \"{bookId}\"";
+                return false;
+            }
+
+            // Nothing would run at the next opening without one, so this reports rather than quietly doing nothing
+            if (builder.RefreshCallback is null)
+            {
+                error = $"the book \"{bookId}\" has no refresh callback, which is set through the C# builder's OnRefresh before the book is registered";
+                return false;
+            }
+
+            _staleBookIds.Add(bookId);
+            error = string.Empty;
 
             return true;
         }
@@ -359,6 +410,7 @@ namespace Parchment.Framework.Managers
             }
 
             _bookIdToLiveBuilder.Remove(bookId);
+            _staleBookIds.Remove(bookId);
 
             RefreshBooksAsset();
             error = string.Empty;
@@ -553,6 +605,9 @@ namespace Parchment.Framework.Managers
 
         public Book? CreateBook(string bookDataId)
         {
+            // The owning mod gets its chance to rebuild before the data is read, so the reader never sees the old copy and has it swapped out from under them
+            RunOpeningCallbacks(bookDataId);
+
             // A reload held back while a book was being read is taken up here, since opening a book ends whatever session it was being held for
             ApplyPendingBookReload();
 
@@ -563,6 +618,55 @@ namespace Parchment.Framework.Managers
             }
 
             return CreateBook(bookData);
+        }
+
+        /// <summary>Runs whatever the owning mod wants done before its book is built, being a rebuild for a book marked stale and then its opening callback.
+        /// Both re-register, so the books asset is left current by the time the data is read.
+        /// </summary>
+        private void RunOpeningCallbacks(string bookId)
+        {
+            if (string.IsNullOrWhiteSpace(bookId) is true || TryGetRegisteredBuilder(bookId, out BookBuilder builder) is false)
+            {
+                return;
+            }
+
+            // A callback opening the book it was called for would come straight back through here
+            if (_booksBeingOpened.Add(bookId) is false)
+            {
+                return;
+            }
+
+            try
+            {
+                // A stale book rebuilds through the callback a refresh would have used, rather than needing one of its own
+                if (_staleBookIds.Remove(bookId) is true && builder.RefreshCallback is not null)
+                {
+                    RunOpeningCallback(bookId, builder.RefreshCallback, "rebuild");
+                }
+
+                // Read again, since the rebuild above will have replaced the registration this came from
+                if (TryGetRegisteredBuilder(bookId, out BookBuilder currentBuilder) is true && currentBuilder.OpeningCallback is not null)
+                {
+                    RunOpeningCallback(bookId, currentBuilder.OpeningCallback, "opening");
+                }
+            }
+            finally
+            {
+                _booksBeingOpened.Remove(bookId);
+            }
+        }
+
+        // A mod throwing here shouldn't take the opening down with it, so the book is put up as it stands and the reason is logged
+        private void RunOpeningCallback(string bookId, Action callback, string stage)
+        {
+            try
+            {
+                callback();
+            }
+            catch (Exception ex)
+            {
+                monitor.Log($"The {stage} callback for the book \"{bookId}\" threw an exception, so it was opened as it stood: {ex}", LogLevel.Error);
+            }
         }
 
         public Book? CreateBook(BookData bookData)
