@@ -9,6 +9,11 @@ namespace Parchment.Framework.Models.Data.Books
 {
     public class PageCurlData : BaseModel
     {
+        /// <summary>Whether the book has curl corners at all. When false, neither corner is drawn or clickable, and the rest of this model is ignored.
+        /// The corners are the only page turning Parchment offers on its own, so a book without them needs a button or a key bind running PeacefulEnd.Parchment_NextPage to be readable.
+        /// </summary>
+        public bool IsEnabled { get; set; } = true;
+
         public string TexturePath { get; set; } = "Assets/PeacefulEnd.Parchment/curlPage";
 
         public int FrameWidth { get; set; } = 32;
@@ -24,6 +29,12 @@ namespace Parchment.Framework.Models.Data.Books
 
         public override (bool Result, string Error) IsValid()
         {
+            // Nothing below is read once the corners are off, so a book turning them off isn't held to values it will never draw with
+            if (IsEnabled is false)
+            {
+                return (true, string.Empty);
+            }
+
             if (string.IsNullOrWhiteSpace(TexturePath))
             {
                 return (false, $"{nameof(TexturePath)} is required.");

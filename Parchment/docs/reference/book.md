@@ -124,6 +124,7 @@ The corner you click to turn a page. The offsets are relative to the book frame,
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
+| `IsEnabled` <span class="opt">optional</span> | `bool` | `true` | Whether the book has curl corners. See [Books without corners](#books-without-corners). |
 | `TexturePath` <span class="opt">optional</span> | `string` | *the built-in corner* | The curl sprite sheet. Frames run horizontally: frame 0 is flat, the last is fully curled. Hovering plays forward, un-hovering plays back. |
 | `FrameWidth` <span class="opt">optional</span> | `int` | `32` | The width of one frame, in unscaled sprite pixels. |
 | `FrameHeight` <span class="opt">optional</span> | `int` | `32` | The height of one frame, in unscaled sprite pixels. |
@@ -136,6 +137,26 @@ The corner you click to turn a page. The offsets are relative to the book frame,
     Each corner's clickable area is exactly the sprite you see: the offset above, sized `FrameWidth` × `FrameHeight` × `Scale`. There's no separate hotspot to keep in sync.
 
 The left corner is drawn mirrored, so one piece of art serves both sides.
+
+### Books without corners
+
+Set `IsEnabled` to `false` and neither corner is drawn or clickable. The rest of this section is then ignored, so there's no art to supply and no frame values to get right.
+
+```json title="books.json"
+{
+  "Id": "you.Notepad_Book",
+  "PageCurl": {
+    "IsEnabled": false
+  }
+}
+```
+
+!!! danger "Give the reader another way to turn"
+    The corners are the only page turning Parchment offers on its own. A book without them and without any other way forward is a book stuck on its first spread, and Parchment can't detect that at load, since a page turn can be bound anywhere.
+
+    Provide a [`Button`](elements/button.md) running `PeacefulEnd.Parchment_NextPage`, or an [`OnKeyPress`](#on-key-press) bind on the book so the keys follow the reader through every page.
+
+To keep the corners clickable but invisible, leave `IsEnabled` alone and point `TexturePath` at a transparent sprite.
 
 ---
 

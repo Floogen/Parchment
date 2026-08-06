@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Parchment.Framework.Models;
@@ -108,7 +108,7 @@ namespace Parchment.Framework.UI.Menus
         private bool _isHoveringPreviousPage;
         private bool _isHoveringNextPage;
 
-        private Texture2D _pageCurlTexture;
+        private Texture2D? _pageCurlTexture;
         private Texture2D _bookTexture;
         private Texture2D? _bookGrayscaleTexture;
 
@@ -157,7 +157,7 @@ namespace Parchment.Framework.UI.Menus
 
             _bookTexture = Parchment.modHelper.GameContent.Load<Texture2D>(_appearance.TexturePath);
             _bookGrayscaleTexture = string.IsNullOrWhiteSpace(_appearance.GrayscaleTexturePath) ? null : Parchment.modHelper.GameContent.Load<Texture2D>(_appearance.GrayscaleTexturePath);
-            _pageCurlTexture = Parchment.modHelper.GameContent.Load<Texture2D>(_pageCurl.TexturePath);
+            _pageCurlTexture = _pageCurl.IsEnabled ? Parchment.modHelper.GameContent.Load<Texture2D>(_pageCurl.TexturePath) : null;
 
             _openFrames.Clear();
             for (int frameIndex = 0; frameIndex < _appearance.OpenFrameCount; frameIndex++)
@@ -167,9 +167,12 @@ namespace Parchment.Framework.UI.Menus
             _closeFrames = Enumerable.Reverse(_openFrames).ToList();
 
             _pageCurlFrames.Clear();
-            for (int frameIndex = 0; frameIndex < _pageCurl.FrameCount; frameIndex++)
+            if (_pageCurl.IsEnabled is true)
             {
-                _pageCurlFrames.Add(new Rectangle(_pageCurl.FrameWidth * frameIndex, 0, _pageCurl.FrameWidth, _pageCurl.FrameHeight));
+                for (int frameIndex = 0; frameIndex < _pageCurl.FrameCount; frameIndex++)
+                {
+                    _pageCurlFrames.Add(new Rectangle(_pageCurl.FrameWidth * frameIndex, 0, _pageCurl.FrameWidth, _pageCurl.FrameHeight));
+                }
             }
 
             _pageTurnFrames.Clear();
@@ -907,6 +910,15 @@ namespace Parchment.Framework.UI.Menus
 
         private void DetermineHotspotPositions()
         {
+            // An empty rect contains nothing, so a book without corners falls through the click and hover checks without either of them having to know about it
+            if (_pageCurl.IsEnabled is false)
+            {
+                _previousPageHotspot = Rectangle.Empty;
+                _nextPageHotspot = Rectangle.Empty;
+
+                return;
+            }
+
             Rectangle bookBounds = GetBookScreenBounds();
 
             _previousPageHotspot = GetCurlBounds(_pageCurl.PreviousPageOffset, bookBounds);
@@ -1005,6 +1017,11 @@ namespace Parchment.Framework.UI.Menus
 
         private void UpdateCornerAnimation(ref float animationTimer, ref int currentFrame, bool isHovering, float elapsedMilliseconds)
         {
+            if (_pageCurlFrames.Count is 0)
+            {
+                return;
+            }
+
             int lastFrame = _pageCurlFrames.Count - 1;
 
             float frameDuration = _animation.CurlDuration / _pageCurlFrames.Count;
@@ -2445,6 +2462,12 @@ namespace Parchment.Framework.UI.Menus
 
         private void DrawCorners(SpriteBatch b)
         {
+            if (_pageCurl.IsEnabled is false || _pageCurlTexture is null)
+            {
+                DrawDebugBounds(b);
+                return;
+            }
+
             if (_currentSpread > 0)
             {
                 b.Draw(_pageCurlTexture, new Vector2(_previousPageHotspot.X, _previousPageHotspot.Y), _pageCurlFrames[_previousCornerFrame], Color.White, 0f, Vector2.Zero, _pageCurl.Scale, SpriteEffects.FlipHorizontally, CURL_LAYER_DEPTH);
@@ -2455,13 +2478,21 @@ namespace Parchment.Framework.UI.Menus
                 b.Draw(_pageCurlTexture, new Vector2(_nextPageHotspot.X, _nextPageHotspot.Y), _pageCurlFrames[_nextCornerFrame], Color.White, 0f, Vector2.Zero, _pageCurl.Scale, SpriteEffects.None, CURL_LAYER_DEPTH);
             }
 
-            if (Parchment.isDebugMode)
+            DrawDebugBounds(b);
+        }
+
+        /// <summary>Draws the page and corner rectangles in debug mode. An empty rect draws nothing, so a book without corners shows only its pages.</summary>
+        private void DrawDebugBounds(SpriteBatch b)
+        {
+            if (Parchment.isDebugMode is false)
             {
-                b.Draw(Game1.staminaRect, GetLeftPageBounds(), Color.Red * 0.4f);
-                b.Draw(Game1.staminaRect, GetRightPageBounds(), Color.Red * 0.4f);
-                b.Draw(Game1.staminaRect, _previousPageHotspot, Color.Cyan * 0.4f);
-                b.Draw(Game1.staminaRect, _nextPageHotspot, Color.Cyan * 0.4f);
+                return;
             }
+
+            b.Draw(Game1.staminaRect, GetLeftPageBounds(), Color.Red * 0.4f);
+            b.Draw(Game1.staminaRect, GetRightPageBounds(), Color.Red * 0.4f);
+            b.Draw(Game1.staminaRect, _previousPageHotspot, Color.Cyan * 0.4f);
+            b.Draw(Game1.staminaRect, _nextPageHotspot, Color.Cyan * 0.4f);
         }
 
         private void DrawPages(SpriteBatch b)
