@@ -102,13 +102,21 @@ namespace Parchment.Framework.UI.Menus
         private Element? _focusedElement;
         private InputTextSubscriber? _focusedInput;
 
+        // The throwaway box the on-screen keyboard writes into, alive only while that keyboard is up, and the text it was last seen holding
+        private TextBox? _textEntryBox;
+        private string _lastTextEntryText = string.Empty;
+
         private bool _isHoveringLeftPage;
         private bool _isHoveringRightPage;
 
         private bool _isHoveringPreviousPage;
         private bool _isHoveringNextPage;
 
-        private Texture2D _pageCurlTexture;
+        // Everywhere the cursor can be sent, rebuilt whenever it is asked for rather than held between passes, since a condition can take an element away between one step and the next
+        private readonly List<SnapTarget> _snapTargets = new List<SnapTarget>();
+        private SnapTarget? _snappedTarget;
+
+        private Texture2D? _pageCurlTexture;
         private Texture2D _bookTexture;
         private Texture2D? _bookGrayscaleTexture;
 
@@ -157,7 +165,7 @@ namespace Parchment.Framework.UI.Menus
 
             _bookTexture = Parchment.modHelper.GameContent.Load<Texture2D>(_appearance.TexturePath);
             _bookGrayscaleTexture = string.IsNullOrWhiteSpace(_appearance.GrayscaleTexturePath) ? null : Parchment.modHelper.GameContent.Load<Texture2D>(_appearance.GrayscaleTexturePath);
-            _pageCurlTexture = Parchment.modHelper.GameContent.Load<Texture2D>(_pageCurl.TexturePath);
+            _pageCurlTexture = _pageCurl.IsEnabled ? Parchment.modHelper.GameContent.Load<Texture2D>(_pageCurl.TexturePath) : null;
 
             _openFrames.Clear();
             for (int frameIndex = 0; frameIndex < _appearance.OpenFrameCount; frameIndex++)
@@ -167,9 +175,12 @@ namespace Parchment.Framework.UI.Menus
             _closeFrames = Enumerable.Reverse(_openFrames).ToList();
 
             _pageCurlFrames.Clear();
-            for (int frameIndex = 0; frameIndex < _pageCurl.FrameCount; frameIndex++)
+            if (_pageCurl.IsEnabled is true)
             {
-                _pageCurlFrames.Add(new Rectangle(_pageCurl.FrameWidth * frameIndex, 0, _pageCurl.FrameWidth, _pageCurl.FrameHeight));
+                for (int frameIndex = 0; frameIndex < _pageCurl.FrameCount; frameIndex++)
+                {
+                    _pageCurlFrames.Add(new Rectangle(_pageCurl.FrameWidth * frameIndex, 0, _pageCurl.FrameWidth, _pageCurl.FrameHeight));
+                }
             }
 
             _pageTurnFrames.Clear();
@@ -427,7 +438,7 @@ namespace Parchment.Framework.UI.Menus
                 if (pageIndex >= 0)
                 {
                     _currentChapterIndex = Book.GetChapterIndexForPage(pageIndex);
-                    _currentSpread = (pageIndex - GetChapter(_currentChapterIndex).FirstPageIndex) / 2;
+                    _currentSpread = (pageIndex - GetChapter(_currentChapterIndex).FirstPageIndex) / PagesPerSpread;
 
                     return;
                 }
@@ -591,7 +602,7 @@ namespace Parchment.Framework.UI.Menus
             }
 
             int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
-            int targetSpread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
+            int targetSpread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / PagesPerSpread;
 
             BeginJump(chapterIndex, targetSpread, skipAnimation);
 
@@ -623,7 +634,7 @@ namespace Parchment.Framework.UI.Menus
                 return false;
             }
 
-            int targetSpread = pageInChapter / 2;
+            int targetSpread = pageInChapter / PagesPerSpread;
 
             BeginJump(chapterIndex, targetSpread, skipAnimation);
 
@@ -691,7 +702,7 @@ namespace Parchment.Framework.UI.Menus
             }
 
             int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
-            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
+            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / PagesPerSpread;
 
             ApplyInitialSpread(chapterIndex, spread);
             error = null;
@@ -729,7 +740,7 @@ namespace Parchment.Framework.UI.Menus
                 return false;
             }
 
-            ApplyInitialSpread(chapterIndex, pageInChapter / 2);
+            ApplyInitialSpread(chapterIndex, pageInChapter / PagesPerSpread);
             error = null;
             return true;
         }
@@ -769,7 +780,7 @@ namespace Parchment.Framework.UI.Menus
             }
 
             int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
-            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
+            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / PagesPerSpread;
 
             ApplyInitialSpread(chapterIndex, spread);
             error = null;
@@ -907,6 +918,15 @@ namespace Parchment.Framework.UI.Menus
 
         private void DetermineHotspotPositions()
         {
+            // An empty rect contains nothing, so a book without corners falls through the click and hover checks without either of them having to know about it
+            if (_pageCurl.IsEnabled is false)
+            {
+                _previousPageHotspot = Rectangle.Empty;
+                _nextPageHotspot = Rectangle.Empty;
+
+                return;
+            }
+
             Rectangle bookBounds = GetBookScreenBounds();
 
             _previousPageHotspot = GetCurlBounds(_pageCurl.PreviousPageOffset, bookBounds);
@@ -943,10 +963,19 @@ namespace Parchment.Framework.UI.Menus
             return GetPageIndex(_currentChapterIndex, _currentSpread, left: false);
         }
 
+        /// <summary>How many pages one spread holds, being one for a book that shows a single page at a time and two for one with a spine.</summary>
+        private int PagesPerSpread => Book.Data.Layout.IsSinglePage ? 1 : 2;
+
         private int GetPageIndex(int chapterIndex, int spread, bool left)
         {
+            // A single page book has no right page, so asking for one is out of range in the same way as asking past the end of a chapter, which every caller already handles
+            if (left is false && Book.Data.Layout.IsSinglePage is true)
+            {
+                return int.MaxValue;
+            }
+
             Chapter chapter = GetChapter(chapterIndex);
-            int pageIndex = chapter.FirstPageIndex + spread * 2 + (left ? 0 : 1);
+            int pageIndex = chapter.FirstPageIndex + spread * PagesPerSpread + (left ? 0 : 1);
 
             return pageIndex > chapter.LastPageIndex ? int.MaxValue : pageIndex;
         }
@@ -975,9 +1004,14 @@ namespace Parchment.Framework.UI.Menus
             return new Rectangle(bookBounds.X + marginOuter, bookBounds.Y + marginTop, pageSize.X, pageSize.Y);
         }
 
-        /// <summary>The right page's content area on screen, inside the book's margins.</summary>
+        /// <summary>The right page's content area on screen, inside the book's margins. Empty for a book showing a single page at a time, which has no right page.</summary>
         public Rectangle GetRightPageBounds()
         {
+            if (Book.Data.Layout.IsSinglePage is true)
+            {
+                return Rectangle.Empty;
+            }
+
             Rectangle bookBounds = GetBookScreenBounds();
             int spineX = bookBounds.X + bookBounds.Width / 2;
 
@@ -991,6 +1025,11 @@ namespace Parchment.Framework.UI.Menus
 
         private void UpdateCornerAnimation(ref float animationTimer, ref int currentFrame, bool isHovering, float elapsedMilliseconds)
         {
+            if (_pageCurlFrames.Count is 0)
+            {
+                return;
+            }
+
             int lastFrame = _pageCurlFrames.Count - 1;
 
             float frameDuration = _animation.CurlDuration / _pageCurlFrames.Count;
@@ -1060,6 +1099,16 @@ namespace Parchment.Framework.UI.Menus
 
             if (skipAnimation is false)
             {
+                // A book with no turn frames has nothing to draw turning, so it lands where the animation would have left it. Still heard, unlike a skipped turn, since this one is a turn the reader asked for
+                if (_pageTurnFrames.Count is 0)
+                {
+                    CommitPageTurn();
+                    SetMenuState(MenuState.Ready);
+
+                    PlaySound(_animation.TurnSound);
+                    return;
+                }
+
                 SetMenuState(MenuState.Turning);
 
                 PlaySound(_animation.TurnSound);
@@ -1120,6 +1169,9 @@ namespace Parchment.Framework.UI.Menus
             RefreshPageConditions(GetRightPageIndex());
 
             RefreshHoverText();
+
+            // Last, so a controller's cursor is put back onto something that survived whatever the pass above changed
+            RefreshSnap();
         }
 
         private void RefreshPageConditions(int pageIndex)
@@ -1167,6 +1219,339 @@ namespace Parchment.Framework.UI.Menus
             hitElement ??= Page.HitTest(page.Elements, pageBounds, screenPosition);
 
             return hitElement ?? Page.HitTest(page.Background, pageBounds, screenPosition, interactiveOnly: true);
+        }
+
+        // The vanilla direction values, as they arrive through applyMovementKey
+        private const int DIRECTION_UP = 0;
+        private const int DIRECTION_RIGHT = 1;
+        private const int DIRECTION_DOWN = 2;
+        private const int DIRECTION_LEFT = 3;
+
+        /// <summary>How much being off to the side of the direction counts against a target, measured against the distance in it.
+        /// Above one, so a step goes to what lines up rather than to whatever happens to be nearest, which is what keeps a column being walked down from wandering into the next one.
+        /// </summary>
+        private const float SNAP_ACROSS_WEIGHT = 2f;
+
+        /// <summary>Whether the menu is the one moving the cursor. Snappy menus is what takes the stick off the cursor, so without it the game is already moving the cursor and a click lands wherever a mouse would have put it.</summary>
+        private static bool IsSnappingActive()
+        {
+            return Game1.options.snappyMenus && Game1.options.gamepadControls;
+        }
+
+        /// <summary>Steps the cursor to the next target in a direction, which is what the D-pad and the left stick reach under snappy menus.
+        /// Nothing is hovered or clicked here. The cursor is put somewhere and <see cref="performHoverAction"/> takes it from there, so a controller and a mouse arrive at an element by the same route.
+        /// </summary>
+        public override void applyMovementKey(int direction)
+        {
+            if (IsSnappingActive() is false || CurrentState is not MenuState.Ready and not MenuState.Cover)
+            {
+                base.applyMovementKey(direction);
+                return;
+            }
+
+            // A focused input has the stick for the same reason it has the keyboard, so the cursor doesn't walk off the box the reader is typing into
+            if (_focusedInput is not null)
+            {
+                return;
+            }
+
+            CollectSnapTargets();
+
+            if (_snapTargets.Count is 0)
+            {
+                return;
+            }
+
+            // Where the cursor is standing when nothing has been snapped yet, so a reader who was using the mouse a moment ago carries on from there
+            Rectangle origin = _snappedTarget is SnapTarget snappedTarget ? snappedTarget.Bounds : new Rectangle(Game1.getMouseX(true), Game1.getMouseY(true), 1, 1);
+
+            if (TryGetTargetInDirection(origin, direction, out SnapTarget target) is false)
+            {
+                return;
+            }
+
+            ApplySnapTarget(target);
+        }
+
+        /// <summary>Puts the cursor on the first thing worth reaching, which the game asks for when a menu comes up under snappy menus.
+        /// The book is still sliding on at that point and has no spread to land on, so the opening snap is left to <see cref="RefreshSnap"/> once it settles.
+        /// </summary>
+        public override void snapToDefaultClickableComponent()
+        {
+            if (IsSnappingActive() is false || CurrentState is not MenuState.Ready and not MenuState.Cover)
+            {
+                return;
+            }
+
+            CollectSnapTargets();
+
+            if (_snapTargets.Count is 0)
+            {
+                _snappedTarget = null;
+                return;
+            }
+
+            ApplySnapTarget(_snapTargets[0]);
+        }
+
+        public override void setUpForGamePadMode()
+        {
+            base.setUpForGamePadMode();
+
+            snapToDefaultClickableComponent();
+        }
+
+        /// <summary>Keeps the cursor on something that still exists, after a pass that may have taken away whatever it was on.
+        /// Run from <see cref="RefreshVisiblePages"/>, so a condition hiding the snapped element, a rebuilt book and a landed page turn are all covered by the one call.
+        /// </summary>
+        private void RefreshSnap()
+        {
+            if (IsSnappingActive() is false)
+            {
+                _snappedTarget = null;
+                return;
+            }
+
+            // Neither state has anywhere settled to stand, so the cursor is left where it is until the book lands
+            if (CurrentState is not MenuState.Ready and not MenuState.Cover)
+            {
+                return;
+            }
+
+            CollectSnapTargets();
+
+            if (_snapTargets.Count is 0)
+            {
+                _snappedTarget = null;
+                return;
+            }
+
+            // The first target is the top of the spread, which is where a freshly opened book starts
+            if (TryResolveSnappedTarget(out SnapTarget target) is false)
+            {
+                target = _snapTargets[0];
+            }
+
+            ApplySnapTarget(target);
+        }
+
+        /// <summary>Takes up a target, moving the cursor only when it isn't already standing there, so a refresh that changed nothing doesn't fight a reader who has picked the mouse back up.</summary>
+        private void ApplySnapTarget(SnapTarget target)
+        {
+            bool hasMoved = _snappedTarget is not SnapTarget snappedTarget || snappedTarget.Bounds != target.Bounds;
+
+            _snappedTarget = target;
+
+            if (hasMoved is false)
+            {
+                return;
+            }
+
+            // In UI space, as that is what everything the menu measures against is in
+            Game1.setMousePosition(target.Bounds.Center.X, target.Bounds.Center.Y, true);
+        }
+
+        /// <summary>Finds the snapped target again in a freshly gathered list, which is most of the work of surviving a refresh.</summary>
+        private bool TryResolveSnappedTarget(out SnapTarget target)
+        {
+            target = default;
+
+            if (_snappedTarget is not SnapTarget snappedTarget)
+            {
+                return false;
+            }
+
+            // The same element, which is the ordinary case, as a condition pass leaves the elements it walked in place
+            foreach (SnapTarget candidate in _snapTargets)
+            {
+                if (candidate.Element is null || ReferenceEquals(candidate.Element, snappedTarget.Element) is false)
+                {
+                    continue;
+                }
+
+                target = candidate;
+                return true;
+            }
+
+            // A rebuilt book brings its own elements, so the one the reader was on is looked for by its ID rather than by the object it used to be
+            if (string.IsNullOrWhiteSpace(snappedTarget.Element?.Data.Id) is false)
+            {
+                foreach (SnapTarget candidate in _snapTargets)
+                {
+                    if (string.Equals(candidate.Element?.Data.Id, snappedTarget.Element.Data.Id, StringComparison.OrdinalIgnoreCase) is false)
+                    {
+                        continue;
+                    }
+
+                    target = candidate;
+                    return true;
+                }
+            }
+
+            // Nothing answers to it, so wherever it stood is the next best place to be. This is also what carries a corner across, having no element to be found by
+            return TryGetNearestTarget(snappedTarget.Bounds.Center, out target);
+        }
+
+        /// <summary>Gathers everywhere the cursor can be sent, in reading order.
+        /// The layout is settled here rather than waited on, since this runs from a condition pass that may have resized the very thing it is about to measure and the next draw is too late to be asking.
+        /// </summary>
+        private void CollectSnapTargets()
+        {
+            _snapTargets.Clear();
+
+            Rectangle bookBounds = GetBookScreenBounds();
+            EnsureBookLayout();
+
+            // There are no pages to reach while the book is shut, only the book's own layers
+            if (CurrentState is MenuState.Ready)
+            {
+                CollectPageSnapTargets(GetLeftPageIndex(), GetLeftPageBounds());
+                CollectPageSnapTargets(GetRightPageIndex(), GetRightPageBounds());
+            }
+
+            // The book's own layers are on screen whatever is being read, and come after the page so a reader lands in the spread they opened onto rather than on the furniture around it
+            Page.CollectTargets(Book.Underlay, bookBounds, _snapTargets);
+            Page.CollectTargets(Book.Overlay, bookBounds, _snapTargets);
+
+            if (CurrentState is MenuState.Ready)
+            {
+                // The corners are hotspots rather than elements, so they are added by hand, and only while there is a page that way, which is the same rule the click and the hover already follow
+                if (_previousPageHotspot != Rectangle.Empty && _currentSpread > 0)
+                {
+                    _snapTargets.Add(new SnapTarget(_previousPageHotspot, null));
+                }
+
+                if (_nextPageHotspot != Rectangle.Empty && _currentSpread < GetSpreadCount() - 1)
+                {
+                    _snapTargets.Add(new SnapTarget(_nextPageHotspot, null));
+                }
+            }
+
+            // A shut cover carrying nothing is still worth reaching, since clicking it is what opens the book
+            if (_snapTargets.Count is 0 && CurrentState is MenuState.Cover)
+            {
+                _snapTargets.Add(new SnapTarget(bookBounds, null));
+            }
+        }
+
+        private void CollectPageSnapTargets(int pageIndex, Rectangle pageBounds)
+        {
+            if (pageIndex >= _pages.Count || _pages[pageIndex] is null)
+            {
+                return;
+            }
+
+            Page page = _pages[pageIndex];
+            EnsureLayout(page, pageBounds);
+
+            Page.CollectTargets(page.Background, pageBounds, _snapTargets);
+            Page.CollectTargets(page.Elements, pageBounds, _snapTargets);
+            Page.CollectTargets(page.Foreground, pageBounds, _snapTargets);
+        }
+
+        /// <summary>The best target to step onto from where the cursor stands, or none when there is nothing that way.</summary>
+        private bool TryGetTargetInDirection(Rectangle origin, int direction, out SnapTarget target)
+        {
+            target = default;
+
+            float bestScore = float.MaxValue;
+            bool hasFound = false;
+
+            foreach (SnapTarget candidate in _snapTargets)
+            {
+                if (candidate.Bounds == origin)
+                {
+                    continue;
+                }
+
+                if (TryScoreTarget(origin, candidate.Bounds, direction, out float score) is false)
+                {
+                    continue;
+                }
+
+                if (score >= bestScore)
+                {
+                    continue;
+                }
+
+                bestScore = score;
+                target = candidate;
+                hasFound = true;
+            }
+
+            return hasFound;
+        }
+
+        /// <summary>Scores a step onto a target, lower being better, or reports that the target isn't in the direction at all.
+        /// Distance along the direction is measured middle to middle and distance across it edge to edge, so two targets equally far off are separated by how squarely they line up rather than by how big they are.
+        /// </summary>
+        private static bool TryScoreTarget(Rectangle origin, Rectangle candidate, int direction, out float score)
+        {
+            score = 0f;
+
+            float alongDirection;
+            float acrossDirection;
+
+            if (direction is DIRECTION_UP or DIRECTION_DOWN)
+            {
+                alongDirection = direction is DIRECTION_UP ? origin.Center.Y - candidate.Center.Y : candidate.Center.Y - origin.Center.Y;
+                acrossDirection = GetSpanDistance(origin.Left, origin.Right, candidate.Left, candidate.Right);
+            }
+            else
+            {
+                alongDirection = direction is DIRECTION_LEFT ? origin.Center.X - candidate.Center.X : candidate.Center.X - origin.Center.X;
+                acrossDirection = GetSpanDistance(origin.Top, origin.Bottom, candidate.Top, candidate.Bottom);
+            }
+
+            // A target that isn't past the middle of where the cursor stands is not in the direction being asked for, which is what stops a step landing on something overlapping it
+            if (alongDirection <= 0f)
+            {
+                return false;
+            }
+
+            score = alongDirection + acrossDirection * SNAP_ACROSS_WEIGHT;
+
+            return true;
+        }
+
+        /// <summary>The gap between two spans on one axis, being zero wherever they overlap.</summary>
+        private static float GetSpanDistance(int originStart, int originEnd, int candidateStart, int candidateEnd)
+        {
+            if (candidateEnd <= originStart)
+            {
+                return originStart - candidateEnd;
+            }
+
+            if (candidateStart >= originEnd)
+            {
+                return candidateStart - originEnd;
+            }
+
+            return 0f;
+        }
+
+        private bool TryGetNearestTarget(Point position, out SnapTarget target)
+        {
+            target = default;
+
+            float bestDistance = float.MaxValue;
+            bool hasFound = false;
+
+            foreach (SnapTarget candidate in _snapTargets)
+            {
+                float distance = Vector2.DistanceSquared(new Vector2(position.X, position.Y), new Vector2(candidate.Bounds.Center.X, candidate.Bounds.Center.Y));
+
+                if (distance >= bestDistance)
+                {
+                    continue;
+                }
+
+                bestDistance = distance;
+                target = candidate;
+                hasFound = true;
+            }
+
+            return hasFound;
         }
 
         private void SetHoveredElement(Element? element)
@@ -1604,12 +1989,21 @@ namespace Parchment.Framework.UI.Menus
 
             _focusedInput = new InputTextSubscriber(inputData.InputId, inputData.MaxLength, OnInputTextChanged, () => RunSubmitActions(element));
 
+            // The on-screen keyboard takes the characters itself, so the subscriber is kept off the dispatcher and stands only for the input being focused
+            if (IsTextEntryPreferred() is true)
+            {
+                OpenTextEntry();
+                return;
+            }
+
             // Assigning the subscriber is what starts the game routing characters here. The dispatcher owns the Selected flag on both the old and new subscriber
             Game1.keyboardDispatcher.Subscriber = _focusedInput;
         }
 
         private void ClearInputFocus()
         {
+            CloseTextEntry();
+
             if (_focusedElement is not null)
             {
                 _focusedElement.IsFocused = false;
@@ -1628,6 +2022,121 @@ namespace Parchment.Framework.UI.Menus
             }
 
             _focusedInput = null;
+        }
+
+        /// <summary>Whether an input is typed into through the on-screen keyboard rather than straight off the hardware keyboard.
+        /// Snappy menus is what a vanilla text box goes by, so a reader who has set the game up for a controller is offered the same thing in a book as everywhere else.
+        /// </summary>
+        private static bool IsTextEntryPreferred()
+        {
+            return Game1.options.snappyMenus && Game1.options.gamepadControls;
+        }
+
+        /// <summary>Whether the on-screen keyboard is up. This and the two methods below it are everywhere Parchment reaches for the game's own entry menu.</summary>
+        private static bool IsTextEntryOpen()
+        {
+            return Game1.textEntry is not null;
+        }
+
+        /// <summary>Puts up the on-screen keyboard over a throwaway box seeded with the input's text.
+        /// The box exists only because the keyboard writes into a <see cref="TextBox"/> rather than handing back a string, and Parchment never draws it.
+        /// </summary>
+        private void OpenTextEntry()
+        {
+            if (_focusedInput is null)
+            {
+                return;
+            }
+
+            _lastTextEntryText = Parchment.inputManager.GetText(_focusedInput.InputId);
+
+            // The same textures a vanilla naming box is built from, since the box is handed to a menu that draws it
+            _textEntryBox = new TextBox(Game1.content.Load<Texture2D>("LooseSprites\\textBox"), null, Game1.smallFont, Game1.textColor);
+            _textEntryBox.Text = _lastTextEntryText;
+
+            // Selecting the box is what hands it the characters, and under snappy menus that is also what puts the keyboard up, so the keyboard is only asked for when it wasn't
+            _textEntryBox.Selected = true;
+
+            if (IsTextEntryOpen() is false)
+            {
+                Game1.showTextEntry(_textEntryBox);
+            }
+        }
+
+        private void CloseTextEntry()
+        {
+            if (_textEntryBox is null)
+            {
+                return;
+            }
+
+            TextBox textEntryBox = _textEntryBox;
+
+            // Let go of before the box is dropped, since dropping the box is what tells everything below this that there is no keyboard to follow
+            _textEntryBox = null;
+            _lastTextEntryText = string.Empty;
+
+            textEntryBox.Selected = false;
+
+            if (IsTextEntryOpen() is true)
+            {
+                Game1.closeTextEntry();
+            }
+        }
+
+        /// <summary>Follows the on-screen keyboard while it is up, writing what it holds through to the input, then lets the input go once it closes.
+        /// The text is written before the close is checked, so the last of it lands whether or not the menu is updated while the keyboard sits over it.
+        /// </summary>
+        private void UpdateTextEntry()
+        {
+            if (_textEntryBox is null)
+            {
+                return;
+            }
+
+            string enteredText = _textEntryBox.Text ?? string.Empty;
+
+            if (string.Equals(enteredText, _lastTextEntryText, StringComparison.Ordinal) is false)
+            {
+                WriteTextEntry(enteredText);
+            }
+
+            if (IsTextEntryOpen() is true)
+            {
+                return;
+            }
+
+            // Closing the keyboard is a controller reader's only enter, so it stands in for one. Held onto because dropping focus is what clears it
+            Element? submittedElement = _focusedElement;
+
+            ClearInputFocus();
+
+            if (submittedElement is not null)
+            {
+                RunSubmitActions(submittedElement);
+            }
+        }
+
+        /// <summary>Writes what the keyboard holds through to the input, taking the same route a typed character takes.</summary>
+        private void WriteTextEntry(string enteredText)
+        {
+            if (_focusedInput is null || _textEntryBox is null)
+            {
+                return;
+            }
+
+            // The keyboard has no limit of its own, so the box is cut back rather than left showing text the input won't keep
+            if (_focusedInput.MaxLength is int maximumLength && enteredText.Length > maximumLength)
+            {
+                enteredText = enteredText.Substring(0, maximumLength);
+                _textEntryBox.Text = enteredText;
+            }
+
+            _lastTextEntryText = enteredText;
+
+            Parchment.inputManager.SetText(_focusedInput.InputId, enteredText);
+
+            OnInputTextChanged();
         }
 
         /// <summary>Refreshes conditions the moment an input changes, so a list filtered on the typed text keeps up with the reader rather than waiting for the next condition tick.</summary>
@@ -2136,6 +2645,13 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
+            // The triggers turn the page on a controller, offered after the binds so a book that takes them over for itself keeps them
+            if ((button is Buttons.LeftTrigger or Buttons.RightTrigger) && _focusedInput is null)
+            {
+                TryTurnPage(button is Buttons.RightTrigger, out _);
+                return;
+            }
+
             base.receiveGamePadButton(button);
         }
 
@@ -2284,6 +2800,9 @@ namespace Parchment.Framework.UI.Menus
             // Tracked in every state, since an action a keybind ran may have started an animation the reader is now holding the button through
             UpdateForceCloseHold(elapsedMilliseconds);
 
+            // Followed in every state too, as the keyboard is put up over whatever the book was doing and the text it holds is wanted back either way
+            UpdateTextEntry();
+
             if (CurrentState is MenuState.Sliding)
             {
                 _animationTimer += elapsedMilliseconds;
@@ -2431,6 +2950,12 @@ namespace Parchment.Framework.UI.Menus
 
         private void DrawCorners(SpriteBatch b)
         {
+            if (_pageCurl.IsEnabled is false || _pageCurlTexture is null)
+            {
+                DrawDebugBounds(b);
+                return;
+            }
+
             if (_currentSpread > 0)
             {
                 b.Draw(_pageCurlTexture, new Vector2(_previousPageHotspot.X, _previousPageHotspot.Y), _pageCurlFrames[_previousCornerFrame], Color.White, 0f, Vector2.Zero, _pageCurl.Scale, SpriteEffects.FlipHorizontally, CURL_LAYER_DEPTH);
@@ -2441,13 +2966,21 @@ namespace Parchment.Framework.UI.Menus
                 b.Draw(_pageCurlTexture, new Vector2(_nextPageHotspot.X, _nextPageHotspot.Y), _pageCurlFrames[_nextCornerFrame], Color.White, 0f, Vector2.Zero, _pageCurl.Scale, SpriteEffects.None, CURL_LAYER_DEPTH);
             }
 
-            if (Parchment.isDebugMode)
+            DrawDebugBounds(b);
+        }
+
+        /// <summary>Draws the page and corner rectangles in debug mode. An empty rect draws nothing, so a book without corners shows only its pages.</summary>
+        private void DrawDebugBounds(SpriteBatch b)
+        {
+            if (Parchment.isDebugMode is false)
             {
-                b.Draw(Game1.staminaRect, GetLeftPageBounds(), Color.Red * 0.4f);
-                b.Draw(Game1.staminaRect, GetRightPageBounds(), Color.Red * 0.4f);
-                b.Draw(Game1.staminaRect, _previousPageHotspot, Color.Cyan * 0.4f);
-                b.Draw(Game1.staminaRect, _nextPageHotspot, Color.Cyan * 0.4f);
+                return;
             }
+
+            b.Draw(Game1.staminaRect, GetLeftPageBounds(), Color.Red * 0.4f);
+            b.Draw(Game1.staminaRect, GetRightPageBounds(), Color.Red * 0.4f);
+            b.Draw(Game1.staminaRect, _previousPageHotspot, Color.Cyan * 0.4f);
+            b.Draw(Game1.staminaRect, _nextPageHotspot, Color.Cyan * 0.4f);
         }
 
         private void DrawPages(SpriteBatch b)
@@ -2461,6 +2994,19 @@ namespace Parchment.Framework.UI.Menus
 
             float turnProgress = Math.Clamp(_animationTimer / _animation.TurnDuration, 0f, 1f);
             bool hasSwapped = turnProgress >= _animation.ContentSwapProgress;
+
+            // A single page is the whole turn rather than a side of one, so it carries the old content across to the swap and the new content on from it, never going blank
+            if (Book.Data.Layout.IsSinglePage is true)
+            {
+                if (hasSwapped)
+                {
+                    DrawSide(b, _pendingChapterIndex, _pendingSpread, left: true);
+                    return;
+                }
+
+                DrawSide(b, _currentChapterIndex, _currentSpread, left: true);
+                return;
+            }
 
             // The swept side (right when forward, left when backward): blank until swap then NEW content
             // The stationary side: Old content until swap then blank until landing

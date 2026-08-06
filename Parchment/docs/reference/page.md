@@ -2,7 +2,7 @@
 
 `PageData`
 
-A page is a stack of elements. Two pages read one after another make a spread. Page 0 and 1 are the first spread's left and right leaves, 2 and 3 the second, and so on.
+A page is a stack of elements. Two pages read one after another make a spread. Page 0 and 1 are the first spread's left and right leaves, 2 and 3 the second, and so on. A book with [`IsSinglePage`](book.md#single-page-books) set shows one page per spread instead.
 
 ```json
 {

@@ -138,7 +138,7 @@ namespace Parchment.Framework.Models
 
             foreach (PageGroup pageGroup in pageGroups)
             {
-                chapters.Add(new Chapter(pageGroup.ChapterId, firstPageIndex, pageGroup.Pages.Count));
+                chapters.Add(new Chapter(pageGroup.ChapterId, firstPageIndex, pageGroup.Pages.Count, Data.Layout.IsSinglePage));
 
                 firstPageIndex += pageGroup.Pages.Count;
             }

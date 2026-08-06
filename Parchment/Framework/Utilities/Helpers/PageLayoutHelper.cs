@@ -42,7 +42,14 @@ namespace Parchment.Framework.Utilities.Helpers
             int marginTop = (int)(layout.MarginTop * scale);
             int marginBottom = (int)(layout.MarginBottom * scale);
 
-            return new Point(bookWidth / 2 - marginOuter - marginSpine, bookHeight - marginTop - marginBottom);
+            // A book showing one page at a time has no spine to divide, so the page runs the whole width of the frame and MarginSpine serves as its right hand margin
+            int pageWidth = bookWidth - marginOuter - marginSpine;
+            if (layout.IsSinglePage is false)
+            {
+                pageWidth = bookWidth / 2 - marginOuter - marginSpine;
+            }
+
+            return new Point(pageWidth, bookHeight - marginTop - marginBottom);
         }
     }
 }

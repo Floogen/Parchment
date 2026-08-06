@@ -28,7 +28,7 @@
         }
       }
     },
-    /* Example of using the PeacefulEnd.Parchment_BookIndicator tile property (on Buildings layer) to display a hovering book icon until the PeacefulEnd.Campgrounds.Parchment_CampingGuide book is read
+    /* Example of using the PeacefulEnd.Parchment_BookIndicator tile property (on Buildings layer) to display a hovering book icon until the PeacefulEnd.Campgrounds.ExamplePack_Board book is read
     {
       "Action": "EditMap",
       "Target": "Maps/ArchaeologyHouse",
@@ -40,16 +40,191 @@
             "Y": 11
           },
           "SetProperties": {
-            "PeacefulEnd.Parchment_BookIndicator": "4.5 -4.5 \"!PeacefulEnd.Parchment_HasSeenChapterId PeacefulEnd.Campgrounds.Parchment_CampingGuide contents\""
+            "Action": "PeacefulEnd.Parchment_OpenBook PeacefulEnd.Parchment.ExamplePack_Board",
+            "PeacefulEnd.Parchment_BookIndicator": "4.5 -4.5 \"!PeacefulEnd.Parchment_HasSeenChapterId PeacefulEnd.Parchment.ExamplePack_Board chapter-1\""
           }
         }
       ]
     },
-  */
+    */
     {
       "Action": "EditData",
       "Target": "Data/PeacefulEnd.Parchment/Books",
       "Entries": {
+        "PeacefulEnd.Parchment.ExamplePack_Board": {
+          "Format": "1.11.0",
+          "Id": "PeacefulEnd.Parchment.ExamplePack_Board",
+          "Appearance": {
+            "TexturePath": "Assets/PeacefulEnd.Parchment/singlePageBoard",
+            "FrameWidth": 338,
+            "FrameHeight": 198,
+            "OpenFrameCount": 1,
+            "TurnFrameCount": 0,
+            "Scale": 3
+          },
+          "Layout": {
+            "IsSinglePage": true,
+            "MarginOuter": 10,
+            "MarginSpine": 10,
+            "MarginTop": 30,
+            "MarginBottom": 12
+          },
+          "Animation": {
+            "SlideDuration": 1,
+            "OpenDuration": 1,
+            "CloseDuration": 1,
+            "TurnDuration": 1,
+            "OpenSound": null,
+            "CloseSound": null,
+            "TurnSound": null
+          },
+          "PageCurl": {
+            "IsEnabled": false
+          },
+
+          "Pages": [
+            {
+              "Id": "board",
+              "ChapterId": "chapter-1",
+              "Background": [],
+              "Elements": [
+                {
+                  "Type": "Image",
+                  "Text": "Example Board",
+                  "FontType": "Small",
+                  "TextArea": {
+                    "X": 14,
+                    "Y": 5,
+                    "Width": 65,
+                    "Height": 10
+                  },
+                  "Alignment": "Center",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/bannerTitle2",
+                  "Scale": 4,
+                  "SpacingAfter": 4
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "This is a single page \"book\".",
+                  "Alignment": "Center"
+                },
+                {
+                  "Type": "Panel",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/panelFrame2",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 24,
+                    "Height": 24
+                  },
+                  "Padding": 0,
+                  "Width": 96,
+                  "Sizing": "Fixed",
+                  "Alignment": "Center",
+                  "Scale": 4,
+                  "SpacingAfter": 4,
+                  "Children": [
+                    {
+                      "Type": "Paragraph",
+                      "Text": "It displays one page at a time.\n\nHowever, it can still \"turn\" to a different page!"
+                    }
+                  ]
+                },
+                {
+                  "Type": "Button",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/button1",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "HoverTextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 18,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "Text": "Click me!",
+                  "FontType": "Small",
+                  "TextScale": 1,
+                  "Padding": 0,
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 2,
+                  "Alignment": "Center",
+                  "Actions": [
+                    "PeacefulEnd.Parchment_LastPage"
+                  ],
+                  "Sound": "bigSelect"
+                }
+              ]
+            },
+            {
+              "Id": "board-last",
+              "ChapterId": "chapter-1",
+              "Background": [
+                {
+                  "Type": "Heading",
+                  "Text": "Hi!",
+                  "Alignment": "Center",
+                  "Position": {
+                    "X": 0,
+                    "Y": 64
+                  }
+                },
+                {
+                  "Type": "Image",
+                  "TexturePath": "Characters/Junimo",
+                  "TextureSourceRectangle": {
+                    "X": 48,
+                    "Y": 0,
+                    "Width": 16,
+                    "Height": 16
+                  },
+                  "Scale": 8,
+                  "Alignment": "Center",
+                  "VerticalAlignment": "Center",
+                  "Position": {
+                    "X": 0,
+                    "Y": -16
+                  },
+                  "TintColor": "124 252 0",
+                  "Description": "Junimo!",
+                  "Frames": [
+                    {
+                      "Duration": 100,
+                      "SourcePoint": {
+                        "X": 48,
+                        "Y": 0
+                      }
+                    },
+                    {
+                      "Duration": 100,
+                      "SourcePoint": {
+                        "X": 64,
+                        "Y": 0
+                      }
+                    },
+                    {
+                      "Duration": 100,
+                      "SourcePoint": {
+                        "X": 96,
+                        "Y": 0
+                      }
+                    },
+                    {
+                      "Duration": 100,
+                      "SourcePoint": {
+                        "X": 112,
+                        "Y": 0
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
         "PeacefulEnd.Parchment.ExamplePack_Notebook": {
           "Format": "1.5.0",
           "Id": "PeacefulEnd.Parchment.ExamplePack_Notebook",

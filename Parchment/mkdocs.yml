@@ -116,6 +116,7 @@ nav:
       - Trigger actions: concepts/actions.md
       - Book indicators: concepts/indicators.md
       - Opening a book: concepts/opening-books.md
+      - Controller support: concepts/controller.md
   - Reference:
       - Book: reference/book.md
       - Page: reference/page.md

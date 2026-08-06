@@ -118,7 +118,7 @@ The text is watched rather than hooked to the keyboard, so **anything** that cha
 
 **The text is per reading session.** Closing the book empties every input. Nothing is saved, so a search box starts blank each time the book is opened.
 
-**No controller or touch keyboard yet.** The box is driven by the hardware keyboard. Gamepad and mobile players have no on-screen entry for it, so don't make a book's only route through one.
+**Controllers get the on-screen keyboard.** Pressing ++"A"++ on a box with snappy menus on opens the game's own keyboard rather than waiting on a hardware one, and closing it submits. Clicking the box with a mouse still takes the hardware keyboard. See [controller support](../../concepts/controller.md#text-inputs).
 
 ## Sprite fields
 
