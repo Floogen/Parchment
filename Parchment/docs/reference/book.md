@@ -111,10 +111,34 @@ Everything about how the book itself is drawn. All defaults describe Parchment's
 | `TintColor` <span class="opt">optional</span> | [`color`](elements/index.md#colors) | *white* | A color multiplied into the book's greyscale layer. |
 | `FrameWidth` <span class="opt">optional</span> | `int` | `219` | The width of one frame, in unscaled sprite pixels. |
 | `FrameHeight` <span class="opt">optional</span> | `int` | `158` | The height of one frame, in unscaled sprite pixels. |
-| `OpenFrameCount` <span class="opt">optional</span> | `int` | `4` | How many open frames the sheet starts with. |
-| `TurnFrameCount` <span class="opt">optional</span> | `int` | `6` | How many page-turn frames follow the open frames. |
+| `OpenFrameCount` <span class="opt">optional</span> | `int` | `4` | How many open frames the sheet starts with. At least 1, since frame 0 is the book itself. |
+| `TurnFrameCount` <span class="opt">optional</span> | `int` | `6` | How many page-turn frames follow the open frames. `0` for no turn animation, see [Books without a turn animation](#books-without-a-turn-animation). |
 | `Scale` <span class="opt">optional</span> | `number` | `5` | How much the book sprite is magnified. Everything measured against the book art (the page margins, the curl offsets) scales with this. |
 | `Offset` <span class="opt">optional</span> | `Point` | `{ X: 0, Y: 0 }` | A nudge applied to the book's centred position, in unscaled sprite pixels. The book is centred on its **frame**, so if your frame has empty space around the art it won't look centred. |
+
+### Books without a turn animation
+
+Set `TurnFrameCount` to `0` and the sheet holds nothing but the open frames. Turning still works, it just lands on the target spread at once rather than playing anything over the book. `TurnSound` still plays, since the reader asked for the turn and only the art is missing.
+
+```json title="books.json"
+{
+  "Id": "you.Board_Book",
+  "Appearance": {
+    "TexturePath": "Mods/Your.BookModId/Board",
+    "FrameWidth": 200,
+    "FrameHeight": 140,
+    "OpenFrameCount": 1,
+    "TurnFrameCount": 0
+  }
+}
+```
+
+[`TurnDuration`](#animation) and [`ContentSwapProgress`](#animation) then do nothing, as there's no turn to spread across and no turning page for the content to change over behind.
+
+!!! note "`OpenFrameCount` can't be `0`"
+    Frame 0 isn't a step in an animation, it's the book: it's what's drawn while the book sits open or shut on its cover, and what the book's size on screen is measured from. Every book needs that one frame. A board that never animates is `OpenFrameCount: 1`, where frame 0 serves as the closed frame, the open frame and the cover all at once.
+
+A one frame board that also wants no slide or open animation sets [`SlideDuration`](#animation) and [`OpenDuration`](#animation) to `1`, which is the shortest either accepts. They can't be `0`.
 
 ---
 
@@ -152,7 +176,7 @@ Set `IsEnabled` to `false` and neither corner is drawn or clickable. The rest of
 ```
 
 !!! danger "Give the reader another way to turn"
-    The corners are the only page turning Parchment offers on its own. A book without them and without any other way forward is a book stuck on its first spread, and Parchment can't detect that at load, since a page turn can be bound anywhere.
+    The corners are the only page turning Parchment offers a mouse on its own, a controller having the triggers as well (see [controller support](../concepts/controller.md)). A book without corners and without any other way forward is a book stuck on its first spread for anyone reading with a mouse, and Parchment can't detect that at load, since a page turn can be bound anywhere.
 
     Provide a [`Button`](elements/button.md) running `PeacefulEnd.Parchment_NextPage`, or an [`OnKeyPress`](#on-key-press) bind on the book so the keys follow the reader through every page.
 
@@ -167,11 +191,11 @@ To keep the corners clickable but invisible, leave `IsEnabled` alone and point `
 | `SlideDuration` <span class="opt">optional</span> | `number` | `350` | How long the closed book takes to slide up from the bottom of the screen, in milliseconds. Eased, so it starts fast and lands softly. |
 | `OpenDuration` <span class="opt">optional</span> | `number` | `250` | How long the open animation takes, in milliseconds. The open frames are spread evenly across it. |
 | `CloseDuration` <span class="opt">optional</span> | `number` | `400` | How long the close animation takes, in milliseconds. |
-| `TurnDuration` <span class="opt">optional</span> | `number` | `500` | How long a page turn takes, in milliseconds. |
+| `TurnDuration` <span class="opt">optional</span> | `number` | `500` | How long a page turn takes, in milliseconds. Ignored when `TurnFrameCount` is `0`. |
 | `CurlDuration` <span class="opt">optional</span> | `number` | `250` | How long the corner curl takes to play through all its frames, in milliseconds. |
-| `ContentSwapProgress` <span class="opt">optional</span> | `number` | `0.5` | The point in a page turn at which the page content changes over, from 0 to 1. Tune this so the swap happens while the turning page hides it. |
+| `ContentSwapProgress` <span class="opt">optional</span> | `number` | `0.5` | The point in a page turn at which the page content changes over, from 0 to 1. Tune this so the swap happens while the turning page hides it. Ignored when `TurnFrameCount` is `0`. |
 | `OpenSound` <span class="opt">optional</span> | `string` | `shwip` | Played when the book lands and again when it finishes opening. `null` for silence. |
-| `TurnSound` <span class="opt">optional</span> | `string` | `shwip` | Played when a page turn starts. |
+| `TurnSound` <span class="opt">optional</span> | `string` | `shwip` | Played when a page turn starts, including when `TurnFrameCount` is `0` and there's nothing to see. |
 | `CloseSound` <span class="opt">optional</span> | `string?` | — | Played when the book starts closing. |
 
 ---

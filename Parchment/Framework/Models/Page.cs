@@ -356,6 +356,36 @@ namespace Parchment.Framework.Models
             return null;
         }
 
+        /// <summary>Gathers everywhere on screen a controller can send the cursor, being the collecting counterpart to <see cref="HitTest"/>.
+        /// The same lists are walked in the same order and measured against the same rectangles, so a controller can only reach what a mouse could already have reached.
+        /// Only <see cref="Element.IsInteractive"/> elements are taken, whatever list they came out of, since an element that does nothing on hover or click is not worth stopping at.
+        /// </summary>
+        public static void CollectTargets(IReadOnlyList<Element> elements, Rectangle containerBounds, List<SnapTarget> targets)
+        {
+            foreach (Element element in elements)
+            {
+                // An element sized out of the layout is not drawn, so there is nothing to reach on it or inside it
+                if (element.Bounds == Rectangle.Empty)
+                {
+                    continue;
+                }
+
+                Rectangle screenBounds = new Rectangle(element.Bounds.X + containerBounds.X, element.Bounds.Y + containerBounds.Y, element.Bounds.Width, element.Bounds.Height);
+                Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
+
+                // The element is taken before what it holds, so a spread is walked in the order it was authored in and the first target is the one at the top of the page
+                if (element.IsInteractive is true)
+                {
+                    targets.Add(new SnapTarget(screenBounds, element));
+                }
+
+                // A container's own layers are anchored to its content area, the same rectangle its children are measured against
+                CollectTargets(element.Background, contentBounds, targets);
+                CollectTargets(element.Children, contentBounds, targets);
+                CollectTargets(element.Foreground, contentBounds, targets);
+            }
+        }
+
         /// <summary>Everything an element reaches on screen, being its own bounds unioned with whatever it holds.
         /// This is what decides whether the contents are worth walking, since a container can be smaller than what it shows or carry no size at all when nothing inside it stacks.
         /// Only the immediate contents are unioned, as a layer that overflows a container that itself overflows is far enough into the weeds to leave to the bounds it settled on.
