@@ -163,7 +163,13 @@ namespace Parchment.Framework.API
 
         public bool TryGetRightPageBounds(out Rectangle bounds)
         {
-            return TryGetBounds(menu => menu.GetRightPageBounds(), out bounds);
+            if (TryGetBounds(menu => menu.GetRightPageBounds(), out bounds) is false)
+            {
+                return false;
+            }
+
+            // A book showing a single page has no right page, so nothing is handed back rather than an empty rectangle that could be read as one
+            return bounds.IsEmpty is false;
         }
 
         /// <summary>Reads a rectangle off whichever book is open, or reports that none is.</summary>

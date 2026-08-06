@@ -162,11 +162,34 @@ Where the page content sits within the book art, in unscaled sprite pixels, so t
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `MarginOuter` <span class="opt">optional</span> | `int` | `12` | The gap between the book frame's left or right edge and the page content. |
-| `MarginSpine` <span class="opt">optional</span> | `int` | `6` | The gap between the spine and the page content, on each side. |
+| `MarginSpine` <span class="opt">optional</span> | `int` | `6` | The gap between the spine and the page content, on each side. Serves as the right hand margin when `IsSinglePage` is set. |
 | `MarginTop` <span class="opt">optional</span> | `int` | `27` | The gap between the book frame's top edge and the page content. |
 | `MarginBottom` <span class="opt">optional</span> | `int` | `28` | The gap between the book frame's bottom edge and the page content. |
+| `IsSinglePage` <span class="opt">optional</span> | `bool` | `false` | Whether the book shows one page at a time rather than a spread of two. See [Single page books](#single-page-books). |
 
 Together these define each page's content area, which is what every element's width is measured against and what `Fill` fills.
+
+### Single page books
+
+Set `IsSinglePage` for a notepad, a letter, a sign or anything else that isn't a bound book with a spine. The page then runs the whole width of the frame rather than half of it, and each page is a spread of its own, so turning moves one page at a time.
+
+```json title="books.json"
+{
+  "Id": "you.Notepad_Book",
+  "Layout": {
+    "IsSinglePage": true,
+    "MarginOuter": 10,
+    "MarginSpine": 10
+  }
+}
+```
+
+`MarginOuter` is the left hand margin and `MarginSpine` the right, so the two edges stay separately adjustable even though there's no spine between them.
+
+Everything else works as it does for a two page book. Supply notepad art through [`Appearance`](#appearance) with its own `OpenFrameCount` and `TurnFrameCount`, and place both corners of [`PageCurl`](#page-curl) over the one page.
+
+!!! note "There is no right page"
+    `PeacefulEnd.Parchment_IsHoveringRightPage` is never true, `TryGetRightPageBounds` on the API returns false, and `PeacefulEnd.Parchment_IsHoveringLeftPage` means the cursor is over the page. Anything that would have run on a right page (triggers, keybinds, frame actions) simply has nothing to run on.
 
 ---
 

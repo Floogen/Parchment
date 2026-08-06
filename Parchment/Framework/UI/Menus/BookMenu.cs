@@ -427,7 +427,7 @@ namespace Parchment.Framework.UI.Menus
                 if (pageIndex >= 0)
                 {
                     _currentChapterIndex = Book.GetChapterIndexForPage(pageIndex);
-                    _currentSpread = (pageIndex - GetChapter(_currentChapterIndex).FirstPageIndex) / 2;
+                    _currentSpread = (pageIndex - GetChapter(_currentChapterIndex).FirstPageIndex) / PagesPerSpread;
 
                     return;
                 }
@@ -591,7 +591,7 @@ namespace Parchment.Framework.UI.Menus
             }
 
             int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
-            int targetSpread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
+            int targetSpread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / PagesPerSpread;
 
             BeginJump(chapterIndex, targetSpread, skipAnimation);
 
@@ -623,7 +623,7 @@ namespace Parchment.Framework.UI.Menus
                 return false;
             }
 
-            int targetSpread = pageInChapter / 2;
+            int targetSpread = pageInChapter / PagesPerSpread;
 
             BeginJump(chapterIndex, targetSpread, skipAnimation);
 
@@ -691,7 +691,7 @@ namespace Parchment.Framework.UI.Menus
             }
 
             int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
-            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
+            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / PagesPerSpread;
 
             ApplyInitialSpread(chapterIndex, spread);
             error = null;
@@ -729,7 +729,7 @@ namespace Parchment.Framework.UI.Menus
                 return false;
             }
 
-            ApplyInitialSpread(chapterIndex, pageInChapter / 2);
+            ApplyInitialSpread(chapterIndex, pageInChapter / PagesPerSpread);
             error = null;
             return true;
         }
@@ -769,7 +769,7 @@ namespace Parchment.Framework.UI.Menus
             }
 
             int chapterIndex = Book.GetChapterIndexForPage(pageIndex);
-            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / 2;
+            int spread = (pageIndex - GetChapter(chapterIndex).FirstPageIndex) / PagesPerSpread;
 
             ApplyInitialSpread(chapterIndex, spread);
             error = null;
@@ -943,10 +943,19 @@ namespace Parchment.Framework.UI.Menus
             return GetPageIndex(_currentChapterIndex, _currentSpread, left: false);
         }
 
+        /// <summary>How many pages one spread holds, being one for a book that shows a single page at a time and two for one with a spine.</summary>
+        private int PagesPerSpread => Book.Data.Layout.IsSinglePage ? 1 : 2;
+
         private int GetPageIndex(int chapterIndex, int spread, bool left)
         {
+            // A single page book has no right page, so asking for one is out of range in the same way as asking past the end of a chapter, which every caller already handles
+            if (left is false && Book.Data.Layout.IsSinglePage is true)
+            {
+                return int.MaxValue;
+            }
+
             Chapter chapter = GetChapter(chapterIndex);
-            int pageIndex = chapter.FirstPageIndex + spread * 2 + (left ? 0 : 1);
+            int pageIndex = chapter.FirstPageIndex + spread * PagesPerSpread + (left ? 0 : 1);
 
             return pageIndex > chapter.LastPageIndex ? int.MaxValue : pageIndex;
         }
@@ -975,9 +984,14 @@ namespace Parchment.Framework.UI.Menus
             return new Rectangle(bookBounds.X + marginOuter, bookBounds.Y + marginTop, pageSize.X, pageSize.Y);
         }
 
-        /// <summary>The right page's content area on screen, inside the book's margins.</summary>
+        /// <summary>The right page's content area on screen, inside the book's margins. Empty for a book showing a single page at a time, which has no right page.</summary>
         public Rectangle GetRightPageBounds()
         {
+            if (Book.Data.Layout.IsSinglePage is true)
+            {
+                return Rectangle.Empty;
+            }
+
             Rectangle bookBounds = GetBookScreenBounds();
             int spineX = bookBounds.X + bookBounds.Width / 2;
 
@@ -2461,6 +2475,19 @@ namespace Parchment.Framework.UI.Menus
 
             float turnProgress = Math.Clamp(_animationTimer / _animation.TurnDuration, 0f, 1f);
             bool hasSwapped = turnProgress >= _animation.ContentSwapProgress;
+
+            // A single page is the whole turn rather than a side of one, so it carries the old content across to the swap and the new content on from it, never going blank
+            if (Book.Data.Layout.IsSinglePage is true)
+            {
+                if (hasSwapped)
+                {
+                    DrawSide(b, _pendingChapterIndex, _pendingSpread, left: true);
+                    return;
+                }
+
+                DrawSide(b, _currentChapterIndex, _currentSpread, left: true);
+                return;
+            }
 
             // The swept side (right when forward, left when backward): blank until swap then NEW content
             // The stationary side: Old content until swap then blank until landing

@@ -71,6 +71,7 @@ namespace Parchment.Framework.API
         /// <summary>Gets the right page's content area on screen, being the region a page's stacked elements are laid out in.</summary>
         /// <param name="bounds">The page's bounds, when this returns true.</param>
         /// <returns>False when no Parchment book is open.</returns>
+        /// <remarks>Returns false for a book showing a single page at a time, as it has no right page.</remarks>
         bool TryGetRightPageBounds(out Rectangle bounds);
 
         /// <summary>Opens a book in the book menu at a page number.</summary>

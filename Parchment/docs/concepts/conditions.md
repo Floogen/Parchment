@@ -132,8 +132,8 @@ The direction of `InputMatches` is the thing to keep straight: the typed text is
 
 | Query | Arguments | True when |
 | --- | --- | --- |
-| `PeacefulEnd.Parchment_IsHoveringLeftPage` | — | The cursor is over the left page's content area. |
-| `PeacefulEnd.Parchment_IsHoveringRightPage` | — | The cursor is over the right page's content area. |
+| `PeacefulEnd.Parchment_IsHoveringLeftPage` | — | The cursor is over the left page's content area, or over the page in a [single page book](../reference/book.md#single-page-books). |
+| `PeacefulEnd.Parchment_IsHoveringRightPage` | — | The cursor is over the right page's content area. Never true in a [single page book](../reference/book.md#single-page-books). |
 | `PeacefulEnd.Parchment_IsHoveringTag` | `<tag>...` | The element under the cursor carries any of the [tags](../reference/tags.md). Needs no `Id`, since it reads whatever is hovered. |
 
 !!! tip "Prefer `CurrentPageId` over `CurrentPageIndex`"
