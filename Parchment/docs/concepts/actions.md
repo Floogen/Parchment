@@ -311,7 +311,7 @@ A token is a placeholder replaced with something the book knows at the moment it
 | An element's `DisplayName` and `Description` | As the cursor arrives, then again alongside conditions while it rests there. |
 | A [`Condition`](conditions.md#tokens-in-conditions) | Just before the query is asked. |
 
-These are Parchment's own tokens. Text and tooltips also understand the game's [tokenizable strings](#game-tokens), which are written in square brackets instead.
+Every one of those also understands the game's [tokenizable strings](#game-tokens), which are written in square brackets instead.
 
 | Token | Means |
 | --- | --- |
@@ -385,7 +385,7 @@ In an **action** or a [**condition**](conditions.md#tokens-in-conditions) a valu
 
 ### Game tokens
 
-The game has a placeholder vocabulary of its own, written in square brackets, and any element's `Text`, `DisplayName` and `Description` understand it alongside Parchment's:
+The game has a placeholder vocabulary of its own, written in square brackets, understood everywhere Parchment's own are:
 
 ```json title="A paragraph using game tokens"
 {
@@ -409,7 +409,7 @@ Parchment resolves its own tokens first, so one can be an argument to a game tok
 
 A value a Parchment token substitutes is always literal text. Square brackets in it are dropped rather than parsed, so an entry someone typed into an [`Input`](../reference/elements/input.md) can't turn itself into a token.
 
-A game token that picks at random, such as `[PositiveAdjective]`, settles on one value per element rather than rerolling. Text is re-resolved several times a second, and a token that answered differently each time would relayout the page with every answer.
+A game token that picks at random, such as `[PositiveAdjective]`, settles on one value per element for the day rather than rerolling. Text is re-resolved several times a second, and a token that answered differently each time would relayout the page with every answer. A [`Condition`](conditions.md) holds still for the same reason. An [action](#game-tokens-in-actions) doesn't.
 
 A tooltip works the same way, which is often where a game token earns its place:
 
@@ -423,11 +423,27 @@ A tooltip works the same way, which is often where a game token earns its place:
 }
 ```
 
-!!! warning "Square brackets are token syntax"
-    Text using brackets as ordinary punctuation, such as `see [fig. 1]`, is handed to the game as a token attempt. The game logs what it rejected and Parchment keeps your text as it was, so nothing is lost beyond a line in the log. Set `ParseTokenizableStrings: false` on the element to turn the pass off entirely.
+### Game tokens in actions
 
-!!! note "Actions are the game's to parse"
-    Game tokens resolve in text only. An `Action` is handed to the game whole, and the game parses whichever of the action's arguments accept them. Resolving one early would split a value containing a space into several arguments.
+An action resolves them the same way, and for the same reason Parchment's own values are quoted there: each `[Token]` is read on its own and its result quoted, so a farm name of two words stays one argument rather than becoming two.
+
+```json title="Storing what the game knows"
+{
+  "Type": "Button",
+  "Text": "Sign the ledger",
+  "Action": "PeacefulEnd.Parchment_SetVariable {{ModId}}_Almanac signedBy [FarmerName]"
+}
+```
+
+Quote a token yourself and Parchment takes those quotes over rather than adding a second pair, so `"[FarmName]"` behaves the same as `[FarmName]`. A token written against a prefix, such as `Farm_[FarmName]`, is left unquoted, since quoting there would break the argument in two instead of holding it together.
+
+One thing does differ from text. A token that picks at random, such as `[PositiveAdjective]`, picks afresh every time the action runs rather than holding its answer for the day, so a button pressed twice gets two answers. Text is re-resolved several times a second and has to hold still. An action runs once and doesn't.
+
+!!! warning "An action resolves once, at the moment it runs"
+    A [variable](../reference/variables.md) written from an action holds the value the token had when the button was pressed, not a live one. `[Season]` set in spring still reads `spring` in fall. Where you want the current answer, put the token in the element's `Text` and leave the variable out of it.
+
+!!! warning "Square brackets are token syntax"
+    Text using brackets as ordinary punctuation, such as `see [fig. 1]`, is handed to the game as a token attempt. The game logs what it rejected and Parchment keeps your text as it was, so nothing is lost beyond a line in the log. Set `ParseTokenizableStrings: false` to turn the pass off entirely: on the [element](../reference/elements/index.md) for its text and its actions, on the [keybind](../reference/book.md#on-key-press) or the page's [`OnView`](../reference/page.md#on-view) entry for theirs. That's also how you store a token as the characters themselves, for something else to resolve later.
 
 ## Combining with conditions
 

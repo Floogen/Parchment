@@ -239,6 +239,7 @@ An empty search box matches every **tagged** page, so the full contents shows un
 | --- | --- | --- | --- |
 | `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../concepts/conditions.md) deciding whether `Actions` run. When omitted, they always run. Understands [tokens](../concepts/conditions.md#tokens-in-conditions). |
 | `Actions` <span class="req">required</span> | list of `string` | — | [Trigger actions](../concepts/actions.md), run in order. At least one entry is required. Understands [tokens](../concepts/actions.md#tokens). |
+| `ParseTokenizableStrings` <span class="opt">optional</span> | `bool` | `true` | Whether the game's `[Token]` [tokenizable strings](../concepts/actions.md#game-tokens) are resolved in this entry's `Condition` and `Actions`. A trigger has no element to take this from, so it carries its own. |
 
 Entries are independent. Each condition is checked and each list runs on its own, so one page can carry several triggers firing under different circumstances.
 

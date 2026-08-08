@@ -1662,11 +1662,12 @@ namespace Parchment.Framework.UI.Menus
         /// </summary>
         /// <param name="element">The element the actions belong to, read by the tokens that take their value from one. Null for actions belonging to no element, such as a page's OnView trigger or a keybind.</param>
         /// <param name="label">How the actions are named in the log, such as "Element action" or "OnView action on page 'contents'".</param>
-        private void RunActions(IEnumerable<string> actions, Element? element, string label)
+        /// <param name="parseTokenizableStrings">Whether the game's [Token] forms are resolved, for actions whose owner is not an element. Null takes the element's answer.</param>
+        private void RunActions(IEnumerable<string> actions, Element? element, string label, bool? parseTokenizableStrings = null)
         {
             foreach (string action in actions)
             {
-                string resolvedAction = ActionTokenHelper.Resolve(action, element);
+                string resolvedAction = ActionTokenHelper.Resolve(action, element, parseTokenizableStrings);
 
                 if (TriggerActionManager.TryRunAction(resolvedAction, out string error, out Exception exception) is false)
                 {
@@ -1758,13 +1759,13 @@ namespace Parchment.Framework.UI.Menus
             string pageId = _pages[pageIndex].Data.Id;
             foreach (PageTriggerData trigger in triggers)
             {
-                if (ConditionHelper.Check(trigger.Condition) is false)
+                if (ConditionHelper.Check(trigger.Condition, element: null, trigger.ParseTokenizableStrings) is false)
                 {
                     continue;
                 }
 
                 // No element owns a page trigger, so the tokens reading from one are left in place and logged
-                RunActions(trigger.Actions, element: null, $"OnView action on page '{pageId}'");
+                RunActions(trigger.Actions, element: null, $"OnView action on page '{pageId}'", trigger.ParseTokenizableStrings);
             }
         }
 
@@ -1838,7 +1839,7 @@ namespace Parchment.Framework.UI.Menus
                     continue;
                 }
 
-                if (ConditionHelper.Check(keybind.Condition) is false)
+                if (ConditionHelper.Check(keybind.Condition, element: null, keybind.ParseTokenizableStrings) is false)
                 {
                     continue;
                 }
@@ -1849,7 +1850,7 @@ namespace Parchment.Framework.UI.Menus
                 PlaySound(keybind.Sound);
 
                 // No element owns a keybind, so the tokens reading from one are left in place and logged
-                RunActions(keybind.GetActions(), element: null, $"OnKeyPress action on {source}");
+                RunActions(keybind.GetActions(), element: null, $"OnKeyPress action on {source}", keybind.ParseTokenizableStrings);
             }
 
             return isSuppressed;
