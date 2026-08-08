@@ -277,7 +277,9 @@ Because a changed frame list is a changed animation, the cycle restarts from its
 
 ## Tokens in conditions
 
-A `Condition` understands the same [tokens](actions.md#tokens) an action does, resolved just before the query is asked. That covers an element's `Condition`, an [animation frame](#animation-frames)'s, a [keybind](../reference/book.md)'s and a page's [`OnView`](../reference/page.md) condition.
+A `Condition` understands the same [tokens](actions.md#tokens) an action does, resolved just before the query is asked. That covers an element's `Condition`, an [animation frame](#animation-frames)'s, a [keybind](../reference/book.md#on-key-press)'s and a page's [`OnView`](../reference/page.md#on-view) condition.
+
+A keybind and an `OnView` belong to the page rather than to an element, so the [four tokens reading from one](actions.md#tokens) are left in place there, in a condition as much as in the action beside it.
 
 ```json
 {

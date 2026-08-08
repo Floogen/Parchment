@@ -298,11 +298,15 @@ Setting a variable doesn't rewrite anything by itself. A [`Condition`](condition
 
 ## Tokens
 
-A token is a placeholder replaced with something the book knows at the moment it's needed. They work in four places, and mean the same thing in each:
+A token is a placeholder replaced with something the book knows at the moment it's needed. Every place a book takes an action resolves them, and they mean the same thing in each:
 
 | Where | Resolved |
 | --- | --- |
-| An `Action` or `HoverAction` | Just before the action runs. |
+| An element's `Action`, `Actions`, `HoverAction` or `HoverActions` | Just before the action runs. |
+| An [`Input`](../reference/elements/input.md#input-fields)'s `SubmitAction`, `SubmitActions`, `TextChangedAction` or `TextChangedActions` | Just before the action runs. |
+| An [animation frame](../reference/elements/image.md#frame-actions)'s `Action` or `Actions` | Just before the action runs. |
+| A [keybind](../reference/book.md#on-key-press)'s `Action` or `Actions` | Just before the action runs. |
+| A page's [`OnView`](../reference/page.md#on-view) `Actions` | Just before the action runs. |
 | An element's [`Text`](../reference/elements/index.md) | As the element is laid out. |
 | An element's `DisplayName` and `Description` | As the cursor arrives, then again alongside conditions while it rests there. |
 | A [`Condition`](conditions.md#tokens-in-conditions) | Just before the query is asked. |
@@ -322,6 +326,9 @@ These are Parchment's own tokens. Text and tooltips also understand the game's [
 | `%GridTotal:someId%` | How many candidates the grid has before any filtering. |
 
 The grid tokens read a [`Grid`](../reference/elements/grid.md) by its `Id`, found on the book's own layers or on either visible page. They work on a grid with authored children too, where "matched" means visible children and "total" means all of them.
+
+!!! note "Four of them need an element"
+    `%Input%` on its own, `%Item%`, `%Item.Something%` and `%Tags%` take their value from the element they're written on. A [keybind](../reference/book.md#on-key-press) and a page's [`OnView`](../reference/page.md#on-view) belong to the page rather than to an element, so those four are left in place there and logged. Everything else in the table works anywhere, including inside a keybind or an `OnView`, since none of them read from an element. `%Input:someId%` is the way to reach a typed entry from either.
 
 ```json
 {

@@ -14,8 +14,8 @@ Each entry in `Frames` or `HoverFrames`:
 | `Offset` <span class="opt">optional</span> | `Point` | `{ X: 0, Y: 0 }` | How far this frame is shifted from where the element sits, in unscaled sprite pixels × the element's `Scale`. Positive moves right and down. See [Frame offset](../elements/image.md#frame-offset). |
 | `Duration` <span class="opt">optional</span> | `number` | *the element's `FrameDuration`* | How long this frame is shown in milliseconds. |
 | `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../../concepts/conditions.md) deciding whether this frame plays. When omitted the frame always plays. Understands [tokens](../../concepts/conditions.md#tokens-in-conditions). |
-| `Action` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) run each time this frame starts. See [Frame actions](../elements/image.md#frame-actions). |
-| `Actions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order each time this frame starts. Combined with `Action` rather than replacing it. |
+| `Action` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) run each time this frame starts. Understands [tokens](../../concepts/actions.md#tokens). See [Frame actions](../elements/image.md#frame-actions). |
+| `Actions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order each time this frame starts. Combined with `Action` rather than replacing it. Understands [tokens](../../concepts/actions.md#tokens). |
 | `SourcePoint` <span class="opt">optional</span> | `Point` | *the element's own sprite* | **[Sprite elements](index.md#sprite-fields) only.** The coordinate of the art for this frame, inheriting the element's `TextureSourceRectangle` for width and height. |
 | `Scale` <span class="opt">optional</span> | `number` | `1` | **[`Image`](../elements/image.md) only.** A multiplier on the element's `Scale` while this frame draws. See [Frame scale](../elements/image.md#frame-scale). |
 

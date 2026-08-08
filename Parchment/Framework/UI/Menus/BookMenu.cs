@@ -1641,7 +1641,7 @@ namespace Parchment.Framework.UI.Menus
         /// </summary>
         private void RunClickActions(Element element)
         {
-            RunActions(element.Data.GetActions(), element, "action");
+            RunActions(element.Data.GetActions(), element, "Element action");
         }
 
         /// <summary>Runs an input's submit actions in order, from <see cref="InputElementData.SubmitAction"/> and then <see cref="InputElementData.SubmitActions"/>.</summary>
@@ -1652,12 +1652,16 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            RunActions(inputData.GetSubmitActions(), element, "submit action");
+            RunActions(inputData.GetSubmitActions(), element, "Element submit action");
 
             RefreshVisiblePages();
         }
 
-        /// <summary>Runs a list of trigger actions in order, resolving any placeholders first. A failing action doesn't stop the ones after it.</summary>
+        /// <summary>Runs a list of trigger actions in order, resolving any placeholders first. A failing action doesn't stop the ones after it.
+        /// Every action path goes through here, so what an author can write in one of them is what they can write in all of them.
+        /// </summary>
+        /// <param name="element">The element the actions belong to, read by the tokens that take their value from one. Null for actions belonging to no element, such as a page's OnView trigger or a keybind.</param>
+        /// <param name="label">How the actions are named in the log, such as "Element action" or "OnView action on page 'contents'".</param>
         private void RunActions(IEnumerable<string> actions, Element? element, string label)
         {
             foreach (string action in actions)
@@ -1666,7 +1670,7 @@ namespace Parchment.Framework.UI.Menus
 
                 if (TriggerActionManager.TryRunAction(resolvedAction, out string error, out Exception exception) is false)
                 {
-                    Parchment.monitor.Log($"Element {label} '{resolvedAction}' failed: {error}", LogLevel.Warn);
+                    Parchment.monitor.Log($"{label} '{resolvedAction}' failed: {error}", LogLevel.Warn);
 
                     if (exception is not null)
                     {
@@ -1686,7 +1690,7 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            RunActions(element.Data.GetHoverActions(), element, "hover action");
+            RunActions(element.Data.GetHoverActions(), element, "Element hover action");
 
             RefreshVisiblePages();
         }
@@ -1759,20 +1763,8 @@ namespace Parchment.Framework.UI.Menus
                     continue;
                 }
 
-                foreach (string action in trigger.Actions)
-                {
-                    string resolvedAction = ActionTokenHelper.Resolve(action, element: null);
-
-                    if (TriggerActionManager.TryRunAction(resolvedAction, out string error, out Exception exception) is false)
-                    {
-                        Parchment.monitor.Log($"OnView action '{resolvedAction}' on page '{pageId}' failed: {error}", LogLevel.Warn);
-
-                        if (exception is not null)
-                        {
-                            Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
-                        }
-                    }
-                }
+                // No element owns a page trigger, so the tokens reading from one are left in place and logged
+                RunActions(trigger.Actions, element: null, $"OnView action on page '{pageId}'");
             }
         }
 
@@ -1856,18 +1848,8 @@ namespace Parchment.Framework.UI.Menus
 
                 PlaySound(keybind.Sound);
 
-                foreach (string action in keybind.GetActions())
-                {
-                    if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
-                    {
-                        Parchment.monitor.Log($"OnKeyPress action '{action}' on {source} failed: {error}", LogLevel.Warn);
-
-                        if (exception is not null)
-                        {
-                            Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
-                        }
-                    }
-                }
+                // No element owns a keybind, so the tokens reading from one are left in place and logged
+                RunActions(keybind.GetActions(), element: null, $"OnKeyPress action on {source}");
             }
 
             return isSuppressed;
@@ -2231,7 +2213,7 @@ namespace Parchment.Framework.UI.Menus
                     continue;
                 }
 
-                RunActions(activeFrame.GetActions(), element, "frame action");
+                RunActions(activeFrame.GetActions(), element, "Element frame action");
                 hasRunAny = true;
             }
 
@@ -2314,7 +2296,7 @@ namespace Parchment.Framework.UI.Menus
 
                 element.TextChangedDelayRemaining = null;
 
-                RunActions(inputData.GetTextChangedActions(), element, "text changed action");
+                RunActions(inputData.GetTextChangedActions(), element, "Element text changed action");
                 hasRunAny = true;
             }
 
