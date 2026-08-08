@@ -38,6 +38,11 @@ namespace Parchment.Framework.API
         IElementBuilder Font(string fontType);
 
         IElementBuilder TextColor(string color);
+
+        /// <summary>The color of the drop shadow drawn behind the element's text, as a name such as "Black" or a value such as "0 0 0 128".
+        /// Its own alpha decides how strongly the shadow comes through. Left unset, the game's shadow color follows the text color's alpha instead.</summary>
+        IElementBuilder ShadowColor(string color);
+
         IElementBuilder TextScale(float scale);
         IElementBuilder Scale(float scale);
         IElementBuilder Rotation(float rotation);

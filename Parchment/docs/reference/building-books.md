@@ -262,6 +262,7 @@ Most methods are named after the field they set, so anything you've written in a
 | `TextAlignment(alignment)` | `TextAlignment`, one of `"Left"`, `"Center"`, `"Right"` |
 | `Font(fontType)` | `FontType`, one of `"Dialogue"`, `"Small"`, `"Tiny"`, `"SpriteText"` |
 | `TextColor(color)` | `TextColor` |
+| `ShadowColor(color)` | `ShadowColor` |
 | `TextScale(scale)` | `TextScale` |
 | `Scale(scale)` | `Scale` |
 | `Rotation(rotation)` | `Rotation` |

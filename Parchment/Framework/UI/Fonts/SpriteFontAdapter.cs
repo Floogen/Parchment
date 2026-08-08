@@ -24,12 +24,12 @@ namespace Parchment.Framework.UI.Fonts
             return _spriteFont.MeasureString(text) * scale;
         }
 
-        /// <summary>Draws the text, telling the shadow how strongly to come through as well as the glyphs.
-        /// The shadow is drawn in the game's own color rather than the one passed in, so a faded color on its own would leave it behind while the text underneath went.
+        /// <summary>Draws the text with its shadow behind it, both exactly as given.
+        /// How strongly the shadow comes through is settled by the element before it reaches here, since an authored shadow color and the game's own follow the text's alpha differently.
         /// </summary>
-        public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float scale)
+        public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale)
         {
-            Utility.drawTextWithShadow(spriteBatch, text, _spriteFont, position, color, scale, shadowIntensity: color.A / 255f);
+            Utility.drawTextWithColoredShadow(spriteBatch, text, _spriteFont, position, color, shadowColor, scale);
         }
     }
 }
