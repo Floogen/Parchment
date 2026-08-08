@@ -112,15 +112,19 @@ namespace Parchment.Framework.UI.Rendering.Elements
             {
                 if (string.IsNullOrEmpty(data.Placeholder) is false)
                 {
-                    element.Font.DrawString(spriteBatch, Truncate(data.Placeholder, element, inputLayout, textBounds.Width), new Vector2(textBounds.X, textBounds.Y), inputLayout.PlaceholderColor, inputLayout.TextScale);
+                    // Faded here rather than in the layout, as the placeholder color is measured once while the fade moves every frame
+                    Color placeholderColor = inputLayout.PlaceholderColor * element.DrawAlpha;
+
+                    element.Font.DrawString(spriteBatch, Truncate(data.Placeholder, element, inputLayout, textBounds.Width), new Vector2(textBounds.X, textBounds.Y), placeholderColor, element.GetShadowColor(placeholderColor), inputLayout.TextScale);
                 }
 
                 DrawCaret(spriteBatch, element, inputLayout, textBounds, 0f);
                 return;
             }
 
+            Color textColor = element.TextColor * element.DrawAlpha;
             string visibleText = Truncate(text, element, inputLayout, textBounds.Width, keepEnd: true);
-            element.Font.DrawString(spriteBatch, visibleText, new Vector2(textBounds.X, textBounds.Y), element.TextColor, inputLayout.TextScale);
+            element.Font.DrawString(spriteBatch, visibleText, new Vector2(textBounds.X, textBounds.Y), textColor, element.GetShadowColor(textColor), inputLayout.TextScale);
 
             DrawCaret(spriteBatch, element, inputLayout, textBounds, element.Font.MeasureString(visibleText, inputLayout.TextScale).X);
         }

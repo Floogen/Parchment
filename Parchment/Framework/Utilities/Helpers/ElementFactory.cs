@@ -120,6 +120,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 Results = data is GridElementData sourceGrid && sourceGrid.Source is not null ? new ResultSet(sourceGrid.Source) : null,
                 Font = font,
                 TextColor = ResolveTextColor(data) ?? Game1.textColor,
+                ShadowColor = ResolveShadowColor(data),
                 TintColor = ResolveTintColor(data) ?? Color.White,
                 TextureAssetName = textureAssetName,
                 SourceRectangle = sourceRectangle,
@@ -305,6 +306,22 @@ namespace Parchment.Framework.Utilities.Helpers
             if (ColorParser.TryParse(textContent.TextColor, out Color parsedColor) is false)
             {
                 Parchment.monitor.Log($"Element has an unparsable color '{textContent.TextColor}'; using the default.", LogLevel.Warn);
+                return null;
+            }
+
+            return parsedColor;
+        }
+
+        private static Color? ResolveShadowColor(ElementData data)
+        {
+            if (data is not ITextContent textContent || string.IsNullOrWhiteSpace(textContent.ShadowColor))
+            {
+                return null;
+            }
+
+            if (ColorParser.TryParse(textContent.ShadowColor, out Color parsedColor) is false)
+            {
+                Parchment.monitor.Log($"Element has an unparsable shadow color '{textContent.ShadowColor}'; using the default.", LogLevel.Warn);
                 return null;
             }
 

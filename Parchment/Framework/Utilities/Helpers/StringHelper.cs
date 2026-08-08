@@ -18,6 +18,9 @@ namespace Parchment.Framework.Utilities.Helpers
             // Every text element draws through here, so this is the only place text has to be told about a fade
             Color fadedColor = textColor * element.DrawAlpha;
 
+            // Resolved against the faded color, so a default shadow follows the text down while a given one keeps the strength it was given
+            Color shadowColor = element.GetShadowColor(fadedColor);
+
             float currentY = bounds.Y;
             foreach (WrappedLine line in wrappedText.Lines)
             {
@@ -29,7 +32,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 if (line.Text.Length > 0)
                 {
                     float lineX = AlignmentHelper.GetAlignedX(bounds, line.Size.X, element.Data.Alignment);
-                    element.Font.DrawString(spriteBatch, line.Text, new Vector2(lineX, currentY), fadedColor, scale);
+                    element.Font.DrawString(spriteBatch, line.Text, new Vector2(lineX, currentY), fadedColor, shadowColor, scale);
                 }
 
                 currentY += line.Size.Y;

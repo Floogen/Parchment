@@ -46,6 +46,7 @@ Unlike every other text element, `PageNumber` takes no `Text`. Giving it one is 
 | --- | --- | --- | --- |
 | `FontType` <span class="opt">optional</span> | [`font type`](index.md#font-types) | `Small` | Which font to draw the number with. |
 | `TextColor` <span class="opt">optional</span> | [`color`](index.md#colors) | *the book's default* | The number's color. |
+| `ShadowColor` <span class="opt">optional</span> | [`color`](index.md#colors) | *the game's shadow color* | The color of the drop shadow drawn behind the number, alpha included. Left off, the shadow follows `TextColor`'s alpha instead. Ignored when `FontType` is `SpriteText`, which draws its own outline. |
 
 ## Common fields
 

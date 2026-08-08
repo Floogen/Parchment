@@ -24,6 +24,12 @@ namespace Parchment.Framework.Models.Data
         public SpriteEffects SpriteEffects { get; set; }
 
         public string? TextColor { get; set; }
+
+        /// <summary>The color of the drop shadow drawn behind the text, whose own alpha decides how strongly it comes through.
+        /// Left unset, the game's shadow color is used and follows <see cref="TextColor"/>'s alpha instead. Ignored when the font is SpriteText, which draws its own outline.
+        /// </summary>
+        public string? ShadowColor { get; set; }
+
         public FontType FontType { get; set; }
         public string? Text { get; set; }
 

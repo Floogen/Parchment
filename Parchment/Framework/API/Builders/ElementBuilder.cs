@@ -73,6 +73,7 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder TextAlignment(string alignment) { return Set("TextAlignment", alignment); }
         public IElementBuilder Font(string fontType) { return Set("FontType", fontType); }
         public IElementBuilder TextColor(string color) { return Set("TextColor", color); }
+        public IElementBuilder ShadowColor(string color) { return Set("ShadowColor", color); }
         public IElementBuilder TextScale(float scale) { return Set("TextScale", scale); }
         public IElementBuilder Scale(float scale) { return Set("Scale", scale); }
         public IElementBuilder Rotation(float rotation) { return Set("Rotation", rotation); }

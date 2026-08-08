@@ -41,6 +41,12 @@ namespace Parchment.Framework.Models
         public Rectangle? SourceRectangle { get; set; }
 
         public Color TextColor { get; init; } = Game1.textColor;
+
+        /// <summary>The color of the drop shadow drawn behind this element's text, or null when the element leaves it to the game's own.
+        /// Read through <see cref="GetShadowColor"/> rather than directly, since a given color and the default answer to a fade differently.
+        /// </summary>
+        public Color? ShadowColor { get; init; }
+
         public Color TintColor { get; init; } = Color.White;
         public IAssetName? TextureAssetName { get; init; }
 
@@ -179,6 +185,20 @@ namespace Parchment.Framework.Models
         /// Always false when <see cref="ElementData.IgnoreCursor"/> is set, since that element is stepped over wherever it sits.
         /// </summary>
         public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data.Tags is not null && Data.Tags.Count is not 0) || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0));
+
+        /// <summary>The shadow to draw behind text of the given color, where <paramref name="drawnTextColor"/> is the text color as it will actually be drawn, after any fade.
+        /// Without a given <see cref="ShadowColor"/> the game's own follows the text's alpha, which is what keeps a translucent or fading element from leaving its shadow behind.
+        /// A given value sets its own strength instead, so only the element's fade is applied on top of it.
+        /// </summary>
+        public Color GetShadowColor(Color drawnTextColor)
+        {
+            if (ShadowColor is not Color shadowColor)
+            {
+                return Game1.textShadowColor * (drawnTextColor.A / 255f);
+            }
+
+            return shadowColor * DrawAlpha;
+        }
 
         /// <summary>This element's authored tags, followed by the ones Parchment derives from what it is currently holding, being the item a Grid cell or an item Image is showing.
         /// Composed on each call rather than merged into <see cref="ElementData.Tags"/>, as the deserialized data is shared across the books using it and a cell's item changes as its filter narrows.
