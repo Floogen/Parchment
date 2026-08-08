@@ -63,6 +63,15 @@ namespace Parchment.Framework.Managers
         // A requested book to be opened (if this fails, the book request is discarded)
         private string? _requestedBookId = null;
 
+        // A book that lost the active menu without being closed, held until ReconcileSuspendedBook can tell a covered book apart from one that has been closed
+        private BookMenu? _suspendedBookMenu = null;
+
+        // How many ticks the active menu has been empty with a book suspended, counted because an empty slot is not yet an answer (see ReconcileSuspendedBook)
+        private int _suspendedSettleTicks = 0;
+
+        // Two rather than one, since only the first is needed to see a mod's restore and the second costs the reader nothing
+        private const int SUSPENDED_SETTLE_TICKS = 2;
+
         // Parsed views of what each farmer has read, so a condition refresh reads a set rather than splitting a stored string dozens of times a second.
         // Every change is written back to modData on the spot, so these are a cache and never the record.
         private readonly Dictionary<long, HashSet<string>> _playerToSeenPages = new Dictionary<long, HashSet<string>>();
@@ -94,6 +103,13 @@ namespace Parchment.Framework.Managers
         // The cached history belongs to the save being left, and a farmer's ID is only unique within one
         private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
         {
+            // A book covered by a menu that led back to the title never sees a null active menu, so this is where the reading is closed
+            if (_suspendedBookMenu is BookMenu suspendedBookMenu)
+            {
+                ClearSuspendedBook();
+                suspendedBookMenu.EndSession();
+            }
+
             _playerToSeenPages.Clear();
             _playerToSeenChapters.Clear();
 
@@ -101,14 +117,60 @@ namespace Parchment.Framework.Managers
             _staleBookIds.Clear();
         }
 
-        // The game replaces the active menu by assignment in plenty of places, such as a trigger action calling createQuestionDialogue, which drops a book without ever running its exit.
-        // Watching for the swap is what lets the book put its session down anyway, rather than leaving the HUD hidden and the reader's inputs and flags behind.
+        // The active menu is replaced by assignment in plenty of places, such as a trigger action calling createQuestionDialogue or Lookup Anything pushing its lookup over the page, which takes a book off screen without ever running its exit.
+        // The book only puts its reading down far enough to be picked back up here, since a covering menu may hand it straight back, and ReconcileSuspendedBook settles which of the two happened.
         private void OnMenuChanged(object? sender, MenuChangedEventArgs e)
         {
             if (e.OldMenu is BookMenu bookMenu && ReferenceEquals(e.NewMenu, bookMenu) is false)
             {
-                bookMenu.EndSession();
+                bookMenu.SuspendSession();
+                _suspendedBookMenu = bookMenu;
+                _suspendedSettleTicks = 0;
             }
+        }
+
+        /// <summary>Settles whether a book that lost the active menu was covered or closed, once the slot has stopped moving rather than the moment it does.
+        /// A covering menu closing empties the slot before the mod that owns it pops the book back, and it does that from its own menu changed handler, which SMAPI raises at the start of the following update.
+        /// An empty slot is therefore not an answer on the tick it appears, which is why this waits out <see cref="SUSPENDED_SETTLE_TICKS"/> before ending anything. Lookup Anything closing is exactly this case.
+        /// A book handed back needs nothing done to it, as its update asserts what it changed outside itself for as long as it is the menu being read.
+        /// </summary>
+        private void ReconcileSuspendedBook()
+        {
+            if (_suspendedBookMenu is not BookMenu suspendedBookMenu)
+            {
+                return;
+            }
+
+            // Handed back, so the reading carries on where it left off
+            if (ReferenceEquals(Game1.activeClickableMenu, suspendedBookMenu) is true)
+            {
+                ClearSuspendedBook();
+                return;
+            }
+
+            // Still covered by a menu the reader is expected to come back from, so the reading waits rather than being closed under them
+            if (Game1.activeClickableMenu is not null and not BookMenu)
+            {
+                _suspendedSettleTicks = 0;
+                return;
+            }
+
+            // The slot is empty, which is where a covering menu passes through on its way to handing the book back, so this is given a moment to turn into one or the other
+            if (Game1.activeClickableMenu is null && _suspendedSettleTicks < SUSPENDED_SETTLE_TICKS)
+            {
+                _suspendedSettleTicks++;
+                return;
+            }
+
+            ClearSuspendedBook();
+            suspendedBookMenu.EndSession();
+        }
+
+        /// <summary>Lets go of a suspended book, whether it was handed back or has just been closed.</summary>
+        private void ClearSuspendedBook()
+        {
+            _suspendedBookMenu = null;
+            _suspendedSettleTicks = 0;
         }
 
         private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
@@ -155,6 +217,8 @@ namespace Parchment.Framework.Managers
 
         private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
         {
+            ReconcileSuspendedBook();
+
             if (_requestedBookId is null)
             {
                 return;

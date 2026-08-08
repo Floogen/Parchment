@@ -31,10 +31,10 @@ A text box the reader types into. What they type is held for as long as the book
 | `Width` <span class="opt">optional</span> | `int?` | — | The **content** width in unscaled sprite pixels × `Scale`. Required when `Sizing` is `Fixed`. |
 | `Height` <span class="opt">optional</span> | `int?` | *one line of text* | The **content** height in unscaled sprite pixels × `Scale`. Set it when you want `Scale` to size the box's height the way it sizes its width. |
 | `TextScale` <span class="opt">optional</span> | `number` | `1` | The text's scale, independent of `Scale`, which sizes the frame. |
-| `SubmitAction` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) run when the reader presses enter. |
-| `SubmitActions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order on enter. Combined with `SubmitAction` rather than replacing it. |
-| `TextChangedAction` <span class="opt">optional</span> | `string` | — | A trigger action run once the text has stopped changing. See [Reacting to typing](#reacting-to-typing). |
-| `TextChangedActions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order once the text settles. Combined with `TextChangedAction` rather than replacing it. |
+| `SubmitAction` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) run when the reader presses enter. Understands [tokens](../../concepts/actions.md#tokens). |
+| `SubmitActions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order on enter. Combined with `SubmitAction` rather than replacing it. Understands [tokens](../../concepts/actions.md#tokens). |
+| `TextChangedAction` <span class="opt">optional</span> | `string` | — | A trigger action run once the text has stopped changing. Understands [tokens](../../concepts/actions.md#tokens). See [Reacting to typing](#reacting-to-typing). |
+| `TextChangedActions` <span class="opt">optional</span> | list of `string` | — | Trigger actions run in order once the text settles. Combined with `TextChangedAction` rather than replacing it. Understands [tokens](../../concepts/actions.md#tokens). |
 | `TextChangedDelay` <span class="opt">optional</span> | `number` | `250` | How long the text has to sit still before the text changed actions run, in milliseconds. Each change restarts the wait. |
 
 `Text` is the box's **starting** text rather than its label. The reader can edit it, and clearing the box doesn't bring it back.

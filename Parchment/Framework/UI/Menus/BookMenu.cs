@@ -122,7 +122,7 @@ namespace Parchment.Framework.UI.Menus
 
         private readonly bool _previousHudState;
 
-        // The game replaces the active menu by assignment in places such as createQuestionDialogue, so the session can be put down from either the menu's exit or the manager watching for that. This keeps it to once
+        // The game replaces the active menu by assignment in places such as createQuestionDialogue, so the session can be closed from either the menu's exit or the manager watching for that. This keeps it to once
         private bool _hasEndedSession = false;
 
         /// <summary>What the owning mod runs when something asks the book to rebuild itself, handed over by the builder that opened this menu.
@@ -1618,7 +1618,7 @@ namespace Parchment.Framework.UI.Menus
             HoveredTags = _hoveredElement.GetTags().ToList();
         }
 
-        /// <summary>Drops what the hovered content fields point at, so nothing reading them finds an item from a book that has already been put down.</summary>
+        /// <summary>Drops what the hovered content fields point at, so nothing reading them finds an item from a book that has already been closed.</summary>
         private void ClearHoveredContent()
         {
             HoveredItem = null;
@@ -1641,7 +1641,7 @@ namespace Parchment.Framework.UI.Menus
         /// </summary>
         private void RunClickActions(Element element)
         {
-            RunActions(element.Data.GetActions(), element, "action");
+            RunActions(element.Data.GetActions(), element, "Element action");
         }
 
         /// <summary>Runs an input's submit actions in order, from <see cref="InputElementData.SubmitAction"/> and then <see cref="InputElementData.SubmitActions"/>.</summary>
@@ -1652,21 +1652,26 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            RunActions(inputData.GetSubmitActions(), element, "submit action");
+            RunActions(inputData.GetSubmitActions(), element, "Element submit action");
 
             RefreshVisiblePages();
         }
 
-        /// <summary>Runs a list of trigger actions in order, resolving any placeholders first. A failing action doesn't stop the ones after it.</summary>
-        private void RunActions(IEnumerable<string> actions, Element? element, string label)
+        /// <summary>Runs a list of trigger actions in order, resolving any placeholders first. A failing action doesn't stop the ones after it.
+        /// Every action path goes through here, so what an author can write in one of them is what they can write in all of them.
+        /// </summary>
+        /// <param name="element">The element the actions belong to, read by the tokens that take their value from one. Null for actions belonging to no element, such as a page's OnView trigger or a keybind.</param>
+        /// <param name="label">How the actions are named in the log, such as "Element action" or "OnView action on page 'contents'".</param>
+        /// <param name="parseTokenizableStrings">Whether the game's [Token] forms are resolved, for actions whose owner is not an element. Null takes the element's answer.</param>
+        private void RunActions(IEnumerable<string> actions, Element? element, string label, bool? parseTokenizableStrings = null)
         {
             foreach (string action in actions)
             {
-                string resolvedAction = ActionTokenHelper.Resolve(action, element);
+                string resolvedAction = ActionTokenHelper.Resolve(action, element, parseTokenizableStrings);
 
                 if (TriggerActionManager.TryRunAction(resolvedAction, out string error, out Exception exception) is false)
                 {
-                    Parchment.monitor.Log($"Element {label} '{resolvedAction}' failed: {error}", LogLevel.Warn);
+                    Parchment.monitor.Log($"{label} '{resolvedAction}' failed: {error}", LogLevel.Warn);
 
                     if (exception is not null)
                     {
@@ -1686,7 +1691,7 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
-            RunActions(element.Data.GetHoverActions(), element, "hover action");
+            RunActions(element.Data.GetHoverActions(), element, "Element hover action");
 
             RefreshVisiblePages();
         }
@@ -1754,25 +1759,13 @@ namespace Parchment.Framework.UI.Menus
             string pageId = _pages[pageIndex].Data.Id;
             foreach (PageTriggerData trigger in triggers)
             {
-                if (ConditionHelper.Check(trigger.Condition) is false)
+                if (ConditionHelper.Check(trigger.Condition, element: null, trigger.ParseTokenizableStrings) is false)
                 {
                     continue;
                 }
 
-                foreach (string action in trigger.Actions)
-                {
-                    string resolvedAction = ActionTokenHelper.Resolve(action, element: null);
-
-                    if (TriggerActionManager.TryRunAction(resolvedAction, out string error, out Exception exception) is false)
-                    {
-                        Parchment.monitor.Log($"OnView action '{resolvedAction}' on page '{pageId}' failed: {error}", LogLevel.Warn);
-
-                        if (exception is not null)
-                        {
-                            Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
-                        }
-                    }
-                }
+                // No element owns a page trigger, so the tokens reading from one are left in place and logged
+                RunActions(trigger.Actions, element: null, $"OnView action on page '{pageId}'", trigger.ParseTokenizableStrings);
             }
         }
 
@@ -1846,7 +1839,7 @@ namespace Parchment.Framework.UI.Menus
                     continue;
                 }
 
-                if (ConditionHelper.Check(keybind.Condition) is false)
+                if (ConditionHelper.Check(keybind.Condition, element: null, keybind.ParseTokenizableStrings) is false)
                 {
                     continue;
                 }
@@ -1856,18 +1849,8 @@ namespace Parchment.Framework.UI.Menus
 
                 PlaySound(keybind.Sound);
 
-                foreach (string action in keybind.GetActions())
-                {
-                    if (TriggerActionManager.TryRunAction(action, out string error, out Exception exception) is false)
-                    {
-                        Parchment.monitor.Log($"OnKeyPress action '{action}' on {source} failed: {error}", LogLevel.Warn);
-
-                        if (exception is not null)
-                        {
-                            Parchment.monitor.Log(exception.ToString(), LogLevel.Trace);
-                        }
-                    }
-                }
+                // No element owns a keybind, so the tokens reading from one are left in place and logged
+                RunActions(keybind.GetActions(), element: null, $"OnKeyPress action on {source}", keybind.ParseTokenizableStrings);
             }
 
             return isSuppressed;
@@ -2231,7 +2214,7 @@ namespace Parchment.Framework.UI.Menus
                     continue;
                 }
 
-                RunActions(activeFrame.GetActions(), element, "frame action");
+                RunActions(activeFrame.GetActions(), element, "Element frame action");
                 hasRunAny = true;
             }
 
@@ -2314,7 +2297,7 @@ namespace Parchment.Framework.UI.Menus
 
                 element.TextChangedDelayRemaining = null;
 
-                RunActions(inputData.GetTextChangedActions(), element, "text changed action");
+                RunActions(inputData.GetTextChangedActions(), element, "Element text changed action");
                 hasRunAny = true;
             }
 
@@ -2529,8 +2512,43 @@ namespace Parchment.Framework.UI.Menus
             Game1.playSound(sound);
         }
 
-        /// <summary>Puts down the reading session, restoring what the menu changed outside itself and clearing what only lasts as long as the book is open.
-        /// Runs from the menu's own exit, or from <see cref="Managers.BookManager"/> when the game replaces the menu by assignment rather than closing it, whichever comes first.
+        /// <summary>Holds down what the book changes outside itself, for as long as this menu is the one being updated.
+        /// Asserted every tick rather than set once when the book opens, since a mod can push its own menu over the book and hand it straight back without the book ever seeing an exit.
+        /// Lookup Anything does exactly that, so the HUD it saw restored on the way in is put back here on the way out.
+        /// </summary>
+        private void AssertReadingSession()
+        {
+            Game1.displayHUD = false;
+
+            // The book is being read again, so a later close still puts the session down properly even if something already ended it while the book was covered
+            _hasEndedSession = false;
+        }
+
+        /// <summary>Hands the HUD back to whatever the reader had it set to.
+        /// A book handed straight over to another book leaves it alone, since the new one is already holding it down and has taken on the state to restore.
+        /// </summary>
+        private void RestoreHud()
+        {
+            if (Game1.activeClickableMenu is BookMenu incomingBook && ReferenceEquals(incomingBook, this) is false)
+            {
+                return;
+            }
+
+            Game1.displayHUD = _previousHudState;
+        }
+
+        /// <summary>Puts the reading down while something else holds the active menu, restoring what the book changed outside itself without ending the session.
+        /// Reversible on purpose, as a covering menu may hand the book straight back, and the reader's typed text and flags are theirs until the book is genuinely put away.
+        /// </summary>
+        public void SuspendSession()
+        {
+            ClearInputFocus();
+            ClearHoveredContent();
+            RestoreHud();
+        }
+
+        /// <summary>Puts down the reading session for good, restoring what the menu changed outside itself and clearing what only lasts as long as the book is open.
+        /// Runs from the menu's own exit, or from <see cref="Managers.BookManager"/> once a book that lost the active menu has been settled as closed rather than covered, whichever comes first.
         /// </summary>
         public void EndSession()
         {
@@ -2540,18 +2558,15 @@ namespace Parchment.Framework.UI.Menus
             }
             _hasEndedSession = true;
 
-            ClearInputFocus();
-            ClearHoveredContent();
+            SuspendSession();
 
-            // A book handed straight over to another book leaves the rest to the new one, which is already holding the reader and has taken on the HUD state to restore
+            // A book handed straight over to another book leaves the rest to the new one, which is already holding the reader
             if (Game1.activeClickableMenu is BookMenu incomingBook && ReferenceEquals(incomingBook, this) is false)
             {
                 return;
             }
 
-            Game1.displayHUD = _previousHudState;
-
-            // Input text and flags are per reading session, so they don't survive the book being put down
+            // Input text and flags are per reading session, so they don't survive the book being closed
             Parchment.inputManager.ClearAll();
             Parchment.flagManager.ClearAll();
 
@@ -2782,6 +2797,8 @@ namespace Parchment.Framework.UI.Menus
         public override void update(GameTime time)
         {
             base.update(time);
+
+            AssertReadingSession();
 
             float elapsedMilliseconds = (float)time.ElapsedGameTime.TotalMilliseconds;
 

@@ -27,6 +27,12 @@ namespace Parchment.Framework.Models.Data
         /// <summary>The sound to play when the keybind is pressed, played once regardless of how many actions run. When null, nothing plays.</summary>
         public string? Sound { get; set; }
 
+        /// <summary>Whether the game's [Token] tokenizable strings are resolved in this entry's condition and actions, alongside Parchment's own %Token% forms.
+        /// Set it to false where a square bracket is meant as the character itself, such as an action argument storing a token for something else to resolve later.
+        /// A keybind has no element to take this from, which is why it carries its own.
+        /// </summary>
+        public bool ParseTokenizableStrings { get; set; } = true;
+
         /// <summary>Whether a match stops the button reaching the menu's own handling, which is what lets a page take over the exit button.
         /// The reader can always leave by holding the exit button down for three seconds, so a page that claims it can't strand them.
         /// </summary>

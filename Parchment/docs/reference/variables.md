@@ -83,11 +83,14 @@ The two actions treat a bound differently, deliberately:
 
 | Action | Arguments | What it does |
 | --- | --- | --- |
-| `PeacefulEnd.Parchment_SetVariable` | `<bookId> <variableId> <value>` | Set a variable. Everything past the variable ID counts as the value, so a phrase needs no quoting. |
+| `PeacefulEnd.Parchment_SetVariable` | `<bookId> <variableId> <value>` | Set a variable. Everything past the variable ID counts as the value, so a phrase needs no quoting. [Tokens](../concepts/actions.md#tokens) in the value resolve as the action runs. |
 | `PeacefulEnd.Parchment_ClearVariable` | `<bookId> <variableId>...` | Return one or more variables to their `Default`. |
 | `PeacefulEnd.Parchment_ToggleVariable` | `<bookId> <variableId>...` | Flip one or more `Boolean` variables. |
 
 Every one names the book that declares the variable, which is what lets them run from `Data/TriggerActions` rather than only from a button inside the book.
+
+!!! warning "A stored token is a snapshot"
+    `PeacefulEnd.Parchment_SetVariable {{ModId}}_Almanac lastRead [Season]` stores `spring` when the button is pressed in spring, and it still says `spring` come fall. A variable holds characters rather than a live token, so where you want the current answer, write the token into the element's `Text` and leave the variable out of it. Set [`ParseTokenizableStrings`](../concepts/actions.md#game-tokens) to `false` where you meant to store the brackets themselves.
 
 `ClearVariable` and `ToggleVariable` take a list, and they're **all or nothing**. Every name in the list is resolved and checked before any of them is written, so `PeacefulEnd.Parchment_ToggleVariable {{ModId}}_Almanac showSpoilers units` fails on `units` being `Text` and leaves `showSpoilers` alone rather than flipping it first.
 

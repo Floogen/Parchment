@@ -62,8 +62,9 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>Replaces every token in a string with what it stands for. An unknown or unresolvable token is left in place and logged, so a typo fails visibly rather than turning into an empty gap.</summary>
         /// <param name="element">The element the string belongs to, used by the tokens that read from it. Null for a string that belongs to no element, such as a page's OnView trigger.</param>
         /// <param name="quoteValues">Whether a substituted value is wrapped in quotes. True for a trigger action or a condition, where a value containing spaces would otherwise become several arguments.</param>
-        /// <param name="parseGameTokens">Whether the result is then handed to the game so its own [Token] forms resolve. False for a trigger action, which the game parses itself once it has the arguments.</param>
-        public static string Resolve(string text, Element? element, bool quoteValues, bool parseGameTokens = true)
+        /// <param name="parseTokenizableStrings">Whether the game's own [Token] forms are resolved, for a string whose owner is not an element and so has no <see cref="ElementData.ParseTokenizableStrings"/> of its own to read. Null takes the element's answer, and defaults to resolving when there is no element either.</param>
+        /// <param name="pinRandom">Whether a game token that picks at random holds the same answer all day. True for a string that is resolved over and over, being text and conditions. False for one resolved once at the moment it is wanted, being a trigger action, which should pick afresh each time it runs.</param>
+        public static string Resolve(string text, Element? element, bool quoteValues, bool? parseTokenizableStrings = null, bool pinRandom = true)
         {
             if (HasTokens(text) is false)
             {
@@ -71,7 +72,7 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             // Read from the authored text rather than from the resolved one, so a square bracket that arrives through a token (out of something the player typed, say) can never turn ordinary text into a parse attempt
-            bool useGameTokens = parseGameTokens is true && HasGameTokens(text) is true && element?.Data.ParseTokenizableStrings is not false;
+            bool useGameTokens = HasGameTokens(text) is true && (parseTokenizableStrings ?? element?.Data.ParseTokenizableStrings) is not false;
 
             string workingText = ResolveParchmentTokens(text, element, quoteValues, stripBrackets: useGameTokens);
 
@@ -80,7 +81,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 return workingText;
             }
 
-            return ResolveGameTokens(workingText, text, element, quoteValues);
+            return ResolveGameTokens(workingText, text, element, quoteValues, pinRandom);
         }
 
         private static string ResolveParchmentTokens(string text, Element? element, bool quoteValues, bool stripBrackets)
@@ -99,12 +100,12 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Hands the string to the game so its [Token] forms resolve against the current save. A string the game refuses is kept as it was rather than blanked, which matches how an unknown Parchment token is left in place.
-        /// Where values are quoted the tokens are read one at a time, so each result can be quoted the way Parchment's own are. A trigger action doesn't need that, as the game splits its arguments before parsing them, but a condition is parsed here and split afterwards.
+        /// Where values are quoted the tokens are read one at a time, so each result can be quoted the way Parchment's own are. That covers a trigger action and a condition, both of which are split on spaces once Parchment is done with them.
         /// </summary>
-        private static string ResolveGameTokens(string text, string source, Element? element, bool quoteValues)
+        private static string ResolveGameTokens(string text, string source, Element? element, bool quoteValues, bool pinRandom)
         {
             // Made once for the whole string rather than per token, so a string holding two of the same random token still gets two different values out of them
-            Random random = CreateTokenRandom(source, element);
+            Random random = pinRandom is true ? CreateTokenRandom(source, element) : Game1.random;
 
             if (quoteValues is false)
             {
@@ -218,6 +219,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>A random source that lands on the same value every time the same string is resolved on the same day. A token that picks at random, such as [PositiveAdjective], would otherwise
         /// reroll on every condition refresh, and the change watch would drag a relayout along with it several times a second.
         /// Seeded off the day as well as the save, so the value moves overnight rather than being fixed for the life of the save.
+        /// Only for the strings that are resolved over and over. A trigger action runs once at the moment it is wanted and takes the game's own source instead, so pressing the same button twice picks twice.
         /// </summary>
         private static Random CreateTokenRandom(string source, Element? element)
         {
