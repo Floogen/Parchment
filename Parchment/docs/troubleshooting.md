@@ -44,6 +44,8 @@ Remember the scope trap: `IsFirstPage` and `IsLastPage` ask about the **book**, 
 
 **The text wraps too early.** Something narrowed the width it measures against: a `MarginLeft`, a panel's `Padding` or a container that's narrower than you think. Margins narrow the measuring width deliberately, so an indented paragraph wraps at the indented width.
 
+**My indentation disappeared, but only from the first line.** Content Patcher trims the outer whitespace of any string carrying a `{{ }}` token, so a `Text` that opens with spaces loses them the moment a token appears anywhere in that same string. Indents after a `\n` further in are untouched, which is why one line ends up flush while the rest look right. See [Content Patcher tokens](concepts/actions.md#content-patcher-tokens) for the two ways around it.
+
 **The last lines are missing from a panel.** A fixed-`Height` panel truncates its contents rather than growing. Drop the `Height` or shorten the text.
 
 ## Art problems

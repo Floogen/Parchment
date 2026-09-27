@@ -445,6 +445,52 @@ One thing does differ from text. A token that picks at random, such as `[Positiv
 !!! warning "Square brackets are token syntax"
     Text using brackets as ordinary punctuation, such as `see [fig. 1]`, is handed to the game as a token attempt. The game logs what it rejected and Parchment keeps your text as it was, so nothing is lost beyond a line in the log. Set `ParseTokenizableStrings: false` to turn the pass off entirely: on the [element](../reference/elements/index.md) for its text and its actions, on the [keybind](../reference/book.md#on-key-press) or the page's [`OnView`](../reference/page.md#on-view) entry for theirs. That's also how you store a token as the characters themselves, for something else to resolve later.
 
+### Content Patcher tokens
+
+[Content Patcher](https://stardewvalleywiki.com/Modding:Content_Patcher) expands its own `{{ }}` tokens before Parchment or the game see anything, since it's the mod handing the file over. That happens while the JSON is being read rather than while the element is being laid out, which has one consequence worth knowing about.
+
+!!! warning "Leading whitespace is lost once a string carries a `{{ }}` token"
+    Content Patcher trims the outer whitespace of every string it reads for tokens, and it only reads the strings that contain one. A `Text` of `"    Indented."` arrives with its four spaces intact. Put a token anywhere in that same string, as in `"    Indented. Today is {{TodaysNPC}}."`, and the spaces are gone before SMAPI builds the element. Parchment has no way to tell that anything was removed. The JSON is valid, nothing is logged and the usual tell is one line sitting flush while later lines indent normally, because the trim reaches the two ends of the whole string rather than each line inside it.
+
+There are two ways around it. The first is to split the token onto its own element, leaving the indented text entirely literal:
+
+```json title="Keeping the indented text free of tokens"
+"Elements": [
+  {
+    "Type": "Paragraph",
+    "Text": "    The indent on this line survives.\n    So does this one.",
+    "SpacingAfter": 24
+  },
+  {
+    "Type": "Paragraph",
+    "Text": "Today is {{TodaysNPC}}."
+  }
+]
+```
+
+`SpacingAfter` stands in for the blank line the two would have shared. Don't put that blank line back as a leading `\n` on the second paragraph, since that's the same trap: it's whitespace at the front of a string holding a token.
+
+The second is to route the value through a [variable](../reference/variables.md), whose `Default` is nothing but the token, so there's no surrounding whitespace to lose:
+
+```json title="Declaring the variable"
+"Variables": [
+  {
+    "Id": "todaysNpc",
+    "Type": "Text",
+    "Default": "{{TodaysNPC}}"
+  }
+]
+```
+
+```json title="Reading it back, with the paragraph left literal"
+{
+  "Type": "Paragraph",
+  "Text": "    The indent survives, because nothing here is a Content Patcher token.\n\nToday is %Variable:todaysNpc%."
+}
+```
+
+That one only holds while nothing calls `PeacefulEnd.Parchment_SetVariable` on that variable, since a value that has been set takes precedence over the default from then on. Use it for a value the book only displays, not for one the book also writes.
+
 ## Combining with conditions
 
 An action and a [`Condition`](conditions.md) on the same element gives you navigation that appears when it's useful:
