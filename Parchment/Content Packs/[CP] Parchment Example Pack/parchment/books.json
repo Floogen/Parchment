@@ -431,6 +431,66 @@
                   ]
                 }
               ]
+            },
+            {
+              "Id": "cover3",
+              "ChapterId": "chapter-1",
+              "Background": [
+                {
+                  "Type": "Panel",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/panelFrame2",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 24,
+                    "Height": 24
+                  },
+                  "Padding": 0,
+                  "Width": 32,
+                  "Sizing": "Fixed",
+                  "Alignment": "Left",
+                  "VerticalAlignment": "Center",
+                  "Position": {
+                    "X": 12,
+                    "Y": 0
+                  },
+                  "Scale": 4,
+                  "SpacingAfter": 4,
+                  "Children": [
+                    {
+                      "Type": "Paragraph",
+                      "Text": "This is a fixed panel."
+                    }
+                  ]
+                },
+                {
+                  "Type": "Panel",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/panelFrame2",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 24,
+                    "Height": 24
+                  },
+                  "Padding": 0,
+                  "Width": 32,
+                  "Sizing": "Fixed",
+                  "Alignment": "Right",
+                  "VerticalAlignment": "Center",
+                  "Position": {
+                    "X": -12,
+                    "Y": 0
+                  },
+                  "Scale": 4,
+                  "SpacingAfter": 4,
+                  "Children": [
+                    {
+                      "Type": "Paragraph",
+                      "Text": "This is another fixed panel."
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },

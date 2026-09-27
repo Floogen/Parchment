@@ -82,6 +82,9 @@ namespace Parchment.Framework.UI.Menus
         private const int HISTORY_LIMIT = 64;
         private readonly List<(int ChapterIndex, int Spread)> _history = new List<(int ChapterIndex, int Spread)>();
 
+        // Widest a tooltip's description may run before it wraps, since drawHoverText sizes to the text and never wraps it
+        private const int HOVER_TEXT_MAX_WIDTH = 384;
+
         private Element? _hoveredElement;
 
         /// <summary>The item the cursor is over, or null when whatever it is over isn't about an item.
@@ -1598,7 +1601,9 @@ namespace Parchment.Framework.UI.Menus
             }
 
             _hoveredDisplayName = ResolveHoverText(_hoveredElement.DisplayName, _hoveredElement);
-            _hoveredDescription = ResolveHoverText(_hoveredElement.Description, _hoveredElement);
+
+            string? resolvedDescription = ResolveHoverText(_hoveredElement.Description, _hoveredElement);
+            _hoveredDescription = string.IsNullOrEmpty(resolvedDescription) ? resolvedDescription : Game1.parseText(resolvedDescription, Game1.smallFont, HOVER_TEXT_MAX_WIDTH);
         }
 
         /// <summary>Points the fields other mods read at whatever the cursor is over, being the item or NPC the hovered element is about and every tag it carries.
