@@ -68,7 +68,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             WrappedText wrappedText = TextWrapper.Wrap(TokenHelper.Resolve(GetText(data, context), element, quoteValues: false), element.Font, maximumTextWidth, textScale);
             if (wrappedText.Size.Y > maximumTextHeight)
             {
-                Parchment.monitor.LogOnce($"Banner text is {(int)wrappedText.Size.Y}px tall but the banner only has {(int)maximumTextHeight}px; text will overflow. Try a smaller {nameof(data.TextScale)} or a shorter font.", LogLevel.Warn);
+                Parchment.monitor.LogOnce($"Banner text is {(int)wrappedText.Size.Y}px tall but the banner only has {(int)maximumTextHeight}px; text will overflow. Try a smaller {nameof(data.TextScale)} or a shorter font.", LogLevel.Trace);
             }
 
             float bannerWidth;
