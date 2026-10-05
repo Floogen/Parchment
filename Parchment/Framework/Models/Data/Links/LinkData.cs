@@ -33,5 +33,35 @@ namespace Parchment.Framework.Models.Data.Links
 
         /// <summary>Tags carried by the link, read the same way as an element's own.</summary>
         public List<string>? Tags { get; set; }
+
+        /// <summary>Shorthand for a single-entry <see cref="HoverEffects"/>. When both are given this one applies first.</summary>
+        public string? HoverEffect { get; set; }
+
+        /// <summary>Text effects applied to the linked text while the cursor is over it, each written the way its inline tag is without the brackets, such as "wave=3|600" or "pulse=Gold".
+        /// They ease in from rest when the cursor arrives and stop when it leaves. A coloring effect starts from <see cref="HoverTextColor"/> when one is set.
+        /// </summary>
+        public List<string>? HoverEffects { get; set; }
+
+        /// <summary>Every hover effect in the order they apply, from <see cref="HoverEffect"/> and then <see cref="HoverEffects"/>, skipping blank entries.</summary>
+        public IEnumerable<string> GetHoverEffects()
+        {
+            if (string.IsNullOrWhiteSpace(HoverEffect) is false)
+            {
+                yield return HoverEffect;
+            }
+
+            if (HoverEffects is null)
+            {
+                yield break;
+            }
+
+            foreach (string hoverEffect in HoverEffects)
+            {
+                if (string.IsNullOrWhiteSpace(hoverEffect) is false)
+                {
+                    yield return hoverEffect;
+                }
+            }
+        }
     }
 }

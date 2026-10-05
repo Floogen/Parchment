@@ -33,20 +33,24 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>The effects moving the segment's characters, outermost first (null when it sits still).</summary>
         public IReadOnlyList<TextEffect>? Effects { get; }
 
-        /// <summary>Each of the segment's characters as its own string, so an effect can draw them one at a time without building a string per character every frame. Null when <see cref="Effects"/> is.</summary>
+        /// <summary>The effects the segment's link applies while hovered. Null when it belongs to no link or its link has none.</summary>
+        public IReadOnlyList<TextEffect>? HoverEffects { get; }
+
+        /// <summary>Each of the segment's characters as its own string, so an effect can draw them one at a time without building a string per character every frame. Null when the segment has neither <see cref="Effects"/> nor <see cref="HoverEffects"/>.</summary>
         public IReadOnlyList<string>? Characters { get; }
 
-        /// <summary>How far into the line each character starts, in the same scaled pixels as <see cref="OffsetX"/>. Null when <see cref="Effects"/> is.
+        /// <summary>How far into the line each character starts, in the same scaled pixels as <see cref="OffsetX"/>. Null when <see cref="Characters"/> is.
         /// Measured as everything on the line before the character rather than by adding up characters on their own, so a moving stretch takes exactly the room the layout gave it.
         /// </summary>
         public IReadOnlyList<float>? CharacterOffsets { get; }
 
-        public TextSegment(string text, Color? color, int? linkIndex, float offsetX, float width) : this(text, color, linkIndex, offsetX, width, 0, null, null, null)
+        public TextSegment(string text, Color? color, int? linkIndex, float offsetX, float width) : this(text, color, linkIndex, offsetX, width, 0, null, null, null, null)
         {
         }
 
-        public TextSegment(string text, Color? color, int? linkIndex, float offsetX, float width, int sourceStart, IReadOnlyList<TextEffect>? effects, IReadOnlyList<string>? characters, IReadOnlyList<float>? characterOffsets)
+        public TextSegment(string text, Color? color, int? linkIndex, float offsetX, float width, int sourceStart, IReadOnlyList<TextEffect>? effects, IReadOnlyList<TextEffect>? hoverEffects, IReadOnlyList<string>? characters, IReadOnlyList<float>? characterOffsets)
         {
+            HoverEffects = hoverEffects;
             Text = text;
             Color = color;
             LinkIndex = linkIndex;
@@ -67,7 +71,7 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>The line cut wherever its color, link or effects change (null when the whole line is drawn in the element's own color, belongs to no link and sits still).</summary>
         public IReadOnlyList<TextSegment>? Segments { get; }
 
-        /// <summary>Whether any of the line's segments is moved by an effect.</summary>
+        /// <summary>Whether any of the line's segments can be moved by an effect, counting a link's hover effects.</summary>
         public bool HasEffects { get; }
 
         public WrappedLine(string text, Vector2 size) : this(text, size, null)
@@ -84,7 +88,7 @@ namespace Parchment.Framework.UI.Layouts
             {
                 foreach (TextSegment segment in segments)
                 {
-                    if (segment.Effects is not null)
+                    if (segment.Effects is not null || segment.HoverEffects is not null)
                     {
                         HasEffects = true;
                         break;
@@ -148,6 +152,7 @@ namespace Parchment.Framework.UI.Layouts
             public IReadOnlyList<ColorRun> ColorRuns { get; init; } = Array.Empty<ColorRun>();
             public IReadOnlyList<LinkRun> LinkRuns { get; init; } = Array.Empty<LinkRun>();
             public IReadOnlyList<EffectRun> EffectRuns { get; init; } = Array.Empty<EffectRun>();
+            public IReadOnlyDictionary<int, IReadOnlyList<TextEffect>> LinkHoverEffects { get; init; } = new Dictionary<int, IReadOnlyList<TextEffect>>();
             public IFont Font { get; init; } = null!;
             public float MaxWidth { get; init; }
             public float Scale { get; init; }
@@ -188,7 +193,7 @@ namespace Parchment.Framework.UI.Layouts
                 return new WrappedText(Array.Empty<WrappedLine>(), Vector2.Zero);
             }
 
-            WrapState state = new WrapState() { ColorRuns = styledText.ColorRuns, LinkRuns = styledText.LinkRuns, EffectRuns = styledText.EffectRuns, Font = font, MaxWidth = maxWidth, Scale = scale, HyphenateBrokenWords = hyphenateBrokenWords };
+            WrapState state = new WrapState() { ColorRuns = styledText.ColorRuns, LinkRuns = styledText.LinkRuns, EffectRuns = styledText.EffectRuns, LinkHoverEffects = styledText.LinkHoverEffects, Font = font, MaxWidth = maxWidth, Scale = scale, HyphenateBrokenWords = hyphenateBrokenWords };
 
             // Where each hard line starts in the whole text, so a line cut out of it can find the runs it falls under
             int hardLineStart = 0;
@@ -277,10 +282,12 @@ namespace Parchment.Framework.UI.Layouts
                 float width = state.Font.MeasureString(segmentText, state.Scale).X;
 
                 IReadOnlyList<TextEffect>? effects = FindEffects(state.EffectRuns, pieceStart);
+                int? linkIndex = FindLinkIndex(state.LinkRuns, pieceStart);
+                IReadOnlyList<TextEffect>? hoverEffects = linkIndex is int hoverLinkIndex && state.LinkHoverEffects.TryGetValue(hoverLinkIndex, out IReadOnlyList<TextEffect>? linkEffects) ? linkEffects : null;
 
-                if (effects is null)
+                if (effects is null && hoverEffects is null)
                 {
-                    segments.Add(new TextSegment(segmentText, FindColor(state.ColorRuns, pieceStart), FindLinkIndex(state.LinkRuns, pieceStart), offsetX, width));
+                    segments.Add(new TextSegment(segmentText, FindColor(state.ColorRuns, pieceStart), linkIndex, offsetX, width));
                     continue;
                 }
 
@@ -293,7 +300,7 @@ namespace Parchment.Framework.UI.Layouts
                     characterOffsets[characterIndex] = characterIndex is 0 ? offsetX : state.Font.MeasureString(text.Substring(0, localStart + characterIndex), state.Scale).X;
                 }
 
-                segments.Add(new TextSegment(segmentText, FindColor(state.ColorRuns, pieceStart), FindLinkIndex(state.LinkRuns, pieceStart), offsetX, width, pieceStart, effects, characters, characterOffsets));
+                segments.Add(new TextSegment(segmentText, FindColor(state.ColorRuns, pieceStart), linkIndex, offsetX, width, pieceStart, effects, hoverEffects, characters, characterOffsets));
             }
 
             return segments;

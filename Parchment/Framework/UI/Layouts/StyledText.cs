@@ -97,6 +97,9 @@ namespace Parchment.Framework.UI.Layouts
     /// <summary>An element's text with its tokens resolved and its markup taken out, holding where each color, link and effect applies alongside the plain text that is measured and drawn.</summary>
     public class StyledText
     {
+        // Declared ahead of Empty, as static fields are set in the order they're written and Empty is built from this
+        private static readonly IReadOnlyDictionary<int, IReadOnlyList<TextEffect>> _noLinkHoverEffects = new Dictionary<int, IReadOnlyList<TextEffect>>();
+
         public static readonly StyledText Empty = new StyledText(string.Empty, Array.Empty<ColorRun>(), Array.Empty<LinkRun>(), Array.Empty<EffectRun>());
 
         /// <summary>The text to draw, with its line breaks already normalized to a bare \n.</summary>
@@ -111,12 +114,22 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>The runs under at least one effect, in order and never overlapping.</summary>
         public IReadOnlyList<EffectRun> EffectRuns { get; }
 
-        public StyledText(string text, IReadOnlyList<ColorRun> colorRuns, IReadOnlyList<LinkRun> linkRuns, IReadOnlyList<EffectRun> effectRuns)
+        /// <summary>The effects each link applies to its text while hovered, by the link's <see cref="LinkRun.Occurrence"/>. Each one starts where its link does and covers all of it,
+        /// so a gradient spreads across the whole link even when a link nested inside cuts it in two. A link without hover effects has no entry.
+        /// </summary>
+        public IReadOnlyDictionary<int, IReadOnlyList<TextEffect>> LinkHoverEffects { get; }
+
+        public StyledText(string text, IReadOnlyList<ColorRun> colorRuns, IReadOnlyList<LinkRun> linkRuns, IReadOnlyList<EffectRun> effectRuns) : this(text, colorRuns, linkRuns, effectRuns, _noLinkHoverEffects)
+        {
+        }
+
+        public StyledText(string text, IReadOnlyList<ColorRun> colorRuns, IReadOnlyList<LinkRun> linkRuns, IReadOnlyList<EffectRun> effectRuns, IReadOnlyDictionary<int, IReadOnlyList<TextEffect>> linkHoverEffects)
         {
             Text = text;
             ColorRuns = colorRuns;
             LinkRuns = linkRuns;
             EffectRuns = effectRuns;
+            LinkHoverEffects = linkHoverEffects;
         }
     }
 }

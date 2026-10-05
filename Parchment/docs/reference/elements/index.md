@@ -205,6 +205,8 @@ A link behaves like an element of its own: it has its own tooltip, runs its own 
 | `HoverAction` <span class="opt">optional</span> | `string` | — | A trigger action to run when the cursor moves onto the link. Shorthand for a single-entry `HoverActions` that runs first when both are given. |
 | `HoverActions` <span class="opt">optional</span> | `string[]` | — | Trigger actions to run in order when the cursor moves onto the link. |
 | `Tags` <span class="opt">optional</span> | `string[]` | — | [Tags](../tags.md) carried by the link, read the same way as an element's own. |
+| `HoverEffect` <span class="opt">optional</span> | `string` | — | A [text effect](#text-effects) applied to the linked text while the cursor is over it. Shorthand for a single-entry `HoverEffects` that applies first when both are given. |
+| `HoverEffects` <span class="opt">optional</span> | `string[]` | — | Text effects applied in order to the linked text while the cursor is over it. See [Hover effects](#hover-effects). |
 
 - **Each occurrence is its own link.** The same id used twice gives two links that are hovered, highlighted and reached by a controller separately.
 - **Wrapping.** A link that runs onto a second line is reached through its text on both lines, never through the words between them.
@@ -212,6 +214,7 @@ A link behaves like an element of its own: it has its own tooltip, runs its own 
 - **Tokens and actions.** A link's tooltip and actions resolve tokens against the link. It follows the element's `ParseTokenizableStrings` and plays the element's `Sound` when clicked.
 - **The rest of the text.** Text outside every link still shows the element's own tooltip and runs the element's own actions. So does a link that only sets `TextColor`, since it gives the cursor nothing to do.
 - **Controller.** Each link is a stop of its own, placed on the first line it covers.
+- **Hover effects.** A link can change effects under the cursor with [hover effects](#hover-effects).
 - **Mistakes.** A `[link]` naming an id that isn't in the element's `Links` or the [book's](#shared-links) is drawn as plain text with a warning. So is a `[link]` on any other element. Unclosed and stray tags behave as they do for [inline color](#inline-color).
 
 !!! note "Links in `SpriteText`"
@@ -276,11 +279,31 @@ These tags move or recolor each character of the text they wrap, without changin
 - **Units.** An amplitude is in unscaled pixels multiplied by the text's scale (its `Scale`, which is `TextScale` on an element with a sprite). A period is in milliseconds: how long one bob or hop takes for a wave or a bounce, how long each spot is held for a shake, how long a full trip through the colors takes for a rainbow and how long one fade out and back takes for a pulse.
 - **Layout.** An effect only changes the drawing. Lines keep the room they were laid out with, so a large amplitude overlaps the lines around it rather than pushing them apart. A moving link is still reached where its text rests.
 - **Combining.** Effects stack, so `[shake][rainbow]...[/rainbow][/shake]` both jitters and recolors. They also work inside and around `[color]` and `[link]`.
-- **Color order.** Coloring effects apply from the outside in. A rainbow or a gradient replaces the color around it (any `[color]` included), while a pulse fades from whatever color is around it, so `[rainbow][pulse=White]...[/pulse][/rainbow]` pulses the rainbow. A hovered link's `HoverTextColor` covers every coloring effect so the link still shows it's under the cursor.
+- **Color order.** Coloring effects apply from the outside in. A rainbow or a gradient replaces the color around it (any `[color]` included), while a pulse fades from whatever color is around it, so `[rainbow][pulse=White]...[/pulse][/rainbow]` pulses the rainbow. A hovered link's `HoverTextColor` covers the coloring effects in its text so the link still shows it's under the cursor, though its own [hover effects](#hover-effects) start from it.
 - **Continuity.** An effect carries on unbroken across a color change or a line break. A gradient spreads over its whole stretch rather than restarting on each line.
 - **Fonts.** `[wave]`, `[bounce]` and `[shake]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]` and `[pulse]` are colors, which `SpriteText` ignores with a warning.
 - **Cost.** Each character under an effect is drawn on its own, so keep effects to a word or a phrase rather than a whole page.
 - **Mistakes.** An amplitude or period that won't parse keeps its default with a warning. When it was written with a space rather than `|`, such as `[wave=4 500]`, the warning shows the corrected tag. A color that won't parse is left out of a gradient. A gradient left with fewer than two colors keeps the color around it with a warning. So does a pulse without a color. Unclosed and stray tags behave as they do for [inline color](#inline-color).
+
+### Hover effects
+
+A link's `HoverEffect` and `HoverEffects` apply [text effects](#text-effects) to the linked text only while the cursor (or a controller) is on it. Each entry is written the way its tag is, without the brackets:
+
+```json
+"Links": {
+  "legend": {
+    "TextColor": "Gold",
+    "HoverTextColor": "Orange",
+    "HoverEffects": [ "wave=3|600", "pulse=White" ]
+  }
+}
+```
+
+- **Easing in.** The effects start from rest when the cursor arrives and grow to full size over a moment, so a wave never appears mid-cycle. They stop as soon as the cursor leaves.
+- **Order.** Hover effects apply after any effects written in the text itself, so they stack on top. A coloring hover effect starts from the link's `HoverTextColor` when one is set, so `HoverTextColor: White` with `pulse=Gold` fades between white and gold.
+- **Whole link.** Each effect covers the whole of the link's text, so a gradient spreads across all of it, even when a link nested inside cuts it in two.
+- **Interactivity.** A link with hover effects is reachable by the cursor even when it has no tooltip or action.
+- **Mistakes.** An entry naming no effect Parchment knows is skipped with a warning listing the ones it does. Values that won't parse behave as they do in the text.
 
 ## Rectangles and points
 

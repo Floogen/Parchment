@@ -14,6 +14,9 @@ namespace Parchment.Framework.Utilities.Helpers
         // How far each character trails the one before it, the same as the game's own SparklingText, which is what makes a wave travel along the text rather than bob it all at once
         public const float WAVE_CHARACTER_DELAY = 100f;
 
+        // How long a link's hover effects take to ease in from rest once the cursor arrives, which keeps a wave from appearing mid-cycle
+        public const float HOVER_EFFECT_EASE_IN_DURATION = 150f;
+
         // The game's own rainbow from SparklingText, which hands each character the next color along
         private static readonly Color[] _rainbowColors = new Color[] { Color.Red, Color.Orange, Color.Yellow, Color.Chartreuse, Color.Green, Color.Cyan, Color.Blue, Color.Violet };
 
@@ -82,6 +85,16 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return isColored ? currentColor : null;
+        }
+
+        /// <summary>How strongly a link's hover effects apply, rising from none when the cursor arrives to all of them once they've eased in.</summary>
+        /// <param name="hoverTime">How long the cursor has been over the link, in milliseconds.</param>
+        public static float GetHoverStrength(double hoverTime)
+        {
+            float progress = Math.Clamp((float)(hoverTime / HOVER_EFFECT_EASE_IN_DURATION), 0f, 1f);
+
+            // Eased rather than linear, so the motion settles into its full size instead of arriving at it with a jolt
+            return 1f - (1f - progress) * (1f - progress);
         }
 
         /// <summary>Whether any of the effects sets a color, which a font that keeps its own color can't draw.</summary>

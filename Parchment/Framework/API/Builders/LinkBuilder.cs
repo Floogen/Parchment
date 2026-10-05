@@ -14,6 +14,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<string> _actions = new List<string>();
         private readonly List<string> _hoverActions = new List<string>();
         private readonly List<string> _tags = new List<string>();
+        private readonly List<string> _hoverEffects = new List<string>();
 
         public string LinkId { get { return _linkId; } }
 
@@ -50,6 +51,13 @@ namespace Parchment.Framework.API.Builders
         public ILinkBuilder WithTag(string tag)
         {
             _tags.Add(tag);
+
+            return this;
+        }
+
+        public ILinkBuilder HoverEffect(string effect)
+        {
+            _hoverEffects.Add(effect);
 
             return this;
         }
@@ -91,6 +99,16 @@ namespace Parchment.Framework.API.Builders
             if (_tags.Count > 0)
             {
                 data.Tags = new List<string>(_tags);
+            }
+
+            if (_hoverEffects.Count > 0)
+            {
+                data.HoverEffect = _hoverEffects[0];
+
+                if (_hoverEffects.Count > 1)
+                {
+                    data.HoverEffects = _hoverEffects.GetRange(1, _hoverEffects.Count - 1);
+                }
             }
 
             foreach (var field in _fields)

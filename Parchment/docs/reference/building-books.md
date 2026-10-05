@@ -331,6 +331,7 @@ Not every method applies to every element type. `Padding` on a `Heading` isn't v
 | `Action(action)` | A click [action](../concepts/actions.md). Call it more than once to build a list. The click plays the element's own `Sound`. |
 | `HoverAction(action)` | A hover action. Call it more than once to build a list. |
 | `WithTag(tag)` | A [tag](tags.md) carried by the link. Call it more than once to build a list. |
+| `HoverEffect(effect)` | A [hover effect](elements/index.md#hover-effects), written the way its tag is without the brackets, such as `"wave=3"` or `"pulse=Gold"`. Call it more than once to build a list. |
 
 ```cs title="A term that explains itself and jumps to its page"
 var paragraph = page.AddParagraph("You reeled in a [link=legend]Legend[/link] at Mountain Lake.");

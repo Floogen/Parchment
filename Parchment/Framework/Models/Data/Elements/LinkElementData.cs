@@ -1,6 +1,7 @@
 ﻿using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Enums;
+using System.Linq;
 
 namespace Parchment.Framework.Models.Data
 {
@@ -16,6 +17,9 @@ namespace Parchment.Framework.Models.Data
         public string LinkId { get; }
 
         public LinkData Link { get; }
+
+        /// <summary>Whether the link carries any hover effects, which is what has the cursor's arrival time recorded for it so they can ease in from rest.</summary>
+        public bool HasHoverEffects { get; }
 
         public LinkElementData(string linkId, LinkData link, ElementData host)
         {
@@ -33,6 +37,7 @@ namespace Parchment.Framework.Models.Data
             // Taken from the element the text belongs to, so a link's tooltip and actions read square brackets the way the rest of that element does
             ParseTokenizableStrings = host.ParseTokenizableStrings;
             Sound = host.Sound;
+            HasHoverEffects = link.GetHoverEffects().Any();
 
             // A link that only colors its text gives the cursor nothing to do, so it passes straight through to the element it sits in and that element's own tooltip and actions
             IgnoreCursor = HasCursorContent(link) is false;
@@ -45,7 +50,7 @@ namespace Parchment.Framework.Models.Data
             bool hasHoverActions = string.IsNullOrWhiteSpace(link.HoverAction) is false || (link.HoverActions is not null && link.HoverActions.Count is not 0);
             bool hasTags = link.Tags is not null && link.Tags.Count is not 0;
 
-            return hasTooltip || hasActions || hasHoverActions || hasTags || string.IsNullOrWhiteSpace(link.HoverTextColor) is false;
+            return hasTooltip || hasActions || hasHoverActions || hasTags || string.IsNullOrWhiteSpace(link.HoverTextColor) is false || link.GetHoverEffects().Any();
         }
     }
 }

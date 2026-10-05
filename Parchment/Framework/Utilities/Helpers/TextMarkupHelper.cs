@@ -50,7 +50,10 @@ namespace Parchment.Framework.Utilities.Helpers
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER };
 
         /// <summary>A link tag as it was read, being which occurrence it is (-1 for one that names nothing the element defines) and the color it draws its text in.</summary>
-        private readonly record struct OpenedLink(int Occurrence, Color? Color);
+        private readonly record struct OpenedLink(int Occurrence, Color? Color, IReadOnlyList<OpenedEffect> HoverEffects)
+        {
+            public static readonly OpenedLink None = new OpenedLink(-1, null, Array.Empty<OpenedEffect>());
+        }
 
         /// <summary>An effect tag as it was read, before it has a place in the plain text to count its characters from.</summary>
         private readonly record struct OpenedEffect(TextEffectType Type, float Amplitude, float Period, IReadOnlyList<Color> Colors);
@@ -422,21 +425,70 @@ namespace Parchment.Framework.Utilities.Helpers
             if (element is null || element.Data is not ILinkHost)
             {
                 Parchment.monitor.LogOnce($"'{source}' has [link={id}], but links only work on Title, Heading, Paragraph and PageNumber elements. The text is drawn without it.", LogLevel.Warn);
-                return new OpenedLink(-1, null);
+                return OpenedLink.None;
             }
 
             if (nextOccurrence >= element.Children.Count || element.Children[nextOccurrence].Data is not LinkElementData linkData || string.Equals(linkData.LinkId, id, StringComparison.OrdinalIgnoreCase) is false)
             {
                 Parchment.monitor.LogOnce($"'{source}' has [link={id}], which isn't in the element's \"Links\" or the book's. The text is drawn without it.", LogLevel.Warn);
-                return new OpenedLink(-1, null);
+                return OpenedLink.None;
             }
 
             LinkData link = linkData.Link;
             Color? linkColor = string.IsNullOrWhiteSpace(link.TextColor) ? null : ParseColor(link.TextColor, source, $"link '{id}' TextColor");
-            OpenedLink openedLink = new OpenedLink(nextOccurrence, linkColor);
+            OpenedLink openedLink = new OpenedLink(nextOccurrence, linkColor, ParseHoverEffects(link, id, source));
             nextOccurrence++;
 
             return openedLink;
+        }
+
+        /// <summary>Turns each hovered link's parsed effects into effects placed over the whole of the link's text. A link that was never closed runs to the end of the text.</summary>
+        private static IReadOnlyDictionary<int, IReadOnlyList<TextEffect>> BuildLinkHoverEffects(Dictionary<int, (OpenedLink Link, int Start, int End)> hoverLinkSpans, int textLength)
+        {
+            Dictionary<int, IReadOnlyList<TextEffect>> linkHoverEffects = new Dictionary<int, IReadOnlyList<TextEffect>>();
+
+            foreach (KeyValuePair<int, (OpenedLink Link, int Start, int End)> span in hoverLinkSpans)
+            {
+                int end = span.Value.End < 0 ? textLength : span.Value.End;
+                List<TextEffect> effects = new List<TextEffect>(span.Value.Link.HoverEffects.Count);
+
+                foreach (OpenedEffect hoverEffect in span.Value.Link.HoverEffects)
+                {
+                    effects.Add(new TextEffect(hoverEffect.Type, hoverEffect.Amplitude, hoverEffect.Period, span.Value.Start, hoverEffect.Colors) { Length = end - span.Value.Start });
+                }
+
+                linkHoverEffects[span.Key] = effects;
+            }
+
+            return linkHoverEffects;
+        }
+
+        /// <summary>Reads a link's hover effects, each written the way its inline tag is without the brackets, such as "wave=3|600". An entry naming no effect Parchment knows is skipped with a warning.</summary>
+        private static IReadOnlyList<OpenedEffect> ParseHoverEffects(LinkData link, string id, string source)
+        {
+            List<OpenedEffect>? hoverEffects = null;
+
+            foreach (string entry in link.GetHoverEffects())
+            {
+                // Brackets are forgiven, since an entry copied from the text would otherwise fail for the sake of them
+                string trimmedEntry = entry.Trim().TrimStart('[').TrimEnd(']');
+                int separatorIndex = trimmedEntry.IndexOf('=');
+
+                string name = separatorIndex < 0 ? trimmedEntry : trimmedEntry.Substring(0, separatorIndex);
+                string? value = separatorIndex < 0 ? null : trimmedEntry.Substring(separatorIndex + 1);
+
+                if (TryGetEffectType(name.Trim(), out TextEffectType effectType) is false)
+                {
+                    Parchment.monitor.LogOnce($"The link '{id}' has a hover effect of '{entry}', which isn't an effect Parchment knows. Try one of: {string.Join(", ", Enum.GetNames<TextEffectType>().Select(effectName => effectName.ToLowerInvariant()))}.", LogLevel.Warn);
+                    continue;
+                }
+
+                // Named in a way that reads naturally inside the quotes ParseEffect puts around its source, so a warning says which link the bad value came from
+                hoverEffects ??= new List<OpenedEffect>();
+                hoverEffects.Add(ParseEffect(effectType, value, $"{source}' link '{id}"));
+            }
+
+            return hoverEffects is null ? Array.Empty<OpenedEffect>() : hoverEffects;
         }
 
         /// <summary>The color a tag or link asks for. Null when it won't parse, which keeps the color around it.</summary>
@@ -462,6 +514,9 @@ namespace Parchment.Framework.Utilities.Helpers
             List<EffectRun> effectRuns = new List<EffectRun>();
             List<OpenTag> openTags = new List<OpenTag>();
 
+            // Where each link with hover effects starts and ends in the plain text, by occurrence. The end stays -1 until its closing tag is reached
+            Dictionary<int, (OpenedLink Link, int Start, int End)> hoverLinkSpans = new Dictionary<int, (OpenedLink Link, int Start, int End)>();
+
             int nextColorIndex = 0;
             int nextLinkIndex = 0;
             int nextEffectIndex = 0;
@@ -485,10 +540,15 @@ namespace Parchment.Framework.Utilities.Helpers
                         openTags.Add(new OpenTag(TagKind.Color, openedColor, -1, null));
                         break;
                     case LINK_OPEN_MARKER:
-                        OpenedLink openedLink = nextLinkIndex < record.OpenedLinks.Count ? record.OpenedLinks[nextLinkIndex] : new OpenedLink(-1, null);
+                        OpenedLink openedLink = nextLinkIndex < record.OpenedLinks.Count ? record.OpenedLinks[nextLinkIndex] : OpenedLink.None;
                         nextLinkIndex++;
 
                         openTags.Add(new OpenTag(TagKind.Link, openedLink.Color, openedLink.Occurrence, null));
+
+                        if (openedLink.Occurrence >= 0 && openedLink.HoverEffects.Count is not 0)
+                        {
+                            hoverLinkSpans[openedLink.Occurrence] = (openedLink, plainText.Length, -1);
+                        }
                         break;
                     case EFFECT_OPEN_MARKER:
                         if (nextEffectIndex < record.OpenedEffects.Count)
@@ -503,7 +563,12 @@ namespace Parchment.Framework.Utilities.Helpers
                         CloseInnermost(tag => tag.Kind is TagKind.Color);
                         break;
                     case LINK_CLOSE_MARKER:
-                        CloseInnermost(tag => tag.Kind is TagKind.Link);
+                        OpenTag? closedLinkTag = CloseInnermost(tag => tag.Kind is TagKind.Link);
+
+                        if (closedLinkTag is OpenTag closedLink && hoverLinkSpans.TryGetValue(closedLink.Occurrence, out var closedSpan))
+                        {
+                            hoverLinkSpans[closedLink.Occurrence] = (closedSpan.Link, closedSpan.Start, plainText.Length);
+                        }
                         break;
                     case EFFECT_CLOSE_MARKER:
                         if (nextClosedEffectIndex < record.ClosedEffects.Count)
@@ -542,7 +607,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 }
             }
 
-            return new StyledText(plainText.ToString(), colorRuns, linkRuns, effectRuns);
+            return new StyledText(plainText.ToString(), colorRuns, linkRuns, effectRuns, BuildLinkHoverEffects(hoverLinkSpans, plainText.Length));
 
             OpenTag? CloseInnermost(Predicate<OpenTag> isMatch)
             {

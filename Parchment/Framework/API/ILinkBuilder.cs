@@ -30,5 +30,10 @@
 
         /// <summary>Adds a tag to the link, read the same way as an element's own. Calling this more than once builds a list.</summary>
         ILinkBuilder WithTag(string tag);
+
+        /// <summary>Adds a text effect applied to the linked text while the cursor is over it, written the way its inline tag is without the brackets, such as "wave=3|600" or "pulse=Gold".
+        /// Calling this more than once builds a list, applied in order. They ease in when the cursor arrives and stop when it leaves.
+        /// </summary>
+        ILinkBuilder HoverEffect(string effect);
     }
 }

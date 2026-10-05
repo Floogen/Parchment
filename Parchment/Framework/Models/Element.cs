@@ -110,6 +110,12 @@ namespace Parchment.Framework.Models
 
                 _isHovered = value;
 
+                // A link's hover effects are timed from the cursor's arrival rather than the shared clock, so they ease in from rest instead of appearing mid-cycle
+                if (value is true && Data is LinkElementData { HasHoverEffects: true })
+                {
+                    this.HoverAnimationStartedAt = AnimationHelper.GetAnimationTime();
+                }
+
                 if (hasHoverAnimation is false)
                 {
                     return;
