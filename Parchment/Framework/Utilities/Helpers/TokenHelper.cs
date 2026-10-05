@@ -41,13 +41,17 @@ namespace Parchment.Framework.Utilities.Helpers
             return string.IsNullOrEmpty(text) is false && text.Contains('[');
         }
 
-        /// <summary>Whether an element's authored text carries a token, and so needs watching for a value that changes without a condition changing with it.</summary>
+        /// <summary>Whether an element's authored text carries a token, meaning it needs watching for a value that changes without a condition changing with it.
+        /// Color markup is looked past, since its square brackets would otherwise read as a game token and put every colored element on the watch for nothing.
+        /// </summary>
         public static bool HasTokenText(Element element)
         {
-            return element.Data is ITextContent textContent && HasTokens(textContent.Text);
+            return element.Data is ITextContent textContent && textContent.Text is not null && HasTokens(TextMarkupHelper.RemoveMarkup(textContent.Text));
         }
 
-        /// <summary>The element's authored text with its tokens resolved, or null when it has no text of its own.</summary>
+        /// <summary>The element's authored text with its tokens resolved and its color markup taken out. Null when it has no text of its own.
+        /// Resolved the same way the element's layout resolves it, so a game token that picks at random lands on the same answer in both and the watch never sees a change that isn't there.
+        /// </summary>
         public static string? ResolveElementText(Element element)
         {
             if (element.Data is not ITextContent textContent || textContent.Text is null)
@@ -55,7 +59,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 return null;
             }
 
-            return Resolve(textContent.Text, element, quoteValues: false);
+            return TextMarkupHelper.Resolve(textContent.Text, element).Text;
         }
 
         /// <summary>Replaces every token in a string with what it stands for. An unknown or unresolvable token is left in place and logged, so a typo fails visibly rather than turning into an empty gap.</summary>
@@ -370,6 +374,8 @@ namespace Parchment.Framework.Utilities.Helpers
         /// </param>
         private static string Format(string value, bool quoteValues, bool stripBrackets)
         {
+            value = TextMarkupHelper.RemoveMarkers(value);
+
             string plainValue = stripBrackets is false ? value : value.Replace("[", string.Empty).Replace("]", string.Empty);
 
             return quoteValues is false ? plainValue : string.Concat("\"", plainValue.Replace("\"", string.Empty), "\"");

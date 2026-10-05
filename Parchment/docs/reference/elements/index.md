@@ -91,7 +91,7 @@ Every element understands these, whatever its type.
 
 Understood by [`Title`](title.md), [`Heading`](heading.md), [`Paragraph`](paragraph.md), [`Banner`](banner.md), [`Button`](button.md), [`Image`](image.md) and [`Input`](input.md).
 
-Any element's `Text` can carry [tokens](../../concepts/actions.md#tokens), placeholders replaced with something the book knows as the element is laid out. That covers Parchment's own `%Token%` forms and the game's `[Token]` [tokenizable strings](../../concepts/actions.md#game-tokens).
+Any element's `Text` can carry [tokens](../../concepts/actions.md#tokens), placeholders replaced with something the book knows as the element is laid out. That covers Parchment's own `%Token%` forms and the game's `[Token]` [tokenizable strings](../../concepts/actions.md#game-tokens). Part of it can also be colored with [inline color](#inline-color) markup.
 
 --8<-- "text-content.md"
 
@@ -147,6 +147,30 @@ Color fields accept any of:
 Values are space-separated, not comma-separated. An unparsable color logs a warning and falls back to the default.
 
 Alpha is optional and full strength when left off. Write the color you want at full strength and let the alpha fade it, the same way the game does elsewhere: `"255 0 0 128"` is a half-faded red rather than a brighter one. The channels are scaled by the alpha before anything is drawn, so a translucent color fades towards whatever is behind it instead of washing out towards white.
+
+## Inline color
+
+A text element can color part of its `Text` by wrapping it in `[color=...]` and `[/color]`:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "You reeled in a [color=Gold]Legend[/color] at [color=#4A90D9]Mountain Lake[/color]."
+}
+```
+
+The value takes any of the [color forms](#colors) above. Everything outside a tag keeps the element's `TextColor`.
+
+- **Nesting.** Tags nest, so `[color=Red]a [color=Blue]b[/color] c[/color]` draws `c` red again.
+- **Tokens.** Tokens work inside a run, game tokens included: `[color=Gold][ItemName (O)128][/color]`. The markup is read from the text as written before any token resolves, so a value a token brings in (such as something the player typed into an `Input`) is always drawn as it is and can't color anything.
+- **Shadow.** A colored run keeps the element's `ShadowColor`. Left unset, the shadow follows the run's alpha the same way it follows `TextColor`'s.
+- **Case.** Tags are case-insensitive, so `[Color=Red]` works too.
+- **Mistakes.** A `[color]` that is never closed runs to the end of the text. A stray `[/color]` is dropped. A color that won't parse keeps the color around it. Each logs a warning.
+
+Markup is read on every text element except `Input`, whatever `ParseTokenizableStrings` is set to.
+
+!!! note "Where markup isn't drawn"
+    `SpriteText` keeps its own color, so markup on an element drawn in it is ignored with a warning. A tooltip's `DisplayName` and `Description` draw in a single color, so any markup in them is taken out rather than shown.
 
 ## Rectangles and points
 

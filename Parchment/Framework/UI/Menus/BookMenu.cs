@@ -1638,7 +1638,8 @@ namespace Parchment.Framework.UI.Menus
                 return text;
             }
 
-            return TokenHelper.Resolve(text, element, quoteValues: false);
+            // A tooltip draws in one color, so any color markup is taken out rather than shown as written
+            return TokenHelper.Resolve(TextMarkupHelper.RemoveMarkup(text), element, quoteValues: false);
         }
 
         /// <summary>Runs an element's click actions in order, from <see cref="ElementData.Action"/> and then <see cref="ElementData.Actions"/>.

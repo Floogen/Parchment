@@ -1,20 +1,50 @@
 using Microsoft.Xna.Framework;
+using Parchment.Framework.Models;
 using Parchment.Framework.Models.Interfaces;
+using Parchment.Framework.UI.Fonts;
+using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using System;
 using System.Collections.Generic;
 
 namespace Parchment.Framework.UI.Layouts
 {
+    /// <summary>A stretch of a wrapped line drawn in one color, cut wherever the line's color changes.</summary>
+    public class TextSegment
+    {
+        public string Text { get; }
+
+        /// <summary>The color the segment is drawn in (null for the element's own text color).</summary>
+        public Color? Color { get; }
+
+        /// <summary>How far into the line the segment starts, in the same scaled pixels as <see cref="WrappedLine.Size"/>.</summary>
+        public float OffsetX { get; }
+
+        public TextSegment(string text, Color? color, float offsetX)
+        {
+            Text = text;
+            Color = color;
+            OffsetX = offsetX;
+        }
+    }
+
     public class WrappedLine
     {
         public string Text { get; }
         public Vector2 Size { get; }
 
-        public WrappedLine(string text, Vector2 size)
+        /// <summary>The line cut wherever its color changes (null when the whole line is drawn in the element's own color).</summary>
+        public IReadOnlyList<TextSegment>? Segments { get; }
+
+        public WrappedLine(string text, Vector2 size) : this(text, size, null)
+        {
+        }
+
+        public WrappedLine(string text, Vector2 size, IReadOnlyList<TextSegment>? segments)
         {
             Text = text;
             Size = size;
+            Segments = segments;
         }
     }
 
@@ -65,8 +95,41 @@ namespace Parchment.Framework.UI.Layouts
         private const char HYPHEN = '-';
         private const string BLANK_LINE_MEASURE_TEXT = " ";
 
+        /// <summary>What every step of a wrap reads, gathered so the steps don't each carry the same handful of arguments.</summary>
+        private class WrapState
+        {
+            public List<WrappedLine> Lines { get; } = new List<WrappedLine>();
+            public IReadOnlyList<TextRun> Runs { get; init; } = Array.Empty<TextRun>();
+            public IFont Font { get; init; } = null!;
+            public float MaxWidth { get; init; }
+            public float Scale { get; init; }
+            public bool HyphenateBrokenWords { get; init; }
+        }
+
+        /// <summary>Resolves an element's tokens and color markup before wrapping its text in the given font.
+        /// Every text element measures through here, so markup reads the same on a Paragraph as it does on a Banner, a Button or an Image's caption.
+        /// </summary>
+        public static WrappedText WrapElementText(string? text, Element element, IFont font, float maxWidth, float scale)
+        {
+            StyledText styledText = TextMarkupHelper.Resolve(text, element);
+
+            if (styledText.Runs.Count is not 0 && font is SpriteTextAdapter)
+            {
+                Parchment.monitor.LogOnce($"'{text}' has [color] markup but draws in SpriteText, which keeps its own color, so the markup is ignored.", LogLevel.Warn);
+            }
+
+            return Wrap(styledText, font, maxWidth, scale);
+        }
+
         public static WrappedText Wrap(string text, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords = false)
         {
+            return Wrap(new StyledText(text?.Replace("\r\n", "\n") ?? string.Empty, Array.Empty<TextRun>()), font, maxWidth, scale, hyphenateBrokenWords);
+        }
+
+        public static WrappedText Wrap(StyledText styledText, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords = false)
+        {
+            string text = styledText.Text;
+
             if (string.IsNullOrEmpty(text) is false && maxWidth <= 0f)
             {
                 Parchment.monitor.LogOnce($"Cannot wrap '{text}': the available width is {maxWidth}.", LogLevel.Warn);
@@ -77,14 +140,18 @@ namespace Parchment.Framework.UI.Layouts
                 return new WrappedText(Array.Empty<WrappedLine>(), Vector2.Zero);
             }
 
-            List<WrappedLine> lines = new List<WrappedLine>();
+            WrapState state = new WrapState() { Runs = styledText.Runs, Font = font, MaxWidth = maxWidth, Scale = scale, HyphenateBrokenWords = hyphenateBrokenWords };
 
-            foreach (string hardLine in text.Replace("\r\n", "\n").Split('\n'))
+            // Where each hard line starts in the whole text, so a line cut out of it can find the color runs it falls under
+            int hardLineStart = 0;
+
+            foreach (string hardLine in text.Split('\n'))
             {
-                WrapSingleLine(lines, hardLine, font, maxWidth, scale, hyphenateBrokenWords);
+                WrapSingleLine(state, hardLine, hardLineStart);
+                hardLineStart += hardLine.Length + 1;
             }
 
-            return new WrappedText(lines, MeasureLines(lines));
+            return new WrappedText(state.Lines, MeasureLines(state.Lines));
         }
 
         private static Vector2 MeasureLines(IReadOnlyList<WrappedLine> lines)
@@ -101,21 +168,90 @@ namespace Parchment.Framework.UI.Layouts
             return new Vector2(maximumLineWidth, totalHeight);
         }
 
-        private static void AddLine(List<WrappedLine> lines, string text, IFont font, float scale)
+        /// <param name="sourceStart">Where the line starts in the whole text.</param>
+        /// <param name="sourceLength">How much of the whole text the line covers, which leaves out a hyphen the wrap added to a broken word.</param>
+        private static void AddLine(WrapState state, string text, int sourceStart, int sourceLength)
         {
-            lines.Add(new WrappedLine(text, font.MeasureString(text, scale)));
+            state.Lines.Add(new WrappedLine(text, state.Font.MeasureString(text, state.Scale), GetSegments(state, text, sourceStart, sourceLength)));
         }
 
-        private static void AddBlankLine(List<WrappedLine> lines, IFont font, float scale)
+        private static void AddBlankLine(WrapState state)
         {
-            lines.Add(new WrappedLine(string.Empty, new Vector2(0f, font.MeasureString(BLANK_LINE_MEASURE_TEXT, scale).Y)));
+            state.Lines.Add(new WrappedLine(string.Empty, new Vector2(0f, state.Font.MeasureString(BLANK_LINE_MEASURE_TEXT, state.Scale).Y)));
         }
 
-        private static void WrapSingleLine(List<WrappedLine> lines, string line, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords)
+        /// <summary>Cuts a line wherever its color changes. Returns null when no color run reaches it.
+        /// Each segment's offset is measured once here rather than on every draw. Alignment only moves the line as a whole, so the offsets hold however it is aligned.
+        /// </summary>
+        private static IReadOnlyList<TextSegment>? GetSegments(WrapState state, string text, int sourceStart, int sourceLength)
+        {
+            if (state.Runs.Count is 0 || sourceLength <= 0)
+            {
+                return null;
+            }
+
+            int sourceEnd = sourceStart + sourceLength;
+            List<(int Start, int End, Color? Color)> pieces = new List<(int Start, int End, Color? Color)>();
+            bool hasColoredPiece = false;
+            int cursor = sourceStart;
+
+            foreach (TextRun run in state.Runs)
+            {
+                if (run.End <= cursor)
+                {
+                    continue;
+                }
+
+                if (run.Start >= sourceEnd)
+                {
+                    break;
+                }
+
+                if (run.Start > cursor)
+                {
+                    pieces.Add((cursor, run.Start, null));
+                }
+
+                int pieceStart = Math.Max(run.Start, cursor);
+                int pieceEnd = Math.Min(run.End, sourceEnd);
+
+                pieces.Add((pieceStart, pieceEnd, run.Color));
+                hasColoredPiece = true;
+                cursor = pieceEnd;
+            }
+
+            if (hasColoredPiece is false)
+            {
+                return null;
+            }
+
+            if (cursor < sourceEnd)
+            {
+                pieces.Add((cursor, sourceEnd, null));
+            }
+
+            List<TextSegment> segments = new List<TextSegment>(pieces.Count);
+
+            for (int index = 0; index < pieces.Count; index++)
+            {
+                int localStart = pieces[index].Start - sourceStart;
+
+                // The last piece takes everything left on the line, so a hyphen the wrap added is drawn in the color of the word it broke
+                string segmentText = index == pieces.Count - 1 ? text.Substring(localStart) : text.Substring(localStart, pieces[index].End - pieces[index].Start);
+                float offsetX = localStart is 0 ? 0f : state.Font.MeasureString(text.Substring(0, localStart), state.Scale).X;
+
+                segments.Add(new TextSegment(segmentText, pieces[index].Color, offsetX));
+            }
+
+            return segments;
+        }
+
+        /// <param name="lineStart">Where this hard line starts in the whole text. Every line cut from it is a contiguous stretch of it, which is what lets each one be traced back to the color runs it falls under.</param>
+        private static void WrapSingleLine(WrapState state, string line, int lineStart)
         {
             if (line.Length is 0)
             {
-                AddBlankLine(lines, font, scale);
+                AddBlankLine(state);
                 return;
             }
 
@@ -128,50 +264,67 @@ namespace Parchment.Framework.UI.Layouts
             // A line that is nothing but spaces: preserve it rather than culling to blank.
             if (indentLength == line.Length)
             {
-                AddLine(lines, line, font, scale);
+                AddLine(state, line, lineStart, line.Length);
                 return;
             }
 
             string indent = line.Substring(0, indentLength);
             string currentLine = string.Empty;
+            int currentStart = lineStart;
             bool indentPending = true;
+            int nextWordStart = lineStart + indentLength;
 
             foreach (string word in line.Substring(indentLength).Split(' '))
             {
+                // Tracked alongside the words, since the single space each one is split on is the only thing between them
+                int wordStart = nextWordStart;
+                nextWordStart += word.Length + 1;
+
                 string candidateLine = currentLine.Length is 0 ? (indentPending ? indent + word : word) : $"{currentLine} {word}";
 
-                if (font.MeasureString(candidateLine, scale).X <= maxWidth)
+                if (state.Font.MeasureString(candidateLine, state.Scale).X <= state.MaxWidth)
                 {
+                    // A word still carrying the indent starts where the hard line does, as the indent is written in front of it
+                    if (currentLine.Length is 0)
+                    {
+                        currentStart = indentPending ? lineStart : wordStart;
+                    }
+
                     currentLine = candidateLine;
                     continue;
                 }
 
                 if (currentLine.Length > 0)
                 {
-                    AddLine(lines, currentLine, font, scale);
+                    AddLine(state, currentLine, currentStart, currentLine.Length);
                     currentLine = string.Empty;
                     indentPending = false;
                 }
 
                 string wordWithIndent = indentPending ? indent + word : word;
-                if (font.MeasureString(wordWithIndent, scale).X <= maxWidth)
+                int wordWithIndentStart = indentPending ? lineStart : wordStart;
+
+                if (state.Font.MeasureString(wordWithIndent, state.Scale).X <= state.MaxWidth)
                 {
                     currentLine = wordWithIndent;
+                    currentStart = wordWithIndentStart;
                     indentPending = false;
                     continue;
                 }
 
-                currentLine = BreakLongWord(lines, wordWithIndent, font, maxWidth, scale, hyphenateBrokenWords);
+                currentLine = BreakLongWord(state, wordWithIndent, wordWithIndentStart, out currentStart);
                 indentPending = false;
             }
 
             if (currentLine.Length > 0)
             {
-                AddLine(lines, currentLine, font, scale);
+                AddLine(state, currentLine, currentStart, currentLine.Length);
             }
         }
 
-        private static string BreakLongWord(List<WrappedLine> lines, string word, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords)
+        /// <param name="wordStart">Where the word starts in the whole text.</param>
+        /// <param name="remainderStart">Where the returned remainder starts in the whole text, so the line it goes on to begin can be traced back like any other.</param>
+        private static string BreakLongWord(WrapState state, string word, int wordStart, out int remainderStart)
         {
             int segmentStart = 0;
 
@@ -185,12 +338,12 @@ namespace Parchment.Framework.UI.Layouts
                     bool isFinalSegment = segmentStart + candidateLength >= word.Length;
                     string candidateSegment = word.Substring(segmentStart, candidateLength);
 
-                    if (hyphenateBrokenWords && isFinalSegment is false)
+                    if (state.HyphenateBrokenWords && isFinalSegment is false)
                     {
                         candidateSegment += HYPHEN;
                     }
 
-                    if (font.MeasureString(candidateSegment, scale).X > maxWidth)
+                    if (state.Font.MeasureString(candidateSegment, state.Scale).X > state.MaxWidth)
                     {
                         break;
                     }
@@ -205,14 +358,16 @@ namespace Parchment.Framework.UI.Layouts
 
                 if (segmentStart + segmentLength >= word.Length)
                 {
+                    remainderStart = wordStart + segmentStart;
                     return word.Substring(segmentStart);
                 }
 
                 string segment = word.Substring(segmentStart, segmentLength);
-                AddLine(lines, hyphenateBrokenWords ? $"{segment}{HYPHEN}" : segment, font, scale);
+                AddLine(state, state.HyphenateBrokenWords ? $"{segment}{HYPHEN}" : segment, wordStart + segmentStart, segmentLength);
                 segmentStart += segmentLength;
             }
 
+            remainderStart = wordStart + word.Length;
             return string.Empty;
         }
     }
