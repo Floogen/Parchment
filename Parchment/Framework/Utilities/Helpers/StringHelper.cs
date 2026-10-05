@@ -59,7 +59,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// A colored segment keeps the element's shadow, resolved against the segment's own color so an unset shadow follows its alpha the way it follows the element's.
         /// A segment inside a hovered link takes the link's hover color over whatever color it would otherwise have.
         /// A segment under an effect is drawn a character at a time, each moved from where it was laid out along with its shadow.
-        /// An effect that colors, such as a rainbow, covers the segment's own color but not a hovered link's, so the link still shows the cursor is on it.
+        /// An effect that colors, such as a rainbow or a pulse, starts from the segment's own color but leaves a hovered link's alone, so the link still shows the cursor is on it.
         /// </summary>
         /// <param name="keepsOwnColor">Whether the font ignores the colors it's handed, as SpriteText does, in which case every segment takes the element's own.</param>
         private static void DrawSegments(SpriteBatch spriteBatch, Element element, IReadOnlyList<TextSegment> segments, Vector2 linePosition, Color fadedColor, Color shadowColor, float scale, bool keepsOwnColor, double effectTime)
@@ -99,10 +99,11 @@ namespace Parchment.Framework.Utilities.Helpers
                     Color characterColor = segmentColor;
                     Color characterShadowColor = segmentShadowColor;
 
-                    if (keepsOwnColor is false && hoveredLinkColor is null && TextEffectHelper.GetColor(segment.Effects, position, effectTime) is Color effectColor)
+                    // Started from the color the character would have had, so a pulse fades from the run's own color and a rainbow keeps the run's alpha
+                    if (keepsOwnColor is false && hoveredLinkColor is null && TextEffectHelper.GetColor(segment.Effects, position, effectTime, runColor ?? element.TextColor) is Color effectColor)
                     {
-                        // Faded by the alpha the segment would have drawn at, so a translucent or fading element takes its rainbow down with it
-                        characterColor = effectColor * (segmentColor.A / 255f);
+                        // Faded with the element, so one that is fading out takes its effect colors down with it
+                        characterColor = effectColor * element.DrawAlpha;
                         characterShadowColor = element.GetShadowColor(characterColor);
                     }
 

@@ -15,7 +15,7 @@ using System.Text.RegularExpressions;
 
 namespace Parchment.Framework.Utilities.Helpers
 {
-    /// <summary>Reads the [color=...], [link=...] and effect markup ([wave], [shake] and [rainbow]) an author can write into an element's text.
+    /// <summary>Reads the [color=...], [link=...] and effect markup (such as [wave] or [gradient]) an author can write into an element's text.
     /// The markup is read out of the authored text before any token resolves. It stands in the text as marker characters while the tokens do.
     /// That keeps the game from ever seeing it as one of its [Token] forms. It also means a value a token brings in (out of something the player typed, say) can never open a run of its own.
     /// </summary>
@@ -33,13 +33,19 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_SHAKE_AMPLITUDE = 1f;
         public const float DEFAULT_SHAKE_PERIOD = 80f;
         public const float DEFAULT_RAINBOW_PERIOD = 2000f;
+        public const float DEFAULT_BOUNCE_AMPLITUDE = 2f;
+        public const float DEFAULT_BOUNCE_PERIOD = 800f;
+        public const float DEFAULT_PULSE_PERIOD = 1500f;
+
+        // What separates a color from the rest of an effect's value, since a color can hold spaces of its own such as "255 215 0"
+        private const char COLOR_VALUE_SEPARATOR = '|';
 
         private const string COLOR_TAG = "color";
         private const string LINK_TAG = "link";
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER };
 
@@ -47,7 +53,7 @@ namespace Parchment.Framework.Utilities.Helpers
         private readonly record struct OpenedLink(int Occurrence, Color? Color);
 
         /// <summary>An effect tag as it was read, before it has a place in the plain text to count its characters from.</summary>
-        private readonly record struct OpenedEffect(TextEffectType Type, float Amplitude, float Period);
+        private readonly record struct OpenedEffect(TextEffectType Type, float Amplitude, float Period, IReadOnlyList<Color> Colors);
 
         private enum TagKind
         {
@@ -288,24 +294,86 @@ namespace Parchment.Framework.Utilities.Helpers
             return Enum.TryParse(tag, ignoreCase: true, out effectType);
         }
 
-        /// <summary>Reads an effect tag's optional value. A wave or a shake takes its amplitude and then its period, separated by a space, while a rainbow takes only its period.
+        /// <summary>Reads an effect tag's optional value. A wave, shake or bounce takes its amplitude and then its period, separated by a space, while a rainbow takes only its period.
+        /// An effect that takes colors separates them from each other and from anything else with a |, as a color can hold spaces of its own.
         /// A part that is left off or won't parse keeps its default.
         /// </summary>
         private static OpenedEffect ParseEffect(TextEffectType effectType, string? value, string source)
         {
             string tag = effectType.ToString().ToLowerInvariant();
+
+            switch (effectType)
+            {
+                case TextEffectType.Gradient:
+                    return new OpenedEffect(effectType, 0f, 0f, ParseGradientColors(value, tag, source));
+                case TextEffectType.Pulse:
+                    return ParsePulse(value, tag, source);
+            }
+
             string[] parts = string.IsNullOrWhiteSpace(value) ? Array.Empty<string>() : value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             switch (effectType)
             {
                 case TextEffectType.Shake:
-                    return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_SHAKE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_SHAKE_PERIOD, allowZero: false, tag, source));
+                    return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_SHAKE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_SHAKE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
+                case TextEffectType.Bounce:
+                    return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_BOUNCE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_BOUNCE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
                 case TextEffectType.Rainbow:
                     // Zero holds the colors still, which is how the game draws its own rainbow text
-                    return new OpenedEffect(effectType, 0f, ParsePeriod(parts, 0, DEFAULT_RAINBOW_PERIOD, allowZero: true, tag, source));
+                    return new OpenedEffect(effectType, 0f, ParsePeriod(parts, 0, DEFAULT_RAINBOW_PERIOD, allowZero: true, tag, source), Array.Empty<Color>());
             }
 
-            return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_WAVE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_WAVE_PERIOD, allowZero: false, tag, source));
+            return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_WAVE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_WAVE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
+        }
+
+        /// <summary>Reads a gradient's stops, each a color separated from the next by a |. A stop that won't parse is left out. Fewer than two leave the gradient with nothing to blend, so it keeps the color around it.</summary>
+        private static IReadOnlyList<Color> ParseGradientColors(string? value, string tag, string source)
+        {
+            List<Color> colors = new List<Color>();
+
+            if (string.IsNullOrWhiteSpace(value) is false)
+            {
+                foreach (string part in value.Split(COLOR_VALUE_SEPARATOR, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    if (ColorParser.TryParse(part, out Color color))
+                    {
+                        colors.Add(color);
+                    }
+                    else
+                    {
+                        Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{part}', which isn't a color Parchment can read, so it was left out.", LogLevel.Warn);
+                    }
+                }
+            }
+
+            if (colors.Count < 2)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] without two colors to blend between, such as [{tag}=Red|Blue], so the text keeps the color around it.", LogLevel.Warn);
+                return Array.Empty<Color>();
+            }
+
+            return colors;
+        }
+
+        /// <summary>Reads a pulse's color and then its period, separated by a |. The color is required, as without one there is nothing to fade towards and the text keeps the color around it.</summary>
+        private static OpenedEffect ParsePulse(string? value, string tag, string source)
+        {
+            string[] parts = string.IsNullOrWhiteSpace(value) ? Array.Empty<string>() : value.Split(COLOR_VALUE_SEPARATOR, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            float period = ParsePeriod(parts, 1, DEFAULT_PULSE_PERIOD, allowZero: false, tag, source);
+
+            if (parts.Length is 0)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] without a color to fade towards, such as [{tag}=Gold], so the text keeps the color around it.", LogLevel.Warn);
+                return new OpenedEffect(TextEffectType.Pulse, 0f, period, Array.Empty<Color>());
+            }
+
+            if (ColorParser.TryParse(parts[0], out Color color) is false)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{parts[0]}', which isn't a color Parchment can read, so the text keeps the color around it.", LogLevel.Warn);
+                return new OpenedEffect(TextEffectType.Pulse, 0f, period, Array.Empty<Color>());
+            }
+
+            return new OpenedEffect(TextEffectType.Pulse, 0f, period, new Color[] { color });
         }
 
         private static float ParseAmplitude(string[] parts, float defaultAmplitude, string tag, string source)
@@ -424,7 +492,7 @@ namespace Parchment.Framework.Utilities.Helpers
                         if (nextEffectIndex < record.OpenedEffects.Count)
                         {
                             OpenedEffect openedEffect = record.OpenedEffects[nextEffectIndex];
-                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length)));
+                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors)));
                         }
 
                         nextEffectIndex++;
@@ -439,7 +507,12 @@ namespace Parchment.Framework.Utilities.Helpers
                         if (nextClosedEffectIndex < record.ClosedEffects.Count)
                         {
                             TextEffectType closedType = record.ClosedEffects[nextClosedEffectIndex];
-                            CloseInnermost(tag => tag.Kind is TagKind.Effect && tag.Effect?.Type == closedType);
+                            OpenTag? closedTag = CloseInnermost(tag => tag.Kind is TagKind.Effect && tag.Effect?.Type == closedType);
+
+                            if (closedTag?.Effect is TextEffect closedEffect)
+                            {
+                                closedEffect.Length = plainText.Length - closedEffect.Start;
+                            }
                         }
 
                         nextClosedEffectIndex++;
@@ -458,18 +531,31 @@ namespace Parchment.Framework.Utilities.Helpers
             ChangeOccurrence(-1);
             ChangeEffects(Array.Empty<TextEffect>());
 
+            // An effect that was never closed runs to the end of the text, so that is where its length is measured to
+            foreach (OpenTag openTag in openTags)
+            {
+                if (openTag.Effect is TextEffect unclosedEffect)
+                {
+                    unclosedEffect.Length = plainText.Length - unclosedEffect.Start;
+                }
+            }
+
             return new StyledText(plainText.ToString(), colorRuns, linkRuns, effectRuns);
 
-            void CloseInnermost(Predicate<OpenTag> isMatch)
+            OpenTag? CloseInnermost(Predicate<OpenTag> isMatch)
             {
                 for (int index = openTags.Count - 1; index >= 0; index--)
                 {
                     if (isMatch(openTags[index]))
                     {
+                        OpenTag closedTag = openTags[index];
                         openTags.RemoveAt(index);
-                        return;
+
+                        return closedTag;
                     }
                 }
+
+                return null;
             }
 
             // A tag whose color is unset or wouldn't parse is skipped, so the color around it carries on through it

@@ -5,6 +5,9 @@
     {
         Wave,
         Shake,
-        Rainbow
+        Rainbow,
+        Bounce,
+        Gradient,
+        Pulse
     }
 }

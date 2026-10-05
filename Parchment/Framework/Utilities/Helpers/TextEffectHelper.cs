@@ -39,26 +39,49 @@ namespace Parchment.Framework.Utilities.Helpers
                         offset.X += MathF.Round(GetNoise(position, GetShakeSlot(effect, time), 0) * effect.Amplitude * scale);
                         offset.Y += MathF.Round(GetNoise(position, GetShakeSlot(effect, time), 1) * effect.Amplitude * scale);
                         break;
+                    case TextEffectType.Bounce:
+                        offset.Y -= GetBounceHeight(effect, index, time) * scale;
+                        break;
                 }
             }
 
             return offset;
         }
 
-        /// <summary>The color an effect gives a character (null when none of the effects over it sets one). The innermost effect that colors wins, so a rainbow inside another rainbow keeps its own pace.</summary>
+        /// <summary>The color the effects give a character (null when none of the effects over it sets one).
+        /// Applied from the outermost effect in, each starting from the color the one around it left. A rainbow or gradient replaces that color while a pulse fades it towards its own,
+        /// so a pulse inside a rainbow pulses the rainbow and a rainbow inside another rainbow keeps its own pace.
+        /// </summary>
         /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
         /// <param name="time">The animation clock, in milliseconds.</param>
-        public static Color? GetColor(IReadOnlyList<TextEffect> effects, int position, double time)
+        /// <param name="baseColor">The color the character would be drawn in without any effect, before the element's fade. Its alpha carries through every effect, so a translucent run stays translucent.</param>
+        public static Color? GetColor(IReadOnlyList<TextEffect> effects, int position, double time, Color baseColor)
         {
-            for (int index = effects.Count - 1; index >= 0; index--)
+            Color currentColor = baseColor;
+            bool isColored = false;
+
+            foreach (TextEffect effect in effects)
             {
-                if (effects[index].Type is TextEffectType.Rainbow)
+                int index = position - effect.Start;
+
+                switch (effect.Type)
                 {
-                    return GetRainbowColor(effects[index], position - effects[index].Start, time);
+                    case TextEffectType.Rainbow:
+                        currentColor = GetRainbowColor(effect, index, time) * (currentColor.A / 255f);
+                        isColored = true;
+                        break;
+                    case TextEffectType.Gradient when effect.Colors.Count >= 2:
+                        currentColor = GetGradientColor(effect, index) * (currentColor.A / 255f);
+                        isColored = true;
+                        break;
+                    case TextEffectType.Pulse when effect.Colors.Count >= 1:
+                        currentColor = Color.Lerp(currentColor, effect.Colors[0], GetPulseBlend(effect, time));
+                        isColored = true;
+                        break;
                 }
             }
 
-            return null;
+            return isColored ? currentColor : null;
         }
 
         /// <summary>Whether any of the effects sets a color, which a font that keeps its own color can't draw.</summary>
@@ -66,13 +89,41 @@ namespace Parchment.Framework.Utilities.Helpers
         {
             foreach (TextEffect effect in effects)
             {
-                if (effect.Type is TextEffectType.Rainbow)
+                if (effect.Type is TextEffectType.Rainbow or TextEffectType.Gradient or TextEffectType.Pulse)
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        /// <summary>A gradient's color for one of its characters, spread evenly from its first stop at the first character to its last stop at the last.
+        /// The whole stretch is measured, not each line, so a gradient that wraps carries on where the line before it left off.
+        /// </summary>
+        private static Color GetGradientColor(TextEffect effect, int index)
+        {
+            float fraction = effect.Length <= 1 ? 0f : Math.Clamp(index / (effect.Length - 1f), 0f, 1f);
+            float scaledFraction = fraction * (effect.Colors.Count - 1);
+            int stopIndex = Math.Min((int)scaledFraction, effect.Colors.Count - 2);
+
+            return Color.Lerp(effect.Colors[stopIndex], effect.Colors[stopIndex + 1], scaledFraction - stopIndex);
+        }
+
+        /// <summary>How far along a pulse is towards its color, easing from none to all of it and back once per period. The whole stretch pulses together, as a highlight rather than a ripple.</summary>
+        private static float GetPulseBlend(TextEffect effect, double time)
+        {
+            return (float)((1d - Math.Cos(Math.PI * 2d * time / effect.Period)) / 2d);
+        }
+
+        /// <summary>How high a bouncing character is lifted, rising from where it was laid out and landing back on it once per period rather than dipping below.
+        /// Each character trails the one before it the way a wave's does, so the hops travel along the text in the same direction.
+        /// </summary>
+        private static float GetBounceHeight(TextEffect effect, int index, double time)
+        {
+            double phase = Math.PI / effect.Period * (time + index * WAVE_CHARACTER_DELAY);
+
+            return (float)(effect.Amplitude * Math.Abs(Math.Sin(phase)));
         }
 
         /// <summary>The game's rainbow, one color further along for each character, blended between neighbours as it cycles once per period.

@@ -57,12 +57,23 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>Where the effect's tag opened in <see cref="StyledText.Text"/>. Each character's place in the effect is counted from here, so the effect carries on unbroken across a color change or a line break.</summary>
         public int Start { get; }
 
-        public TextEffect(TextEffectType type, float amplitude, float period, int start)
+        /// <summary>How many characters of <see cref="StyledText.Text"/> the effect covers. Set once its closing tag is reached (or the text ends), which is what lets a gradient spread its colors across the whole of it.</summary>
+        public int Length { get; set; }
+
+        /// <summary>The colors an effect blends between, being a gradient's stops in order or the one color a pulse fades towards. Empty for an effect that only moves its characters.</summary>
+        public IReadOnlyList<Color> Colors { get; }
+
+        public TextEffect(TextEffectType type, float amplitude, float period, int start) : this(type, amplitude, period, start, Array.Empty<Color>())
+        {
+        }
+
+        public TextEffect(TextEffectType type, float amplitude, float period, int start, IReadOnlyList<Color> colors)
         {
             Type = type;
             Amplitude = amplitude;
             Period = period;
             Start = start;
+            Colors = colors;
         }
     }
 
