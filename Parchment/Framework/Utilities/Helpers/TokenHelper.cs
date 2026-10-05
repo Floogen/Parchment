@@ -20,9 +20,8 @@ namespace Parchment.Framework.Utilities.Helpers
     public static class TokenHelper
     {
         private const string ESCAPED_PERCENT = "%%";
-        private const string ESCAPED_PERCENT_PLACEHOLDER = "\u0001";
 
-        private static readonly Regex _tokenPattern = new Regex(@"%(?<name>[A-Za-z]+)(?:\.(?<property>[A-Za-z]+))?(?::(?<argument>[^%]+))?%", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _tokenPattern = new Regex(@"%%|%(?<name>[A-Za-z]+)(?:\.(?<property>[A-Za-z]+))?(?::(?<argument>[^%]+))?%", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>Whether a string is worth running through <see cref="Resolve"/> at all, which is what keeps the change watch off every element that has no tokens in it.</summary>
         public static bool HasTokens(string? text)
@@ -91,12 +90,8 @@ namespace Parchment.Framework.Utilities.Helpers
                 return text;
             }
 
-            // Held aside so a literal %% can't be read as an empty token, and put back once the real ones are done
-            string workingText = text.Replace(ESCAPED_PERCENT, ESCAPED_PERCENT_PLACEHOLDER);
-
-            workingText = _tokenPattern.Replace(workingText, match => ResolveToken(match, text, element, quoteValues, stripBrackets));
-
-            return workingText.Replace(ESCAPED_PERCENT_PLACEHOLDER, "%");
+            // Read left to right in one pass, so %Variable:a%%Variable:b% is two tokens while 100%% is a literal percent
+            return _tokenPattern.Replace(text, match => ResolveToken(match, text, element, quoteValues, stripBrackets));
         }
 
         /// <summary>Hands the string to the game so its [Token] forms resolve against the current save. A string the game refuses is kept as it was rather than blanked, which matches how an unknown Parchment token is left in place.
@@ -229,6 +224,11 @@ namespace Parchment.Framework.Utilities.Helpers
 
         private static string ResolveToken(Match match, string source, Element? element, bool quoteValues, bool stripBrackets)
         {
+            if (match.Value == ESCAPED_PERCENT)
+            {
+                return "%";
+            }
+
             string name = match.Groups["name"].Value;
             string property = match.Groups["property"].Value;
             string argument = match.Groups["argument"].Value;

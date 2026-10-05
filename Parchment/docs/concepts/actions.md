@@ -366,7 +366,7 @@ The same names are what a [`Grid`](../reference/elements/grid.md#ordering)'s `So
 The list is fixed rather than reaching into the item for whatever it happens to have. That keeps these names Parchment's to keep: a game update that renames something underneath one of them is a fix here rather than a break in your book. Ask for something not on the list and the token is left in place, with the accepted names logged.
 
 !!! note "An unknown token is left alone"
-    `%GridTotal:fsh%` isn't replaced with nothing, it stays in the text and is logged. Anything the vocabulary doesn't recognise is passed through untouched, so ordinary prose containing a `%` survives. Write `%%` where you need a literal one next to something token-shaped.
+    `%GridTotal:fsh%` isn't replaced with nothing, it stays in the text and is logged. Anything the vocabulary doesn't recognise is passed through untouched, so ordinary prose containing a `%` survives. Write `%%` where you need a literal one next to something token-shaped. Tokens can also sit directly against each other, such as `%Item.Name%%Variable:suffix%`.
 
 ```json
 {
