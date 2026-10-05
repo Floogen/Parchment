@@ -12,6 +12,9 @@
         /// <summary>When the typewriter finished, on the animation clock. Earlier than it would have typed out when the reader clicked to finish it, which is what lets the typewriters waiting on it start straight away.</summary>
         public double CompletedAt { get; set; }
 
+        /// <summary>Whether the typewriter's condition failed when it would have started, so its text showed in full at once rather than typing out.</summary>
+        public bool IsInstant { get; set; }
+
         /// <summary>How many characters were showing when the sound was last played for it, so each newly revealed character can be told apart from one already counted.</summary>
         public int LastSoundedCount { get; set; }
     }

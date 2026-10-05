@@ -9,6 +9,9 @@
         /// <summary>Sets any field on the link by name, for anything the methods below don't cover. Fields that don't exist are reported when the book is registered, along with the ones that do.</summary>
         ILinkBuilder Set(string field, object? value);
 
+        /// <summary>A game state query deciding whether the link applies wherever it's used. When it fails the linked text is drawn plain and the cursor can't reach it.</summary>
+        ILinkBuilder Condition(string condition);
+
         /// <summary>The color the linked text is drawn in, as a name such as "Gold" or a value such as "255 215 0". Left unset, the text keeps the color around it.</summary>
         ILinkBuilder TextColor(string color);
 

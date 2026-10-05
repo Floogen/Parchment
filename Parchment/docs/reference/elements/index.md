@@ -196,6 +196,7 @@ A link behaves like an element of its own: it has its own tooltip, runs its own 
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
+| `Condition` <span class="opt">optional</span> | `string` | — | A [game state query](../../concepts/conditions.md) deciding whether the link applies wherever it's used. When it fails the text is drawn plain (no color, tooltip or action) and can't be reached. See [Tag conditions](#tag-conditions). |
 | `TextColor` <span class="opt">optional</span> | [`color`](#colors) | *the color around it* | The linked text's color. |
 | `HoverTextColor` <span class="opt">optional</span> | [`color`](#colors) | — | The linked text's color while the cursor is over it. Covers any `[color]` markup inside the link. |
 | `DisplayName` <span class="opt">optional</span> | `string` | — | The bold title of the link's hover tooltip. Can carry [tokens](../../concepts/actions.md#tokens). |
@@ -306,6 +307,7 @@ Its value takes two numbers and then any options, all separated by `|` and all o
 | `immediate` | Start as soon as the text is on screen instead of waiting for the typewriters before it. | waits its turn |
 | `fade` or `fade=milliseconds` | Fade each character in instead of popping it in. A bare `fade` takes 100 milliseconds. | pops in |
 | `sound=cue` | Play a sound cue as characters appear, such as `sound=dialogueCharacter` for the game's own typing sound. | no sound |
+| `condition=query` | Type only when a [game state query](../../concepts/conditions.md) passes, checked once when the typewriter would start. When it fails the text shows in full at once. See [Tag conditions](#tag-conditions). | always types |
 
 So `[typewriter=20|500|fade|sound=dialogueCharacter]` waits half a second, then types quickly with each character fading in to the game's typing sound.
 
@@ -357,6 +359,30 @@ A link's `HoverEffect` and `HoverEffects` apply [text effects](#text-effects) to
 - **Whole link.** Each effect covers the whole of the link's text, so a gradient spreads across all of it, even when a link nested inside cuts it in two.
 - **Interactivity.** A link with hover effects is reachable by the cursor even when it has no tooltip or action.
 - **Mistakes.** An entry naming no effect Parchment knows is skipped with a warning listing the ones it does. Values that won't parse behave as they do in the text.
+
+## Tag conditions
+
+Any tag can take a `condition=` part holding a [game state query](../../concepts/conditions.md). The tag only applies while the query passes:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "The lake is [color=SkyBlue|condition=WEATHER Here Rain]full of rain[/color] and the [link=legend|condition=PLAYER_HAS_SEEN_EVENT Current 123]Legend[/link] stirs.",
+  "Links": {
+    "legend": { "TextColor": "Gold", "Description": "Only bites in spring rain." }
+  }
+}
+```
+
+It goes alongside the tag's other parts, separated by `|` the same way, in any position: `[wave=4|500|condition=SEASON spring]` or `[gradient=Red|Blue|condition=!IS_FESTIVAL_DAY]`.
+
+- **When it fails.** The tag steps aside and its text is drawn as though the tag weren't there. A failed `[color]` keeps the color around it, a failed effect leaves its characters still and a failed `[link]` is plain text that the cursor can't reach. The text itself always shows.
+- **When it's checked.** Alongside element [conditions](../../concepts/conditions.md#when-conditions-are-checked), so the text follows the query while the book is open. The query isn't run every time the text is drawn.
+- **Typewriters.** A `[typewriter]`'s condition is checked once, when it would start, so its text can't appear and vanish as the query comes and goes. When it fails the text shows in full at once and the element's [typed actions](#typed-actions) still run.
+- **Links.** A link's own `Condition` switches it off everywhere it's used, while a `condition=` on a `[link]` tag switches off just that one use. Both have to pass.
+- **Tokens.** Parchment's `%Token%` forms resolve against the element, the same as in its `Condition`. `!` negation and comma-separated queries work as usual.
+- **Limits.** A tag's value can't hold square brackets, so the game's `[Token]` forms can't go in an inline condition. Nor can a `|`, which would start the tag's next part. Set a [flag](../../concepts/actions.md#session-flags) or [variable](../variables.md) elsewhere and check that instead. The element's own `Condition` can also hold the query.
+- **Hover effects.** A link's [hover effects](#hover-effects) don't take a condition, since the link's own `Condition` already governs them. One given is ignored with a warning.
 
 ## Rectangles and points
 

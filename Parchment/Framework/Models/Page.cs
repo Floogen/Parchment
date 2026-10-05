@@ -188,9 +188,39 @@ namespace Parchment.Framework.Models
             // Frame conditions don't affect layout, since the element is sized by its source rectangle rather than the active frame, so this deliberately doesn't feed into hasChanged and trigger a relayout
             AnimationHelper.RefreshActiveFrames(element);
 
+            hasChanged |= RefreshInlineConditions(element);
+
             hasChanged |= RefreshConditionsFor(element.Children);
             hasChanged |= RefreshConditionsFor(element.Background);
             hasChanged |= RefreshConditionsFor(element.Foreground);
+
+            return hasChanged;
+        }
+
+        /// <summary>Checks the conditions written into an element's tags, reporting whether any changed. A change lays the text out again so the tags apply or step aside to match.</summary>
+        private static bool RefreshInlineConditions(Element element)
+        {
+            if (element.InlineConditions.Count is 0)
+            {
+                return false;
+            }
+
+            bool hasChanged = element.InlineConditionResults.Count != element.InlineConditions.Count;
+
+            for (int index = 0; index < element.InlineConditions.Count; index++)
+            {
+                bool isMet = ConditionHelper.Check(element.InlineConditions[index], element);
+
+                if (index < element.InlineConditionResults.Count)
+                {
+                    hasChanged |= element.InlineConditionResults[index] != isMet;
+                    element.InlineConditionResults[index] = isMet;
+                }
+                else
+                {
+                    element.InlineConditionResults.Add(isMet);
+                }
+            }
 
             return hasChanged;
         }

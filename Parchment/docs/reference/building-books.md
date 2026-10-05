@@ -326,6 +326,7 @@ Not every method applies to every element type. `Padding` on a `Heading` isn't v
 | Method | Sets |
 | --- | --- |
 | `Set(field, value)` | Any [link field](elements/index.md#links) by name. |
+| `Condition(condition)` | `Condition` |
 | `TextColor(color)` | `TextColor` |
 | `HoverTextColor(color)` | `HoverTextColor` |
 | `Tooltip(displayName, description)` | `DisplayName` and `Description` |

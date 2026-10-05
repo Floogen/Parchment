@@ -61,6 +61,9 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>The sound cue played as characters appear (null for none).</summary>
         public string? Sound { get; }
 
+        /// <summary>A game state query checked once when the typewriter would start. When it fails the text shows in full straight away, as though it had typed out. Null when it always types.</summary>
+        public string? Condition { get; private init; }
+
         public TypingOptions(float speed, float delay, bool isImmediate, float fadeDuration, string? sound)
         {
             Speed = speed;
@@ -68,6 +71,12 @@ namespace Parchment.Framework.UI.Layouts
             IsImmediate = isImmediate;
             FadeDuration = fadeDuration;
             Sound = sound;
+        }
+
+        /// <summary>A copy gated on the given condition, which comes from the tag's own "condition=" part rather than from the rest of its value.</summary>
+        public TypingOptions WithCondition(string? condition)
+        {
+            return new TypingOptions(Speed, Delay, IsImmediate, FadeDuration, Sound) { Condition = condition };
         }
     }
 

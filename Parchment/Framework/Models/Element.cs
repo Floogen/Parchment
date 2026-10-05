@@ -57,6 +57,12 @@ namespace Parchment.Framework.Models
         /// <summary>Whether this element's typed actions have run this reading, which is what keeps them to once however often its page comes back into view.</summary>
         public bool HasRunTypedActions { get; set; }
 
+        /// <summary>The conditions written into this element's tags with a "condition=" part, in the order the tags appear, leaving out a typewriter's. Read once from the authored text.</summary>
+        public IReadOnlyList<string> InlineConditions { get; init; } = Array.Empty<string>();
+
+        /// <summary>Whether each of <see cref="InlineConditions"/> passes, refreshed alongside the element's own Condition. A change lays the text out again so the tags follow it.</summary>
+        public List<bool> InlineConditionResults { get; } = new List<bool>();
+
         /// <summary>The container this element sits inside, whether as a child or in one of its layers. Null for anything at the top of a page or a book's Underlay and Overlay.
         /// Set once when the element is created, so it always points into the same book rather than following an element that was carried across a refresh.
         /// </summary>

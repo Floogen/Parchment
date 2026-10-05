@@ -135,6 +135,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 AssignedItemId = assignedItemId,
                 AssignedItemData = assignedItemData,
                 AssignedItem = assignedItem,
+                InlineConditions = TextMarkupHelper.GetInlineConditions(GetAuthoredText(data)),
                 Children = data is ILinkHost linkHost ? CreateLinks(data, linkHost, bookLinks) : CreateChildren(data, registry, fontResolver, bookLinks),
                 Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver, bookLinks),
                 Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver, bookLinks)
@@ -260,11 +261,25 @@ namespace Parchment.Framework.Utilities.Helpers
                 {
                     DisplayName = link.DisplayName,
                     Description = link.Description,
-                    HoverTextColor = ResolveLinkHoverColor(linkId, link)
+                    HoverTextColor = ResolveLinkHoverColor(linkId, link),
+
+                    // Held off until its condition is first checked, the same as any conditioned element
+                    IsVisible = string.IsNullOrWhiteSpace(link.Condition)
                 });
             }
 
             return links;
+        }
+
+        /// <summary>The text an element's markup is written in, being its Text or, for a PageNumber, its Format.</summary>
+        private static string? GetAuthoredText(ElementData data)
+        {
+            if (data is ILinkHost linkHost)
+            {
+                return linkHost.GetLinkedText();
+            }
+
+            return data is ITextContent textContent ? textContent.Text : null;
         }
 
         private static Color? ResolveLinkHoverColor(string linkId, LinkData link)

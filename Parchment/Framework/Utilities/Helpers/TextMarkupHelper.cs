@@ -44,6 +44,9 @@ namespace Parchment.Framework.Utilities.Helpers
         private const string TYPEWRITER_SOUND_OPTION = "sound";
         private const string TYPEWRITER_TAG = "[typewriter";
 
+        // The part of any tag's value that gates it on a game state query, such as [wave=4|condition=WEATHER Here Rain]
+        private const string CONDITION_PART = "condition";
+
         // What separates the parts of an effect's value, the same for every effect. Not a space, since a color can hold spaces of its own such as "255 215 0"
         private const char VALUE_SEPARATOR = '|';
 
@@ -63,7 +66,11 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>An effect tag as it was read, before it has a place in the plain text to count its characters from.</summary>
-        private readonly record struct OpenedEffect(TextEffectType Type, float Amplitude, float Period, IReadOnlyList<Color> Colors, TypingOptions? Typing = null);
+        private readonly record struct OpenedEffect(TextEffectType Type, float Amplitude, float Period, IReadOnlyList<Color> Colors, TypingOptions? Typing = null)
+        {
+            /// <summary>Whether the effect applies, being false when its tag's condition failed. A failed effect still pairs with its closing tag so the tags around it stay matched.</summary>
+            public bool IsActive { get; init; } = true;
+        }
 
         private enum TagKind
         {
@@ -73,7 +80,7 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>One tag still open while the markers are taken back out, innermost last.</summary>
-        private readonly record struct OpenTag(TagKind Kind, Color? Color, int Occurrence, TextEffect? Effect);
+        private readonly record struct OpenTag(TagKind Kind, Color? Color, int Occurrence, TextEffect? Effect, bool IsSuppressed = false);
 
         /// <summary>Everything an opening or closing tag asked for, collected in the order the tags appear so the markers can be matched back up once tokens have resolved.</summary>
         private class MarkupRecord
@@ -84,6 +91,105 @@ namespace Parchment.Framework.Utilities.Helpers
             public List<TextEffectType> ClosedEffects { get; } = new List<TextEffectType>();
 
             public bool IsEmpty => OpenedColors.Count is 0 && OpenedLinks.Count is 0 && OpenedEffects.Count is 0;
+        }
+
+        /// <summary>The conditions written into authored text's tags with a "condition=" part, in the order the tags appear, leaving out a typewriter's.
+        /// A typewriter checks its condition once when it would start, so only the rest are refreshed alongside the element's own Condition. Their order is how each tag finds its result again.
+        /// </summary>
+        public static IReadOnlyList<string> GetInlineConditions(string? text)
+        {
+            if (string.IsNullOrEmpty(text) || text.Contains(CONDITION_PART, StringComparison.OrdinalIgnoreCase) is false)
+            {
+                return Array.Empty<string>();
+            }
+
+            List<string> conditions = new List<string>();
+
+            foreach (Match match in _markupPattern.Matches(text))
+            {
+                if (match.Groups["closingTag"].Success)
+                {
+                    continue;
+                }
+
+                if (match.Groups["effect"].Success && string.Equals(match.Groups["effect"].Value, nameof(TextEffectType.Typewriter), StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string? value = match.Groups["value"].Success ? match.Groups["value"].Value : match.Groups["effectValue"].Success ? match.Groups["effectValue"].Value : null;
+                ExtractCondition(value, out string? condition);
+
+                if (condition is not null)
+                {
+                    conditions.Add(condition);
+                }
+            }
+
+            return conditions;
+        }
+
+        /// <summary>Takes a "condition=" part out of a tag's value, handing back what remains for the tag to read as it always has. Null when the value was only a condition.
+        /// Everything after the first = is the query, which is why a query can hold an = of its own but not a |, as that would start the tag's next part.
+        /// </summary>
+        private static string? ExtractCondition(string? value, out string? condition)
+        {
+            condition = null;
+
+            if (string.IsNullOrEmpty(value) || value.Contains(CONDITION_PART, StringComparison.OrdinalIgnoreCase) is false)
+            {
+                return value;
+            }
+
+            List<string> remainingParts = new List<string>();
+
+            foreach (string part in value.Split(VALUE_SEPARATOR))
+            {
+                string trimmedPart = part.Trim();
+                int separatorIndex = trimmedPart.IndexOf('=');
+
+                if (separatorIndex > 0 && string.Equals(trimmedPart.Substring(0, separatorIndex).Trim(), CONDITION_PART, StringComparison.OrdinalIgnoreCase))
+                {
+                    condition = trimmedPart.Substring(separatorIndex + 1).Trim();
+                    continue;
+                }
+
+                remainingParts.Add(part);
+            }
+
+            return remainingParts.Count is 0 ? null : string.Join(VALUE_SEPARATOR, remainingParts);
+        }
+
+        /// <summary>Whether a tag's condition lets it apply, which it always does without one. Each condition takes the next result the element holds, refreshed alongside its own Condition,
+        /// so laying the text out again (as a changing token does every tick) never runs the query itself. One with no result yet is checked here and the result kept.
+        /// </summary>
+        private static bool IsConditionMet(string? condition, Element? element, ref int nextConditionIndex)
+        {
+            if (condition is null)
+            {
+                return true;
+            }
+
+            int conditionIndex = nextConditionIndex++;
+
+            if (element is null)
+            {
+                return ConditionHelper.Check(condition, element);
+            }
+
+            if (conditionIndex < element.InlineConditionResults.Count)
+            {
+                return element.InlineConditionResults[conditionIndex];
+            }
+
+            bool isMet = ConditionHelper.Check(condition, element);
+
+            if (conditionIndex == element.InlineConditionResults.Count)
+            {
+                element.InlineConditionResults.Add(isMet);
+            }
+
+            return isMet;
         }
 
         /// <summary>Whether authored text holds a [typewriter], which is what puts its element on the list the typing is scheduled from. Read from the authored text, as a token can't bring one in.</summary>
@@ -226,6 +332,7 @@ namespace Parchment.Framework.Utilities.Helpers
             int linkDepth = 0;
             Dictionary<TextEffectType, int> effectDepths = new Dictionary<TextEffectType, int>();
             int nextOccurrence = 0;
+            int nextConditionIndex = 0;
             bool hasStrayClose = false;
 
             string markedText = _markupPattern.Replace(text, match =>
@@ -233,7 +340,12 @@ namespace Parchment.Framework.Utilities.Helpers
                 if (IsOpening(match, COLOR_TAG))
                 {
                     colorDepth++;
-                    record.OpenedColors.Add(ParseColor(match.Groups["value"].Value, text, "color"));
+
+                    string colorValue = ExtractCondition(match.Groups["value"].Value, out string? colorCondition);
+                    bool isColorActive = IsConditionMet(colorCondition, element, ref nextConditionIndex);
+
+                    // A color whose condition failed keeps the color around it, the same as one that won't parse
+                    record.OpenedColors.Add(isColorActive ? ParseColor(colorValue ?? string.Empty, text, "color") : null);
 
                     return COLOR_OPEN_MARKER.ToString();
                 }
@@ -241,7 +353,11 @@ namespace Parchment.Framework.Utilities.Helpers
                 if (IsOpening(match, LINK_TAG))
                 {
                     linkDepth++;
-                    record.OpenedLinks.Add(OpenLink(match.Groups["value"].Value, text, element, ref nextOccurrence));
+
+                    string linkId = ExtractCondition(match.Groups["value"].Value, out string? linkCondition);
+                    bool isLinkActive = IsConditionMet(linkCondition, element, ref nextConditionIndex);
+
+                    record.OpenedLinks.Add(OpenLink(linkId, text, element, isLinkActive, ref nextOccurrence));
 
                     return LINK_OPEN_MARKER.ToString();
                 }
@@ -249,7 +365,19 @@ namespace Parchment.Framework.Utilities.Helpers
                 if (match.Groups["effect"].Success && TryGetEffectType(match.Groups["effect"].Value, out TextEffectType openedType))
                 {
                     effectDepths[openedType] = effectDepths.GetValueOrDefault(openedType) + 1;
-                    record.OpenedEffects.Add(ParseEffect(openedType, match.Groups["effectValue"].Success ? match.Groups["effectValue"].Value : null, text));
+
+                    string? effectValue = ExtractCondition(match.Groups["effectValue"].Success ? match.Groups["effectValue"].Value : null, out string? effectCondition);
+                    OpenedEffect openedEffect = ParseEffect(openedType, effectValue, text);
+
+                    // A typewriter checks its condition once, when it would start, rather than coming and going with it
+                    if (openedType is TextEffectType.Typewriter)
+                    {
+                        record.OpenedEffects.Add(openedEffect with { Typing = openedEffect.Typing?.WithCondition(effectCondition) });
+                    }
+                    else
+                    {
+                        record.OpenedEffects.Add(openedEffect with { IsActive = IsConditionMet(effectCondition, element, ref nextConditionIndex) });
+                    }
 
                     return EFFECT_OPEN_MARKER.ToString();
                 }
@@ -518,8 +646,11 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>Pairs a [link] tag with the link element built for it, being the next of the element's links still unclaimed. The id was already looked up when that element was built, so it is only compared here rather than looked up again.
         /// A tag naming nothing the element or its book defines had no element built for it, so it doesn't claim one. It is kept as plain text, though its marker still goes in so its closing tag pairs up.
         /// </summary>
-        private static OpenedLink OpenLink(string id, string source, Element? element, ref int nextOccurrence)
+        /// <param name="isActive">Whether the tag's own condition passed. A link that failed it (or whose definition's Condition failed) still claims its element so the links after it pair up. Its text is drawn plain.</param>
+        private static OpenedLink OpenLink(string? id, string source, Element? element, bool isActive, ref int nextOccurrence)
         {
+            id ??= string.Empty;
+
             if (element is null || element.Data is not ILinkHost)
             {
                 Parchment.monitor.LogOnce($"'{source}' has [link={id}], but links only work on Title, Heading, Paragraph and PageNumber elements. The text is drawn without it.", LogLevel.Warn);
@@ -529,6 +660,14 @@ namespace Parchment.Framework.Utilities.Helpers
             if (nextOccurrence >= element.Children.Count || element.Children[nextOccurrence].Data is not LinkElementData linkData || string.Equals(linkData.LinkId, id, StringComparison.OrdinalIgnoreCase) is false)
             {
                 Parchment.monitor.LogOnce($"'{source}' has [link={id}], which isn't in the element's \"Links\" or the book's. The text is drawn without it.", LogLevel.Warn);
+                return OpenedLink.None;
+            }
+
+            Element linkElement = element.Children[nextOccurrence];
+
+            if (isActive is false || linkElement.IsVisible is false)
+            {
+                nextOccurrence++;
                 return OpenedLink.None;
             }
 
@@ -580,6 +719,14 @@ namespace Parchment.Framework.Utilities.Helpers
                 {
                     Parchment.monitor.LogOnce($"The link '{id}' has a hover effect of '{entry}', which isn't an effect that can apply on hover. Try one of: {string.Join(", ", Enum.GetValues<TextEffectType>().Where(hoverType => hoverType is not TextEffectType.Typewriter).Select(hoverType => hoverType.ToString().ToLowerInvariant()))}.", LogLevel.Warn);
                     continue;
+                }
+
+                // A hover effect lasts only as long as the cursor does, which the link's own Condition already governs, so a condition of its own is left out rather than half supported
+                value = ExtractCondition(value, out string? hoverCondition);
+
+                if (hoverCondition is not null)
+                {
+                    Parchment.monitor.LogOnce($"The link '{id}' has a hover effect of '{entry}' with a condition, which hover effects don't take, so the effect always applies. Give the link a \"Condition\" instead.", LogLevel.Warn);
                 }
 
                 // Named in a way that reads naturally inside the quotes ParseEffect puts around its source, so a warning says which link the bad value came from
@@ -656,7 +803,7 @@ namespace Parchment.Framework.Utilities.Helpers
                             OpenedEffect openedEffect = record.OpenedEffects[nextEffectIndex];
                             int typingOrdinal = openedEffect.Typing is null ? -1 : nextTypingOrdinal++;
 
-                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors) { Typing = openedEffect.Typing, TypingOrdinal = typingOrdinal }));
+                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors) { Typing = openedEffect.Typing, TypingOrdinal = typingOrdinal }, IsSuppressed: openedEffect.IsActive is false));
                         }
 
                         nextEffectIndex++;
@@ -762,7 +909,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 foreach (OpenTag tag in openTags)
                 {
-                    if (tag.Effect is not null)
+                    if (tag.Effect is not null && tag.IsSuppressed is false)
                     {
                         effects ??= new List<TextEffect>();
                         effects.Add(tag.Effect);

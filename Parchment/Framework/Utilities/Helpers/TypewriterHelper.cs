@@ -66,9 +66,12 @@ namespace Parchment.Framework.Utilities.Helpers
 
                         double ready = Math.Max(readyTime, since);
                         state.StartTime = (typing.IsImmediate ? ready : Math.Max(ready, chainEnd)) + typing.Delay;
+
+                        // Checked once, here, so the text can't appear and vanish as the condition comes and goes. A failed one shows its text in full when it would have started
+                        state.IsInstant = typing.Condition is not null && ConditionHelper.Check(typing.Condition, element) is false;
                     }
 
-                    double end = GetEndTime(effect, typing, state.StartTime.Value);
+                    double end = state.IsInstant ? state.StartTime.Value : GetEndTime(effect, typing, state.StartTime.Value);
 
                     if (state.IsComplete is false && time >= end)
                     {
@@ -177,7 +180,7 @@ namespace Parchment.Framework.Utilities.Helpers
             {
                 foreach (TextEffect effect in element.TypewriterEffects)
                 {
-                    if (effect.Typing?.Sound is not string effectSound || element.TypingStates.TryGetValue(effect.TypingOrdinal, out TypingState? state) is false || state.StartTime is not double start || state.IsComplete)
+                    if (effect.Typing?.Sound is not string effectSound || element.TypingStates.TryGetValue(effect.TypingOrdinal, out TypingState? state) is false || state.StartTime is not double start || state.IsComplete || state.IsInstant)
                     {
                         continue;
                     }
@@ -202,12 +205,12 @@ namespace Parchment.Framework.Utilities.Helpers
                 return 0f;
             }
 
-            if (state.IsComplete)
+            if (state.IsComplete || (state.IsInstant && time >= start))
             {
                 return 1f;
             }
 
-            double appearsAt = start + (position - effect.Start) * typing.Speed;
+            double appearsAt = state.IsInstant ? start : start + (position - effect.Start) * typing.Speed;
 
             if (time < appearsAt)
             {

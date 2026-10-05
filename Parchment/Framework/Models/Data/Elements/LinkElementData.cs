@@ -34,6 +34,9 @@ namespace Parchment.Framework.Models.Data
             HoverActions = link.HoverActions;
             Tags = link.Tags;
 
+            // Taken as the link element's own, so it is refreshed alongside every other element's and its text is laid out again when it changes
+            Condition = link.Condition;
+
             // Taken from the element the text belongs to, so a link's tooltip and actions read square brackets the way the rest of that element does
             ParseTokenizableStrings = host.ParseTokenizableStrings;
             Sound = host.Sound;

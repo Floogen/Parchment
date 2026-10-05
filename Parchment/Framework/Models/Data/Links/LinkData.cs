@@ -7,6 +7,11 @@ namespace Parchment.Framework.Models.Data.Links
     /// </summary>
     public class LinkData
     {
+        /// <summary>A game state query deciding whether the link applies wherever it's used. When it fails the linked text is drawn plain (no color, tooltip or action) and the cursor can't reach it.
+        /// Checked alongside element conditions, so the link follows it while the book is open.
+        /// </summary>
+        public string? Condition { get; set; }
+
         /// <summary>The color the linked text is drawn in. Left unset, the text keeps the color around it.</summary>
         public string? TextColor { get; set; }
 

@@ -30,6 +30,7 @@ namespace Parchment.Framework.API.Builders
             return this;
         }
 
+        public ILinkBuilder Condition(string condition) { return Set("Condition", condition); }
         public ILinkBuilder TextColor(string color) { return Set("TextColor", color); }
         public ILinkBuilder HoverTextColor(string color) { return Set("HoverTextColor", color); }
         public ILinkBuilder Tooltip(string displayName, string description) { return Set("DisplayName", displayName).Set("Description", description); }
