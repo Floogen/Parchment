@@ -1,5 +1,7 @@
 ﻿using Parchment.Framework.Models.Data.Books;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Links;
+using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.Models.Data.Variables;
 using System;
 using System.Collections.Generic;
@@ -49,6 +51,11 @@ namespace Parchment.Framework.Models.Data
         /// Every variable an action or query names has to be declared here, so a mistyped name fails visibly rather than being stored.
         /// </summary>
         public List<VariableData>? Variables { get; set; }
+
+        /// <summary>Links any Title, Heading, Paragraph or PageNumber in the book can point at with [link=id] markup, by id. An element's own <see cref="ILinkHost.Links"/> are checked first,
+        /// and an entry there with the same id replaces the book's whole, so a link's values always come from one place.
+        /// </summary>
+        public Dictionary<string, LinkData>? Links { get; set; }
 
         /// <summary>Whether the book arrives shut, holding on its cover until the reader clicks it open, rather than opening itself once it
         /// has slid into place. Independent of <see cref="ExitToCover"/>, which governs the other end of the reading.</summary>

@@ -212,10 +212,37 @@ A link behaves like an element of its own: it has its own tooltip, runs its own 
 - **Tokens and actions.** A link's tooltip and actions resolve tokens against the link. It follows the element's `ParseTokenizableStrings` and plays the element's `Sound` when clicked.
 - **The rest of the text.** Text outside every link still shows the element's own tooltip and runs the element's own actions. So does a link that only sets `TextColor`, since it gives the cursor nothing to do.
 - **Controller.** Each link is a stop of its own, placed on the first line it covers.
-- **Mistakes.** A `[link]` naming an id that isn't in the element's `Links` is drawn as plain text with a warning. So is a `[link]` on any other element. Unclosed and stray tags behave as they do for [inline color](#inline-color).
+- **Mistakes.** A `[link]` naming an id that isn't in the element's `Links` or the [book's](#shared-links) is drawn as plain text with a warning. So is a `[link]` on any other element. Unclosed and stray tags behave as they do for [inline color](#inline-color).
 
 !!! note "Links in `SpriteText`"
     A link drawn in `SpriteText` keeps its tooltip, actions and tags. Its `TextColor` and `HoverTextColor` are ignored, as `SpriteText` keeps its own color.
+
+### Shared links
+
+A link used in many places can be defined once in the [book's](../book.md#fields) own `Links` rather than on every element that points at it:
+
+```json
+{
+  "Id": "you.FishingJournal_Book",
+  "Links": {
+    "legend": {
+      "TextColor": "Gold",
+      "DisplayName": "Legend",
+      "Description": "Only bites in spring rain."
+    }
+  },
+  "Pages": [
+    {
+      "Id": "catches",
+      "Elements": [
+        { "Type": "Paragraph", "Text": "You reeled in a [link=legend]Legend[/link]." }
+      ]
+    }
+  ]
+}
+```
+
+A `[link]` looks in the element's own `Links` first and the book's second. When both define the same id, the element's entry replaces the book's whole for that element rather than filling in around it, so a link's values always come from one place.
 
 ## Text effects
 

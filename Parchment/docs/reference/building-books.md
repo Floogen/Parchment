@@ -173,6 +173,7 @@ A callback which throws is logged and the book opens as it stood, rather than th
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
 | `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. Readable straight away, before the book is registered or opened. |
 | `OnKeyPress(keybind)` | Adds a key pressed on any page of the book, or on its shut cover, and returns its [keybind builder](#the-keybind-builder). A page binding the same key takes it over. |
+| `AddLink(linkId)` | Adds a [shared link](elements/index.md#shared-links) any text element in the book can point at. Returns its [link builder](#the-link-builder). An element's own link with the same id replaces it for that element. |
 | `OnRefresh(onRefresh)` | What to run when the book is asked to rebuild. See [Refreshing an open book](#refreshing-an-open-book). |
 | `OnOpening(onOpening)` | What to run just before the book is put on screen. See [Rebuilding before the book opens](#rebuilding-before-the-book-opens). |
 | `TryRegister(out error)` | Validates and registers the book. |
@@ -319,7 +320,7 @@ Not every method applies to every element type. `Padding` on a `Heading` isn't v
 
 ## The link builder
 
-`AddLink` returns this rather than the element builder, the same way `AddChild` does. Keep your own reference to the element builder when it has more than one link.
+`AddLink` returns this rather than the builder you called it on, on the element builder and on the book builder alike. Keep your own reference to that builder when it has more than one link.
 
 | Method | Sets |
 | --- | --- |
@@ -337,7 +338,7 @@ var paragraph = page.AddParagraph("You reeled in a [link=legend]Legend[/link] at
 paragraph.AddLink("legend").TextColor("Gold").HoverTextColor("Orange").Tooltip("Legend", "Only bites in spring rain.").Action("PeacefulEnd.Parchment_JumpToPageId legendary-fish");
 ```
 
-Registration fails when a link is added to any other element type. It also fails when two links on the same element share an id (ignoring case).
+Registration fails when a link is added to any other element type. It also fails when two links on the same element or on the book share an id (ignoring case).
 
 ## Setting anything else
 

@@ -33,6 +33,7 @@ A book is one entry in Parchment's book data. It owns the physical book (its spr
 | `Layout` <span class="opt">optional</span> | [`Layout`](#layout) | *see below* | The page margins. |
 | `OnKeyPress` <span class="opt">optional</span> | list of [`keybinds`](#on-key-press) | empty list | Keys running actions on every page of the book and on its shut cover. A page binding the same key takes it over. See [On key press](#on-key-press). |
 | `Variables` <span class="opt">optional</span> | list of [`variables`](variables.md) | empty list | Named values the book sets and reads back, which survive the book being closed. See [Variables](variables.md). |
+| `Links` <span class="opt">optional</span> | map of id to [`link`](elements/index.md#links) | — | Links any `Title`, `Heading`, `Paragraph` or `PageNumber` in the book can point at with `[link=id]` markup. An element's own `Links` are checked first. See [Shared links](elements/index.md#shared-links). |
 | `StartOnCover` <span class="opt">optional</span> | `boolean` | `false` | Whether the book arrives shut and holds on its cover until the reader clicks it open. See [Cover view](#cover-view). |
 | `ExitToCover` <span class="opt">optional</span> | `boolean` | `false` | Whether closing the book shuts it in place first, leaving its cover on screen, rather than leaving the menu. See [Cover view](#cover-view). |
 

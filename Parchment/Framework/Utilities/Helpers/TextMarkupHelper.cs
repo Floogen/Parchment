@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
+using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
@@ -102,13 +103,15 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>The links an element's text points at, in the order they appear and once per occurrence.
-        /// Read the same way <see cref="Resolve"/> numbers them, which is what lets each occurrence's element be found again by its position.
+        /// Each id is looked up in the element's own links first and the book's second. An entry in the element's replaces the book's whole rather than filling in around it.
+        /// One that neither defines is left out, which is what lets <see cref="Resolve"/> pair each remaining [link] with the element built for it by position.
         /// </summary>
-        public static List<(string LinkId, LinkData Link)> GetLinkOccurrences(string? text, Dictionary<string, LinkData>? links)
+        public static List<(string LinkId, LinkData Link)> GetLinkOccurrences(string? text, Dictionary<string, LinkData>? elementLinks, Dictionary<string, LinkData>? bookLinks)
         {
             var occurrences = new List<(string LinkId, LinkData Link)>();
+            bool hasLinks = (elementLinks is not null && elementLinks.Count is not 0) || (bookLinks is not null && bookLinks.Count is not 0);
 
-            if (string.IsNullOrEmpty(text) || text.Contains('[') is false || links is null || links.Count is 0)
+            if (string.IsNullOrEmpty(text) || text.Contains('[') is false || hasLinks is false)
             {
                 return occurrences;
             }
@@ -120,9 +123,15 @@ namespace Parchment.Framework.Utilities.Helpers
                     continue;
                 }
 
-                if (TryGetLink(links, match.Groups["value"].Value, out string linkId, out LinkData? link) && link is not null)
+                string id = match.Groups["value"].Value;
+
+                if (elementLinks is not null && TryGetLink(elementLinks, id, out string elementLinkId, out LinkData? elementLink) && elementLink is not null)
                 {
-                    occurrences.Add((linkId, link));
+                    occurrences.Add((elementLinkId, elementLink));
+                }
+                else if (bookLinks is not null && TryGetLink(bookLinks, id, out string bookLinkId, out LinkData? bookLink) && bookLink is not null)
+                {
+                    occurrences.Add((bookLinkId, bookLink));
                 }
             }
 
@@ -140,7 +149,7 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             MarkupRecord record = new MarkupRecord();
-            string markedText = MarkRuns(text, element?.Data as ILinkHost, record);
+            string markedText = MarkRuns(text, element, record);
 
             string resolvedText = TokenHelper.Resolve(markedText, element, quoteValues: false).Replace("\r\n", "\n");
 
@@ -184,7 +193,7 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Swaps each tag for a marker, collecting what each tag asks for in the order they appear.</summary>
-        private static string MarkRuns(string text, ILinkHost? linkHost, MarkupRecord record)
+        private static string MarkRuns(string text, Element? element, MarkupRecord record)
         {
             if (text.Contains('[') is false)
             {
@@ -210,7 +219,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 if (IsOpening(match, LINK_TAG))
                 {
                     linkDepth++;
-                    record.OpenedLinks.Add(OpenLink(match.Groups["value"].Value, text, linkHost, ref nextOccurrence));
+                    record.OpenedLinks.Add(OpenLink(match.Groups["value"].Value, text, element, ref nextOccurrence));
 
                     return LINK_OPEN_MARKER.ToString();
                 }
@@ -335,21 +344,24 @@ namespace Parchment.Framework.Utilities.Helpers
             return defaultPeriod;
         }
 
-        /// <summary>Reads a [link] tag against the links the element defines. One that names nothing it defines is kept as plain text, though its marker still goes in so its closing tag pairs up.</summary>
-        private static OpenedLink OpenLink(string id, string source, ILinkHost? linkHost, ref int nextOccurrence)
+        /// <summary>Pairs a [link] tag with the link element built for it, being the next of the element's links still unclaimed. The id was already looked up when that element was built, so it is only compared here rather than looked up again.
+        /// A tag naming nothing the element or its book defines had no element built for it, so it doesn't claim one. It is kept as plain text, though its marker still goes in so its closing tag pairs up.
+        /// </summary>
+        private static OpenedLink OpenLink(string id, string source, Element? element, ref int nextOccurrence)
         {
-            if (linkHost is null)
+            if (element is null || element.Data is not ILinkHost)
             {
                 Parchment.monitor.LogOnce($"'{source}' has [link={id}], but links only work on Title, Heading, Paragraph and PageNumber elements. The text is drawn without it.", LogLevel.Warn);
                 return new OpenedLink(-1, null);
             }
 
-            if (linkHost.Links is null || TryGetLink(linkHost.Links, id, out _, out LinkData? link) is false || link is null)
+            if (nextOccurrence >= element.Children.Count || element.Children[nextOccurrence].Data is not LinkElementData linkData || string.Equals(linkData.LinkId, id, StringComparison.OrdinalIgnoreCase) is false)
             {
-                Parchment.monitor.LogOnce($"'{source}' has [link={id}], which isn't one of the element's \"Links\". The text is drawn without it.", LogLevel.Warn);
+                Parchment.monitor.LogOnce($"'{source}' has [link={id}], which isn't in the element's \"Links\" or the book's. The text is drawn without it.", LogLevel.Warn);
                 return new OpenedLink(-1, null);
             }
 
+            LinkData link = linkData.Link;
             Color? linkColor = string.IsNullOrWhiteSpace(link.TextColor) ? null : ParseColor(link.TextColor, source, $"link '{id}' TextColor");
             OpenedLink openedLink = new OpenedLink(nextOccurrence, linkColor);
             nextOccurrence++;

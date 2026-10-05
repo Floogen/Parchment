@@ -32,6 +32,12 @@ namespace Parchment.Framework.API
         /// </summary>
         IVariableBuilder AddVariable(string variableId);
 
+        /// <summary>Adds a link any Title, Heading, Paragraph or PageNumber in the book can point at with [link=id] markup. Returns the link's builder rather than this one.
+        /// An element's own link with the same id replaces this one whole for that element. Registration fails when two of the book's links share an id, ignoring case.
+        /// </summary>
+        /// <param name="linkId">The id the markup names, as in [link=linkId]...[/link].</param>
+        ILinkBuilder AddLink(string linkId);
+
         /// <summary>Adds a keybind pressed on any page of this book and returns its builder, taking the button over from the menu.
         /// A page binding the same button wins, and this is left alone while that page is on screen.
         /// At least one Action is required, and a keybind without one is reported when the book is registered.

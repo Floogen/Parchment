@@ -1,6 +1,7 @@
 ﻿using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Data.Variables;
 using Parchment.Framework.UI.Menus;
 using StardewModdingAPI;
@@ -22,6 +23,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<ElementBuilder> _overlay = new List<ElementBuilder>();
         private readonly List<VariableBuilder> _variables = new List<VariableBuilder>();
         private readonly List<KeybindBuilder> _onKeyPress = new List<KeybindBuilder>();
+        private readonly List<LinkBuilder> _links = new List<LinkBuilder>();
         private Action? _onRefresh;
         private Action? _onOpening;
 
@@ -94,6 +96,14 @@ namespace Parchment.Framework.API.Builders
             _onKeyPress.Add(keybindBuilder);
 
             return keybindBuilder;
+        }
+
+        public ILinkBuilder AddLink(string linkId)
+        {
+            var link = new LinkBuilder(linkId);
+            _links.Add(link);
+
+            return link;
         }
 
         public IPageBuilder AddPage(string pageId)
@@ -371,6 +381,16 @@ namespace Parchment.Framework.API.Builders
                 }
 
                 data.OnKeyPress = keybinds;
+            }
+
+            if (_links.Count > 0)
+            {
+                if (LinkBuilder.TryBuildAll(_links, out Dictionary<string, LinkData> links, out error) is false)
+                {
+                    return false;
+                }
+
+                data.Links = links;
             }
 
             book = data;

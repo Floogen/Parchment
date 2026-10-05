@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
@@ -52,13 +53,14 @@ namespace Parchment.Framework.Models
         /// <summary>Every element on this page carrying a frame action, gathered once at construction. Frame actions are dispatched every tick, so this is what keeps a page with none from walking its whole element tree sixty times a second.</summary>
         public List<Element> FrameActionElements { get; }
 
-        public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver)
+        /// <param name="bookLinks">The links the book defines, which any text element on the page can point at alongside its own.</param>
+        public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null)
         {
             Data = data;
             Index = index;
-            Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver);
-            Background = ElementFactory.CreateList(Data.Background, registry, fontResolver);
-            Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver);
+            Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver, bookLinks);
+            Background = ElementFactory.CreateList(Data.Background, registry, fontResolver, bookLinks);
+            Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver, bookLinks);
 
             FrameActionElements = new List<Element>();
             AnimationHelper.CollectFrameActionElements(Elements, FrameActionElements);

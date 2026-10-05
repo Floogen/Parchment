@@ -61,8 +61,8 @@ namespace Parchment.Framework.Models
             List<PageGroup> pageGroups = GroupPages();
 
             Pages = CreatePages(pageGroups, elementRegistry, fontResolver);
-            Underlay = ElementFactory.CreateList(Data.Underlay, elementRegistry, fontResolver);
-            Overlay = ElementFactory.CreateList(Data.Overlay, elementRegistry, fontResolver);
+            Underlay = ElementFactory.CreateList(Data.Underlay, elementRegistry, fontResolver, Data.Links);
+            Overlay = ElementFactory.CreateList(Data.Overlay, elementRegistry, fontResolver, Data.Links);
             Chapters = CreateChapters(pageGroups);
 
             FrameActionElements = new List<Element>();
@@ -197,7 +197,7 @@ namespace Parchment.Framework.Models
                 foreach (PageData pageData in pageGroup.Pages)
                 {
                     // The page's own index is its position in the built list rather than in the authored one, so a skipped page leaves no gap and a page gathered into an earlier chapter counts from where it is read
-                    pages.Add(new Page(pageData, pages.Count, elementRegistry, fontResolver));
+                    pages.Add(new Page(pageData, pages.Count, elementRegistry, fontResolver, Data.Links));
                 }
             }
 

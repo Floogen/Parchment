@@ -25,7 +25,8 @@ namespace Parchment.Framework.Utilities.Helpers
         // Shared by every link, as it holds no state and is never registered for an authored element to use
         private static readonly LinkElementRenderer _linkRenderer = new LinkElementRenderer();
 
-        public static List<Element> CreateList(List<ElementData>? elementDataCollection, ElementRegistry registry, FontResolver fontResolver)
+        /// <param name="bookLinks">The links the book defines, which a text element falls back to when its own Links don't have the id its markup names.</param>
+        public static List<Element> CreateList(List<ElementData>? elementDataCollection, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null)
         {
             var elements = new List<Element>();
 
@@ -36,7 +37,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (var elementData in elementDataCollection)
             {
-                var element = Create(elementData, registry, fontResolver);
+                var element = Create(elementData, registry, fontResolver, bookLinks);
                 if (element is not null)
                 {
                     elements.Add(element);
@@ -46,7 +47,8 @@ namespace Parchment.Framework.Utilities.Helpers
             return elements;
         }
 
-        public static Element? Create(ElementData data, ElementRegistry registry, FontResolver fontResolver)
+        /// <param name="bookLinks">The links the book defines, which a text element falls back to when its own Links don't have the id its markup names.</param>
+        public static Element? Create(ElementData data, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null)
         {
             if (registry.TryResolve(data.Type, out ElementRegistration registration) is false)
             {
@@ -133,9 +135,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 AssignedItemId = assignedItemId,
                 AssignedItemData = assignedItemData,
                 AssignedItem = assignedItem,
-                Children = data is ILinkHost linkHost ? CreateLinks(data, linkHost) : CreateChildren(data, registry, fontResolver),
-                Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver),
-                Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver)
+                Children = data is ILinkHost linkHost ? CreateLinks(data, linkHost, bookLinks) : CreateChildren(data, registry, fontResolver, bookLinks),
+                Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver, bookLinks),
+                Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver, bookLinks)
             };
 
             // Set after construction, as the children are built inside the initializer above and have nothing to point at until it finishes
@@ -238,10 +240,11 @@ namespace Parchment.Framework.Utilities.Helpers
 
         /// <summary>Builds an element for each [link] in a text element's text, in the order they appear, which is the position the text finds each one at again.
         /// Built once here rather than at layout, so a link keeps the same element (and with it whether it is hovered) across every relayout and refresh.
+        /// This is the one place an id is looked up, first in the element's own Links and then in the book's. The markup reads each link back from the element built here rather than looking it up again.
         /// </summary>
-        private static IReadOnlyList<Element> CreateLinks(ElementData data, ILinkHost linkHost)
+        private static IReadOnlyList<Element> CreateLinks(ElementData data, ILinkHost linkHost, Dictionary<string, LinkData>? bookLinks)
         {
-            List<(string LinkId, LinkData Link)> occurrences = TextMarkupHelper.GetLinkOccurrences(linkHost.GetLinkedText(), linkHost.Links);
+            List<(string LinkId, LinkData Link)> occurrences = TextMarkupHelper.GetLinkOccurrences(linkHost.GetLinkedText(), linkHost.Links, bookLinks);
 
             if (occurrences.Count is 0)
             {
@@ -279,17 +282,17 @@ namespace Parchment.Framework.Utilities.Helpers
             return parsedColor;
         }
 
-        private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver)
+        private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks)
         {
             if (layerData is null || layerData.Count is 0)
             {
                 return Array.Empty<Element>();
             }
 
-            return CreateList(layerData, registry, fontResolver);
+            return CreateList(layerData, registry, fontResolver, bookLinks);
         }
 
-        private static IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver)
+        private static IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks)
         {
             if (data is not IContainer container || (container.Children is null && data is not GridElementData { Source: not null }))
             {
@@ -304,7 +307,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 for (int index = 0; index < slotCount; index++)
                 {
-                    var slot = Create(template, registry, fontResolver);
+                    var slot = Create(template, registry, fontResolver, bookLinks);
                     if (slot is not null)
                     {
                         // A cell starts empty and is shown once the filter hands it an item, so a grid never flashes a full set of blanks before its first assignment
@@ -318,7 +321,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (ElementData childData in container.Children)
             {
-                var child = Create(childData, registry, fontResolver);
+                var child = Create(childData, registry, fontResolver, bookLinks);
                 if (child is not null)
                 {
                     children.Add(child);

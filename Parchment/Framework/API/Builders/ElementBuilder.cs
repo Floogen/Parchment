@@ -514,23 +514,10 @@ namespace Parchment.Framework.API.Builders
                 return false;
             }
 
-            var links = new Dictionary<string, LinkData>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (LinkBuilder linkBuilder in _links)
+            if (LinkBuilder.TryBuildAll(_links, out Dictionary<string, LinkData> links, out error) is false)
             {
-                if (linkBuilder.TryBuild(out LinkData link, out error) is false)
-                {
-                    error = $"[{Label}] link \"{linkBuilder.LinkId}\": {error}";
-                    return false;
-                }
-
-                if (links.ContainsKey(linkBuilder.LinkId) is true)
-                {
-                    error = $"[{Label}] the link \"{linkBuilder.LinkId}\" was added more than once";
-                    return false;
-                }
-
-                links[linkBuilder.LinkId] = link;
+                error = $"[{Label}] {error}";
+                return false;
             }
 
             linkHost.Links = links;

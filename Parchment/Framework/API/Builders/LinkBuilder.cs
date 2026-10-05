@@ -1,4 +1,5 @@
 ﻿using Parchment.Framework.Models.Data.Links;
+using System;
 using System.Collections.Generic;
 
 namespace Parchment.Framework.API.Builders
@@ -102,6 +103,33 @@ namespace Parchment.Framework.API.Builders
             }
 
             link = data;
+            error = string.Empty;
+
+            return true;
+        }
+
+        /// <summary>Builds a set of links into the dictionary an element's or a book's Links holds. Ids are compared ignoring case, as the markup is when it looks a link up, so two that differ only in case are reported as the same link added twice.</summary>
+        internal static bool TryBuildAll(List<LinkBuilder> builders, out Dictionary<string, LinkData> links, out string error)
+        {
+            links = new Dictionary<string, LinkData>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (LinkBuilder linkBuilder in builders)
+            {
+                if (linkBuilder.TryBuild(out LinkData link, out error) is false)
+                {
+                    error = $"link \"{linkBuilder.LinkId}\": {error}";
+                    return false;
+                }
+
+                if (links.ContainsKey(linkBuilder.LinkId) is true)
+                {
+                    error = $"the link \"{linkBuilder.LinkId}\" was added more than once";
+                    return false;
+                }
+
+                links[linkBuilder.LinkId] = link;
+            }
+
             error = string.Empty;
 
             return true;
