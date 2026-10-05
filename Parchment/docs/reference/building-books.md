@@ -313,8 +313,31 @@ Most methods are named after the field they set, so anything you've written in a
 | `AddChild(type)` | A child element on a container such as a Panel |
 | `AddBackground(type)` | An element behind a container's children, placed by `Position` within its content area |
 | `AddForeground(type)` | An element over a container's children, placed the same way |
+| `AddLink(linkId)` | A [link](elements/index.md#links) that `[link=linkId]` markup in the text points at, on a Title, Heading, Paragraph or PageNumber. Returns **the link's** [builder](#the-link-builder). |
 
 Not every method applies to every element type. `Padding` on a `Heading` isn't valid, and asking for it fails at registration with a message naming the fields that type does accept.
+
+## The link builder
+
+`AddLink` returns this rather than the element builder, the same way `AddChild` does. Keep your own reference to the element builder when it has more than one link.
+
+| Method | Sets |
+| --- | --- |
+| `Set(field, value)` | Any [link field](elements/index.md#links) by name. |
+| `TextColor(color)` | `TextColor` |
+| `HoverTextColor(color)` | `HoverTextColor` |
+| `Tooltip(displayName, description)` | `DisplayName` and `Description` |
+| `Action(action)` | A click [action](../concepts/actions.md). Call it more than once to build a list. The click plays the element's own `Sound`. |
+| `HoverAction(action)` | A hover action. Call it more than once to build a list. |
+| `WithTag(tag)` | A [tag](tags.md) carried by the link. Call it more than once to build a list. |
+
+```cs title="A term that explains itself and jumps to its page"
+var paragraph = page.AddParagraph("You reeled in a [link=legend]Legend[/link] at Mountain Lake.");
+
+paragraph.AddLink("legend").TextColor("Gold").HoverTextColor("Orange").Tooltip("Legend", "Only bites in spring rain.").Action("PeacefulEnd.Parchment_JumpToPageId legendary-fish");
+```
+
+Registration fails when a link is added to any other element type. It also fails when two links on the same element share an id (ignoring case).
 
 ## Setting anything else
 

@@ -9,7 +9,7 @@ using System.Collections.Generic;
 
 namespace Parchment.Framework.UI.Layouts
 {
-    /// <summary>A stretch of a wrapped line drawn in one color, cut wherever the line's color changes.</summary>
+    /// <summary>A stretch of a wrapped line drawn in one color and belonging to at most one link, cut wherever either changes.</summary>
     public class TextSegment
     {
         public string Text { get; }
@@ -17,14 +17,22 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>The color the segment is drawn in (null for the element's own text color).</summary>
         public Color? Color { get; }
 
+        /// <summary>The link the segment belongs to, as its position in the element's <see cref="Element.Children"/> (null when it belongs to none).</summary>
+        public int? LinkIndex { get; }
+
         /// <summary>How far into the line the segment starts, in the same scaled pixels as <see cref="WrappedLine.Size"/>.</summary>
         public float OffsetX { get; }
 
-        public TextSegment(string text, Color? color, float offsetX)
+        /// <summary>How wide the segment is, in the same scaled pixels as <see cref="OffsetX"/>.</summary>
+        public float Width { get; }
+
+        public TextSegment(string text, Color? color, int? linkIndex, float offsetX, float width)
         {
             Text = text;
             Color = color;
+            LinkIndex = linkIndex;
             OffsetX = offsetX;
+            Width = width;
         }
     }
 
@@ -33,7 +41,7 @@ namespace Parchment.Framework.UI.Layouts
         public string Text { get; }
         public Vector2 Size { get; }
 
-        /// <summary>The line cut wherever its color changes (null when the whole line is drawn in the element's own color).</summary>
+        /// <summary>The line cut wherever its color or link changes (null when the whole line is drawn in the element's own color and belongs to no link).</summary>
         public IReadOnlyList<TextSegment>? Segments { get; }
 
         public WrappedLine(string text, Vector2 size) : this(text, size, null)
@@ -99,7 +107,8 @@ namespace Parchment.Framework.UI.Layouts
         private class WrapState
         {
             public List<WrappedLine> Lines { get; } = new List<WrappedLine>();
-            public IReadOnlyList<TextRun> Runs { get; init; } = Array.Empty<TextRun>();
+            public IReadOnlyList<ColorRun> ColorRuns { get; init; } = Array.Empty<ColorRun>();
+            public IReadOnlyList<LinkRun> LinkRuns { get; init; } = Array.Empty<LinkRun>();
             public IFont Font { get; init; } = null!;
             public float MaxWidth { get; init; }
             public float Scale { get; init; }
@@ -113,7 +122,7 @@ namespace Parchment.Framework.UI.Layouts
         {
             StyledText styledText = TextMarkupHelper.Resolve(text, element);
 
-            if (styledText.Runs.Count is not 0 && font is SpriteTextAdapter)
+            if (styledText.ColorRuns.Count is not 0 && font is SpriteTextAdapter)
             {
                 Parchment.monitor.LogOnce($"'{text}' has [color] markup but draws in SpriteText, which keeps its own color, so the markup is ignored.", LogLevel.Warn);
             }
@@ -123,7 +132,7 @@ namespace Parchment.Framework.UI.Layouts
 
         public static WrappedText Wrap(string text, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords = false)
         {
-            return Wrap(new StyledText(text?.Replace("\r\n", "\n") ?? string.Empty, Array.Empty<TextRun>()), font, maxWidth, scale, hyphenateBrokenWords);
+            return Wrap(new StyledText(text?.Replace("\r\n", "\n") ?? string.Empty, Array.Empty<ColorRun>(), Array.Empty<LinkRun>()), font, maxWidth, scale, hyphenateBrokenWords);
         }
 
         public static WrappedText Wrap(StyledText styledText, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords = false)
@@ -140,9 +149,9 @@ namespace Parchment.Framework.UI.Layouts
                 return new WrappedText(Array.Empty<WrappedLine>(), Vector2.Zero);
             }
 
-            WrapState state = new WrapState() { Runs = styledText.Runs, Font = font, MaxWidth = maxWidth, Scale = scale, HyphenateBrokenWords = hyphenateBrokenWords };
+            WrapState state = new WrapState() { ColorRuns = styledText.ColorRuns, LinkRuns = styledText.LinkRuns, Font = font, MaxWidth = maxWidth, Scale = scale, HyphenateBrokenWords = hyphenateBrokenWords };
 
-            // Where each hard line starts in the whole text, so a line cut out of it can find the color runs it falls under
+            // Where each hard line starts in the whole text, so a line cut out of it can find the runs it falls under
             int hardLineStart = 0;
 
             foreach (string hardLine in text.Split('\n'))
@@ -180,73 +189,96 @@ namespace Parchment.Framework.UI.Layouts
             state.Lines.Add(new WrappedLine(string.Empty, new Vector2(0f, state.Font.MeasureString(BLANK_LINE_MEASURE_TEXT, state.Scale).Y)));
         }
 
-        /// <summary>Cuts a line wherever its color changes. Returns null when no color run reaches it.
+        /// <summary>Cuts a line wherever its color or link changes. Returns null when no run of either kind reaches it.
         /// Each segment's offset is measured once here rather than on every draw. Alignment only moves the line as a whole, so the offsets hold however it is aligned.
         /// </summary>
         private static IReadOnlyList<TextSegment>? GetSegments(WrapState state, string text, int sourceStart, int sourceLength)
         {
-            if (state.Runs.Count is 0 || sourceLength <= 0)
+            if ((state.ColorRuns.Count is 0 && state.LinkRuns.Count is 0) || sourceLength <= 0)
             {
                 return null;
             }
 
             int sourceEnd = sourceStart + sourceLength;
-            List<(int Start, int End, Color? Color)> pieces = new List<(int Start, int End, Color? Color)>();
-            bool hasColoredPiece = false;
-            int cursor = sourceStart;
+            SortedSet<int> cuts = new SortedSet<int>() { sourceStart, sourceEnd };
+            bool isReached = false;
 
-            foreach (TextRun run in state.Runs)
+            foreach (ColorRun run in state.ColorRuns)
             {
-                if (run.End <= cursor)
-                {
-                    continue;
-                }
-
-                if (run.Start >= sourceEnd)
-                {
-                    break;
-                }
-
-                if (run.Start > cursor)
-                {
-                    pieces.Add((cursor, run.Start, null));
-                }
-
-                int pieceStart = Math.Max(run.Start, cursor);
-                int pieceEnd = Math.Min(run.End, sourceEnd);
-
-                pieces.Add((pieceStart, pieceEnd, run.Color));
-                hasColoredPiece = true;
-                cursor = pieceEnd;
+                isReached |= AddCuts(cuts, run.Start, run.End, sourceStart, sourceEnd);
             }
 
-            if (hasColoredPiece is false)
+            foreach (LinkRun run in state.LinkRuns)
+            {
+                isReached |= AddCuts(cuts, run.Start, run.End, sourceStart, sourceEnd);
+            }
+
+            if (isReached is false)
             {
                 return null;
             }
 
-            if (cursor < sourceEnd)
-            {
-                pieces.Add((cursor, sourceEnd, null));
-            }
+            List<int> cutPoints = new List<int>(cuts);
+            List<TextSegment> segments = new List<TextSegment>(cutPoints.Count - 1);
 
-            List<TextSegment> segments = new List<TextSegment>(pieces.Count);
-
-            for (int index = 0; index < pieces.Count; index++)
+            for (int index = 0; index < cutPoints.Count - 1; index++)
             {
-                int localStart = pieces[index].Start - sourceStart;
+                int pieceStart = cutPoints[index];
+                int localStart = pieceStart - sourceStart;
+                bool isLastPiece = index == cutPoints.Count - 2;
 
                 // The last piece takes everything left on the line, so a hyphen the wrap added is drawn in the color of the word it broke
-                string segmentText = index == pieces.Count - 1 ? text.Substring(localStart) : text.Substring(localStart, pieces[index].End - pieces[index].Start);
+                string segmentText = isLastPiece ? text.Substring(localStart) : text.Substring(localStart, cutPoints[index + 1] - pieceStart);
                 float offsetX = localStart is 0 ? 0f : state.Font.MeasureString(text.Substring(0, localStart), state.Scale).X;
+                float width = state.Font.MeasureString(segmentText, state.Scale).X;
 
-                segments.Add(new TextSegment(segmentText, pieces[index].Color, offsetX));
+                segments.Add(new TextSegment(segmentText, FindColor(state.ColorRuns, pieceStart), FindLinkIndex(state.LinkRuns, pieceStart), offsetX, width));
             }
 
             return segments;
         }
 
-        /// <param name="lineStart">Where this hard line starts in the whole text. Every line cut from it is a contiguous stretch of it, which is what lets each one be traced back to the color runs it falls under.</param>
+        /// <summary>Adds where a run starts and ends to a line's cuts, for whatever part of it falls on the line. Returns whether any of it does.</summary>
+        private static bool AddCuts(SortedSet<int> cuts, int runStart, int runEnd, int sourceStart, int sourceEnd)
+        {
+            if (runEnd <= sourceStart || runStart >= sourceEnd)
+            {
+                return false;
+            }
+
+            cuts.Add(Math.Max(runStart, sourceStart));
+            cuts.Add(Math.Min(runEnd, sourceEnd));
+
+            return true;
+        }
+
+        private static Color? FindColor(IReadOnlyList<ColorRun> runs, int position)
+        {
+            foreach (ColorRun run in runs)
+            {
+                if (position >= run.Start && position < run.End)
+                {
+                    return run.Color;
+                }
+            }
+
+            return null;
+        }
+
+        private static int? FindLinkIndex(IReadOnlyList<LinkRun> runs, int position)
+        {
+            foreach (LinkRun run in runs)
+            {
+                if (position >= run.Start && position < run.End)
+                {
+                    return run.Occurrence;
+                }
+            }
+
+            return null;
+        }
+
+        /// <param name="lineStart">Where this hard line starts in the whole text. Every line cut from it is a contiguous stretch of it, which is what lets each one be traced back to the runs it falls under.</param>
         private static void WrapSingleLine(WrapState state, string line, int lineStart)
         {
             if (line.Length is 0)

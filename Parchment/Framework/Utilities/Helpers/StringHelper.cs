@@ -52,6 +52,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         /// <summary>Draws a line one color at a time, each segment from where it was measured to start.
         /// A colored segment keeps the element's shadow, resolved against the segment's own color so an unset shadow follows its alpha the way it follows the element's.
+        /// A segment inside a hovered link takes the link's hover color over whatever color it would otherwise have.
         /// </summary>
         private static void DrawSegments(SpriteBatch spriteBatch, Element element, IReadOnlyList<TextSegment> segments, Vector2 linePosition, Color fadedColor, Color shadowColor, float scale)
         {
@@ -62,11 +63,25 @@ namespace Parchment.Framework.Utilities.Helpers
                     continue;
                 }
 
-                Color segmentColor = segment.Color is Color runColor ? runColor * element.DrawAlpha : fadedColor;
-                Color segmentShadowColor = segment.Color is null ? shadowColor : element.GetShadowColor(segmentColor);
+                Color? runColor = GetHoveredLinkColor(element, segment) ?? segment.Color;
+                Color segmentColor = runColor is Color drawnRunColor ? drawnRunColor * element.DrawAlpha : fadedColor;
+                Color segmentShadowColor = runColor is null ? shadowColor : element.GetShadowColor(segmentColor);
 
                 element.Font!.DrawString(spriteBatch, segment.Text, new Vector2(linePosition.X + segment.OffsetX, linePosition.Y), segmentColor, segmentShadowColor, scale);
             }
+        }
+
+        /// <summary>The hover color of the link a segment belongs to while the cursor is over that link. Null otherwise.</summary>
+        private static Color? GetHoveredLinkColor(Element element, TextSegment segment)
+        {
+            if (segment.LinkIndex is not int linkIndex || linkIndex >= element.Children.Count)
+            {
+                return null;
+            }
+
+            Element link = element.Children[linkIndex];
+
+            return link.IsHovered ? link.HoverTextColor : null;
         }
     }
 }

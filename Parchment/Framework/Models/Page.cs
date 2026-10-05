@@ -339,7 +339,7 @@ namespace Parchment.Framework.Models
                 }
 
                 // The element's own bounds decide whether it is the answer, so a container never claims a point that only its contents reached past
-                if (screenBounds.Contains(screenPosition) is false)
+                if (ContainsPoint(element, containerBounds, screenBounds, screenPosition) is false)
                 {
                     continue;
                 }
@@ -376,7 +376,7 @@ namespace Parchment.Framework.Models
                 // The element is taken before what it holds, so a spread is walked in the order it was authored in and the first target is the one at the top of the page
                 if (element.IsInteractive is true)
                 {
-                    targets.Add(new SnapTarget(screenBounds, element));
+                    targets.Add(new SnapTarget(GetSnapBounds(element, containerBounds, screenBounds), element));
                 }
 
                 // A container's own layers are anchored to its content area, the same rectangle its children are measured against
@@ -384,6 +384,42 @@ namespace Parchment.Framework.Models
                 CollectTargets(element.Children, contentBounds, targets);
                 CollectTargets(element.Foreground, contentBounds, targets);
             }
+        }
+
+        /// <summary>Whether a point lands on an element itself, through its <see cref="Element.HitRegions"/> when it has them and its whole box otherwise.
+        /// A link that wraps is boxed around both of its lines, so the regions are what keep the words between them reaching the text they belong to rather than the link.
+        /// </summary>
+        private static bool ContainsPoint(Element element, Rectangle containerBounds, Rectangle screenBounds, Point screenPosition)
+        {
+            if (element.HitRegions is null)
+            {
+                return screenBounds.Contains(screenPosition);
+            }
+
+            foreach (Rectangle region in element.HitRegions)
+            {
+                if (new Rectangle(region.X + containerBounds.X, region.Y + containerBounds.Y, region.Width, region.Height).Contains(screenPosition))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Where a controller puts the cursor to reach an element, being its first hit region when it has them.
+        /// The middle of a wrapped link's box can fall on text outside the link, so the first line it covers is used instead.
+        /// </summary>
+        private static Rectangle GetSnapBounds(Element element, Rectangle containerBounds, Rectangle screenBounds)
+        {
+            if (element.HitRegions is null || element.HitRegions.Count is 0)
+            {
+                return screenBounds;
+            }
+
+            Rectangle region = element.HitRegions[0];
+
+            return new Rectangle(region.X + containerBounds.X, region.Y + containerBounds.Y, region.Width, region.Height);
         }
 
         /// <summary>Everything an element reaches on screen, being its own bounds unioned with whatever it holds.

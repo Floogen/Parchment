@@ -48,6 +48,14 @@ namespace Parchment.Framework.Models
         public Color? ShadowColor { get; init; }
 
         public Color TintColor { get; init; } = Color.White;
+
+        /// <summary>The color this element's text takes while the cursor is over it (null to keep its usual color). Only a link has one, which its host draws the linked text in.</summary>
+        public Color? HoverTextColor { get; init; }
+
+        /// <summary>The rectangles the cursor reaches this element through, measured from the same origin as <see cref="Bounds"/>. Null when the whole of <see cref="Bounds"/> counts.
+        /// A link that wraps covers a stretch of two lines rather than the box around them, so it is reached through one rectangle per line while <see cref="Bounds"/> holds their union.
+        /// </summary>
+        public IReadOnlyList<Rectangle>? HitRegions { get; set; }
         public IAssetName? TextureAssetName { get; init; }
 
         /// <summary>The item this element is currently showing, when it is a Grid result cell or something inside one. Null everywhere else, and what the %Item% token resolves to.</summary>
@@ -180,11 +188,11 @@ namespace Parchment.Framework.Models
             }
         }
 
-        /// <summary>Whether this element does anything when the cursor reaches it, whether that is a tooltip, an action or a swap to hover art.
+        /// <summary>Whether this element does anything when the cursor reaches it, whether that is a tooltip, an action, a swap to hover art or a hover text color.
         /// Absolutely positioned layers such as <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/> use this so purely decorative art passes the cursor through to whatever sits under it.
         /// Always false when <see cref="ElementData.IgnoreCursor"/> is set, since that element is stepped over wherever it sits.
         /// </summary>
-        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data.Tags is not null && Data.Tags.Count is not 0) || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0));
+        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data.Tags is not null && Data.Tags.Count is not 0) || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0) || HoverTextColor is not null);
 
         /// <summary>The shadow to draw behind text of the given color, where <paramref name="drawnTextColor"/> is the text color as it will actually be drawn, after any fade.
         /// Without a given <see cref="ShadowColor"/> the game's own follows the text's alpha, which is what keeps a translucent or fading element from leaving its shadow behind.

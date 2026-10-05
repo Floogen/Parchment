@@ -16,6 +16,10 @@ Large heading text. Identical to [`Heading`](heading.md) and [`Paragraph`](parag
 
 --8<-- "text-content.md"
 
+## Link fields
+
+--8<-- "link-fields.md"
+
 ## Common fields
 
 `Scale` on a `Title` is the **font** scale, since a title has no sprite.

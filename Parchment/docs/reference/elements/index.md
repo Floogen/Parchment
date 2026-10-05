@@ -91,7 +91,7 @@ Every element understands these, whatever its type.
 
 Understood by [`Title`](title.md), [`Heading`](heading.md), [`Paragraph`](paragraph.md), [`Banner`](banner.md), [`Button`](button.md), [`Image`](image.md) and [`Input`](input.md).
 
-Any element's `Text` can carry [tokens](../../concepts/actions.md#tokens), placeholders replaced with something the book knows as the element is laid out. That covers Parchment's own `%Token%` forms and the game's `[Token]` [tokenizable strings](../../concepts/actions.md#game-tokens). Part of it can also be colored with [inline color](#inline-color) markup.
+Any element's `Text` can carry [tokens](../../concepts/actions.md#tokens), placeholders replaced with something the book knows as the element is laid out. That covers Parchment's own `%Token%` forms and the game's `[Token]` [tokenizable strings](../../concepts/actions.md#game-tokens). Part of it can also be colored with [inline color](#inline-color) markup or turned into a [link](#links) on a `Title`, `Heading`, `Paragraph` or `PageNumber`.
 
 --8<-- "text-content.md"
 
@@ -171,6 +171,51 @@ Markup is read on every text element except `Input`, whatever `ParseTokenizableS
 
 !!! note "Where markup isn't drawn"
     `SpriteText` keeps its own color, so markup on an element drawn in it is ignored with a warning. A tooltip's `DisplayName` and `Description` draw in a single color, so any markup in them is taken out rather than shown.
+
+## Links
+
+A `Title`, `Heading`, `Paragraph` or `PageNumber` can turn part of its text into a link by wrapping it in `[link=id]` and `[/link]`. The `id` names an entry in the element's `Links`:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "You reeled in a [link=legend]Legend[/link] at [color=Blue]Mountain Lake[/color].",
+  "Links": {
+    "legend": {
+      "TextColor": "Gold",
+      "HoverTextColor": "Orange",
+      "DisplayName": "Legend",
+      "Description": "Only bites in spring rain.",
+      "Action": "PeacefulEnd.Parchment_JumpToPageId legendary-fish"
+    }
+  }
+}
+```
+
+A link behaves like an element of its own: it has its own tooltip, runs its own actions and carries its own tags, all reached through the stretch of text it covers.
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `TextColor` <span class="opt">optional</span> | [`color`](#colors) | *the color around it* | The linked text's color. |
+| `HoverTextColor` <span class="opt">optional</span> | [`color`](#colors) | — | The linked text's color while the cursor is over it. Covers any `[color]` markup inside the link. |
+| `DisplayName` <span class="opt">optional</span> | `string` | — | The bold title of the link's hover tooltip. Can carry [tokens](../../concepts/actions.md#tokens). |
+| `Description` <span class="opt">optional</span> | `string` | — | The body of the link's hover tooltip. Can carry [tokens](../../concepts/actions.md#tokens). |
+| `Action` <span class="opt">optional</span> | `string` | — | A [trigger action](../../concepts/actions.md) to run when the link is clicked. Shorthand for a single-entry `Actions` that runs first when both are given. |
+| `Actions` <span class="opt">optional</span> | `string[]` | — | Trigger actions to run in order when the link is clicked. |
+| `HoverAction` <span class="opt">optional</span> | `string` | — | A trigger action to run when the cursor moves onto the link. Shorthand for a single-entry `HoverActions` that runs first when both are given. |
+| `HoverActions` <span class="opt">optional</span> | `string[]` | — | Trigger actions to run in order when the cursor moves onto the link. |
+| `Tags` <span class="opt">optional</span> | `string[]` | — | [Tags](../tags.md) carried by the link, read the same way as an element's own. |
+
+- **Each occurrence is its own link.** The same id used twice gives two links that are hovered, highlighted and reached by a controller separately.
+- **Wrapping.** A link that runs onto a second line is reached through its text on both lines, never through the words between them.
+- **Nesting.** `[color]` works inside and around a link. A link inside another link takes over the text it covers. Tags of the two kinds may overlap rather than nest, in which case each closing tag closes the innermost tag of its own kind.
+- **Tokens and actions.** A link's tooltip and actions resolve tokens against the link. It follows the element's `ParseTokenizableStrings` and plays the element's `Sound` when clicked.
+- **The rest of the text.** Text outside every link still shows the element's own tooltip and runs the element's own actions. So does a link that only sets `TextColor`, since it gives the cursor nothing to do.
+- **Controller.** Each link is a stop of its own, placed on the first line it covers.
+- **Mistakes.** A `[link]` naming an id that isn't in the element's `Links` is drawn as plain text with a warning. So is a `[link]` on any other element. Unclosed and stray tags behave as they do for [inline color](#inline-color).
+
+!!! note "Links in `SpriteText`"
+    A link drawn in `SpriteText` keeps its tooltip, actions and tags. Its `TextColor` and `HoverTextColor` are ignored, as `SpriteText` keeps its own color.
 
 ## Rectangles and points
 

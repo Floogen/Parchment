@@ -3,9 +3,11 @@ using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Rendering;
+using Parchment.Framework.UI.Rendering.Elements;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.ItemTypeDefinitions;
@@ -20,6 +22,9 @@ namespace Parchment.Framework.Utilities.Helpers
 {
     public static class ElementFactory
     {
+        // Shared by every link, as it holds no state and is never registered for an authored element to use
+        private static readonly LinkElementRenderer _linkRenderer = new LinkElementRenderer();
+
         public static List<Element> CreateList(List<ElementData>? elementDataCollection, ElementRegistry registry, FontResolver fontResolver)
         {
             var elements = new List<Element>();
@@ -128,7 +133,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 AssignedItemId = assignedItemId,
                 AssignedItemData = assignedItemData,
                 AssignedItem = assignedItem,
-                Children = CreateChildren(data, registry, fontResolver),
+                Children = data is ILinkHost linkHost ? CreateLinks(data, linkHost) : CreateChildren(data, registry, fontResolver),
                 Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver),
                 Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver)
             };
@@ -229,6 +234,49 @@ namespace Parchment.Framework.Utilities.Helpers
             string elementLabel = string.IsNullOrWhiteSpace(data.Id) ? $"A {data.Type} element" : $"The {data.Type} element \"{data.Id}\"";
 
             Parchment.monitor.LogOnce($"{elementLabel} sets \"IgnoreCursor\" alongside {string.Join(", ", unreachableFields)}, which the cursor never reaches.", LogLevel.Warn);
+        }
+
+        /// <summary>Builds an element for each [link] in a text element's text, in the order they appear, which is the position the text finds each one at again.
+        /// Built once here rather than at layout, so a link keeps the same element (and with it whether it is hovered) across every relayout and refresh.
+        /// </summary>
+        private static IReadOnlyList<Element> CreateLinks(ElementData data, ILinkHost linkHost)
+        {
+            List<(string LinkId, LinkData Link)> occurrences = TextMarkupHelper.GetLinkOccurrences(linkHost.GetLinkedText(), linkHost.Links);
+
+            if (occurrences.Count is 0)
+            {
+                return Array.Empty<Element>();
+            }
+
+            var links = new List<Element>(occurrences.Count);
+
+            foreach ((string linkId, LinkData link) in occurrences)
+            {
+                links.Add(new Element(new LinkElementData(linkId, link, data), _linkRenderer)
+                {
+                    DisplayName = link.DisplayName,
+                    Description = link.Description,
+                    HoverTextColor = ResolveLinkHoverColor(linkId, link)
+                });
+            }
+
+            return links;
+        }
+
+        private static Color? ResolveLinkHoverColor(string linkId, LinkData link)
+        {
+            if (string.IsNullOrWhiteSpace(link.HoverTextColor))
+            {
+                return null;
+            }
+
+            if (ColorParser.TryParse(link.HoverTextColor, out Color parsedColor) is false)
+            {
+                Parchment.monitor.LogOnce($"The link '{linkId}' has an unparsable \"HoverTextColor\" '{link.HoverTextColor}', so it keeps its usual color when hovered.", LogLevel.Warn);
+                return null;
+            }
+
+            return parsedColor;
         }
 
         private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver)

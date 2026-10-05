@@ -37,6 +37,8 @@ namespace Parchment.Framework.UI.Rendering.Elements
             {
                 Parchment.monitor.Log($"{this.GetType().Name} has no resolved font (element will not render).", LogLevel.Warn);
                 element.LayoutState = null;
+                LinkLayoutHelper.ArrangeLinks(element, null, 0f, data.Alignment);
+
                 return Vector2.Zero;
             }
 
@@ -45,7 +47,12 @@ namespace Parchment.Framework.UI.Rendering.Elements
             WrappedText wrappedText = TextWrapper.WrapElementText(this.GetText(data, context), element, element.Font, explicitWidth ?? context.AvailableWidth, element.Data.Scale);
             element.LayoutState = wrappedText;
 
-            return new Vector2(explicitWidth ?? wrappedText.Size.X, wrappedText.Size.Y);
+            float measuredWidth = explicitWidth ?? wrappedText.Size.X;
+
+            // Placed here rather than at draw, since the cursor reaches a link before anything has drawn and the lines only move when the layout runs again
+            LinkLayoutHelper.ArrangeLinks(element, wrappedText, measuredWidth, data.Alignment);
+
+            return new Vector2(measuredWidth, wrappedText.Size.Y);
         }
 
         protected bool TryGetWrappedText(Element element, out WrappedText wrappedText)

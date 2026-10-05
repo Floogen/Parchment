@@ -213,6 +213,12 @@ namespace Parchment.Framework.API
         /// <summary>A wrapper around a PageNumber's number, where {0} is the number, such as "Page {0}" or "- {0} -".</summary>
         IElementBuilder Format(string format);
 
+        /// <summary>Adds a link that [link=id] markup in the element's text can point at, on a Title, Heading, Paragraph or PageNumber. Returns the link's builder rather than this one.
+        /// Each occurrence of the id in the text becomes a link of its own, with its own tooltip, actions and tags. Registration fails when two links share an id, ignoring case.
+        /// </summary>
+        /// <param name="linkId">The id the markup names, as in [link=linkId]...[/link].</param>
+        ILinkBuilder AddLink(string linkId);
+
         /// <summary>Adds a child element, on a container such as a Panel.</summary>
         IElementBuilder AddChild(string elementType);
 

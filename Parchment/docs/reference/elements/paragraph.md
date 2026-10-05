@@ -40,6 +40,10 @@ Give `Width` when you want a narrower column than the page provides, such as tex
 
 --8<-- "text-content.md"
 
+## Link fields
+
+--8<-- "link-fields.md"
+
 ## Common fields
 
 `Scale` on a `Paragraph` is the **font** scale, since a paragraph has no sprite. `MarginLeft` indents it, and because the margin narrows the width the text measures against, an indented paragraph wraps at the indented width rather than running off the page.

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.Utilities;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.Models.Data
 {
-    public class PageNumberElementData : ElementData, ITextContent
+    public class PageNumberElementData : ElementData, ITextContent, ILinkHost
     {
         public override ElementType Type => ElementType.PageNumber;
 
@@ -35,6 +36,15 @@ namespace Parchment.Framework.Models.Data
 
         /// <summary>Not authored. The number comes from the page's position in the book, so this is implemented explicitly to keep "Text" out of the JSON schema and to ignore it if given.</summary>
         string? ITextContent.Text { get => null; set { } }
+
+        /// <summary>The links this element's text points at with [link=id] markup, by id. Each occurrence in the text gets its own tooltip, actions and tags from the entry it names.</summary>
+        public Dictionary<string, LinkData>? Links { get; set; }
+
+        /// <summary>The format, being the only text a page number has that markup can be written in.</summary>
+        public string? GetLinkedText()
+        {
+            return Format;
+        }
 
         public override (bool Result, string Error) IsValid()
         {
