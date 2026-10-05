@@ -75,6 +75,11 @@ namespace Parchment.Framework.API
         /// order. Every entry runs on each entry of the cursor, so keep the whole list harmless to repeat.</summary>
         IElementBuilder HoverAction(string action);
 
+        /// <summary>Adds a trigger action to run once every [typewriter] in the element's text has finished, whether it typed out or the reader clicked to finish it. Calling this more than once builds a list run in order.
+        /// They run once per reading. Typing finished by turning away runs them the next time the page is on screen.
+        /// </summary>
+        IElementBuilder TypedAction(string action);
+
         /// <summary>The handle conditions and actions use to reach an Input's text, such as "PeacefulEnd.Parchment_InputMatches search Tulip".</summary>
         IElementBuilder InputId(string inputId);
 

@@ -318,6 +318,26 @@ So `[typewriter=20|500|fade|sound=dialogueCharacter]` waits half a second, then 
 - **Layout.** The text takes its full space from the start, so lines never reflow as they fill in.
 - **Combining.** Other effects work inside and around a typewriter, so `[typewriter][wave]...[/wave][/typewriter]` waves each character as it appears. A typewriter can't be a link's [hover effect](#hover-effects), as it reveals text once rather than coming and going with the cursor.
 
+#### Typed actions
+
+An element's `TypedAction` and `TypedActions` run once every typewriter in its text has finished. Pair them with something that should only appear once the text is written, such as a button below a letter:
+
+```json
+{
+  "Type": "Paragraph",
+  "Id": "letter",
+  "Text": "[typewriter]Dear friend, the fish are biting again.[/typewriter]",
+  "TypedAction": "PeacefulEnd.Parchment_SetFlag letterWritten"
+}
+```
+
+- **Finishing early.** They run whether the text typed out or the reader clicked to finish it, so skipping never loses what they do.
+- **Once per reading.** They run once each reading, the same as the typing. Turning back to the page doesn't run them again, while closing the book and opening it again does.
+- **Turning away.** Typing finished by turning away from the page runs them the next time that page is on screen, so nothing they do lands while the page is turning.
+- **Chaining.** A hidden element with its own typewriter starts typing as it appears, so a postscript can follow a letter by giving it a `Condition` on the flag a typed action sets (or on `HasFinishedTyping` below).
+- **Without an action.** The [`HasFinishedTyping`](../../concepts/conditions.md#the-page) query lets another element's `Condition` wait on the typing directly, such as `"Condition": "PeacefulEnd.Parchment_HasFinishedTyping letter"`. Conditions are checked on a short timer, so it can appear a moment after the typing ends.
+- **Mistakes.** An element with a typed action but no `[typewriter]` in its text logs a warning when the book loads, as they could never run.
+
 ### Hover effects
 
 A link's `HoverEffect` and `HoverEffects` apply [text effects](#text-effects) to the linked text only while the cursor (or a controller) is on it. Each entry is written the way its tag is, without the brackets:

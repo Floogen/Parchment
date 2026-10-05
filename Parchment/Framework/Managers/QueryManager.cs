@@ -56,6 +56,8 @@ namespace Parchment.Framework.Managers
         public const string INPUT_EQUALS = "PeacefulEnd.Parchment_InputEquals";
         public const string HAS_INPUT_TEXT = "PeacefulEnd.Parchment_HasInputText";
 
+        public const string HAS_FINISHED_TYPING = "PeacefulEnd.Parchment_HasFinishedTyping";
+
         public QueryManager(IMonitor monitor, IModHelper helper) : base(monitor, helper)
         {
             RegisterAll();
@@ -100,6 +102,8 @@ namespace Parchment.Framework.Managers
             GameStateQuery.Register(INPUT_MATCHES, InputMatches);
             GameStateQuery.Register(INPUT_EQUALS, InputEquals);
             GameStateQuery.Register(HAS_INPUT_TEXT, HasInputText);
+
+            GameStateQuery.Register(HAS_FINISHED_TYPING, HasFinishedTyping);
         }
 
         private bool IsBookOpen(string[] query, GameStateQueryContext context)
@@ -395,6 +399,44 @@ namespace Parchment.Framework.Managers
             }
 
             return false;
+        }
+
+        /// <summary>Whether every [typewriter] in the named elements' text has finished. Every ID given has to have finished. An ID that several elements share needs all of them to have.
+        /// An element with no typewriter never counts as finished, so a mistyped ID or a forgotten tag fails rather than passing by default.
+        /// </summary>
+        private bool HasFinishedTyping(string[] query, GameStateQueryContext context)
+        {
+            if (TryGetBookMenu(out BookMenu bookMenu) is false)
+            {
+                return false;
+            }
+
+            if (ArgUtility.TryGet(query, 1, out string _, out string error, name: "string elementId") is false)
+            {
+                return false;
+            }
+
+            for (int index = 1; index < query.Length; index++)
+            {
+                bool hasFoundElement = false;
+
+                foreach (Element element in bookMenu.Book.FindElementsById(query[index]))
+                {
+                    hasFoundElement = true;
+
+                    if (TypewriterHelper.HasFinishedTyping(element) is false)
+                    {
+                        return false;
+                    }
+                }
+
+                if (hasFoundElement is false)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Whether an element with the given ID carries any of the given tags. The element is looked up across the whole book, and an ID that several elements share matches when any one of them does.</summary>

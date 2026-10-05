@@ -276,6 +276,7 @@ Most methods are named after the field they set, so anything you've written in a
 | `Item(itemId)` | `ItemId` |
 | `Action(action)` / `Action(action, sound)` | A click [action](../concepts/actions.md). Call it more than once to build a list. |
 | `HoverAction(action)` | A hover action. Call it more than once to build a list. |
+| `TypedAction(action)` | An action run once the element's [typewriters](elements/index.md#typed-actions) finish. Call it more than once to build a list. |
 | `SubmitAction(action)` | An action run when enter is pressed in an [`Input`](elements/input.md). Call it more than once to build a list. |
 | `TextChangedAction(action)` | An action run once an `Input`'s text settles. Call it more than once to build a list. |
 | `TextChangedDelay(textChangedDelay)` | An `Input`'s `TextChangedDelay` |

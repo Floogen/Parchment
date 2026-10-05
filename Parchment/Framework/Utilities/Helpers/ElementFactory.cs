@@ -144,6 +144,7 @@ namespace Parchment.Framework.Utilities.Helpers
             AdoptDescendants(element);
 
             WarnOnUnreachableContent(data);
+            WarnOnUnreachableTypedActions(data);
             LogUnmeasurableContainer(data);
 
             // Prep the active frames, so a conditional animation is correct on the first draw rather than after the first condition refresh
@@ -280,6 +281,21 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return parsedColor;
+        }
+
+        /// <summary>Reports typed actions on an element with no [typewriter] in its text, which never finishes typing and so never runs them.
+        /// Logged once per element type and ID, as a Grid builds one element per cell from the same template.
+        /// </summary>
+        private static void WarnOnUnreachableTypedActions(ElementData data)
+        {
+            if (data.HasTypedActions is false || TypewriterHelper.HasTypewriterText(data) is true)
+            {
+                return;
+            }
+
+            string elementLabel = string.IsNullOrWhiteSpace(data.Id) ? $"A {data.Type} element" : $"The {data.Type} element \"{data.Id}\"";
+
+            Parchment.monitor.LogOnce($"{elementLabel} has a \"TypedAction\" or \"TypedActions\" but no [typewriter] in its text, so it never finishes typing and they never run.", LogLevel.Warn);
         }
 
         private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks)

@@ -1,4 +1,5 @@
 ﻿using Parchment.Framework.Models;
+using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Layouts;
 using System;
@@ -14,12 +15,18 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>Whether an element's authored text holds a typewriter, which is what puts it on its page's or book's list to be scheduled.</summary>
         public static bool HasTypewriterText(Element element)
         {
-            if (element.Data is ILinkHost linkHost && TextMarkupHelper.HasTypewriter(linkHost.GetLinkedText()))
+            return HasTypewriterText(element.Data);
+        }
+
+        /// <summary>Whether authored element data holds a typewriter in its text, being its Text or, for a PageNumber, its Format.</summary>
+        public static bool HasTypewriterText(ElementData data)
+        {
+            if (data is ILinkHost linkHost && TextMarkupHelper.HasTypewriter(linkHost.GetLinkedText()))
             {
                 return true;
             }
 
-            return element.Data is ITextContent textContent && TextMarkupHelper.HasTypewriter(textContent.Text);
+            return data is ITextContent textContent && TextMarkupHelper.HasTypewriter(textContent.Text);
         }
 
         /// <summary>Gives every typewriter that has come into view a start time, in order. A typewriter waits for the ones before it to finish unless it was marked immediate.
@@ -75,6 +82,25 @@ namespace Parchment.Framework.Utilities.Helpers
                     }
                 }
             }
+        }
+
+        /// <summary>Whether every typewriter in an element's text has finished. False for an element with none, as there is nothing to have finished.</summary>
+        public static bool HasFinishedTyping(Element element)
+        {
+            if (element.TypewriterEffects.Count is 0)
+            {
+                return false;
+            }
+
+            foreach (TextEffect effect in element.TypewriterEffects)
+            {
+                if (element.TypingStates.TryGetValue(effect.TypingOrdinal, out TypingState? state) is false || state.IsComplete is false)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Whether any scheduled typewriter among the elements is still revealing its text, including one waiting on its delay or its turn.</summary>

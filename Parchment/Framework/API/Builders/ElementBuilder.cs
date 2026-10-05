@@ -31,6 +31,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<string> _tags = new List<string>();
         private readonly List<string> _actions = new List<string>();
         private readonly List<string> _hoverActions = new List<string>();
+        private readonly List<string> _typedActions = new List<string>();
         private readonly List<string> _submitActions = new List<string>();
         private readonly List<string> _textChangedActions = new List<string>();
 
@@ -112,6 +113,13 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder HoverAction(string action)
         {
             _hoverActions.Add(action);
+
+            return this;
+        }
+
+        public IElementBuilder TypedAction(string action)
+        {
+            _typedActions.Add(action);
 
             return this;
         }
@@ -352,6 +360,16 @@ namespace Parchment.Framework.API.Builders
                 if (_hoverActions.Count > 1)
                 {
                     data.HoverActions = _hoverActions.GetRange(1, _hoverActions.Count - 1);
+                }
+            }
+
+            if (_typedActions.Count > 0)
+            {
+                data.TypedAction = _typedActions[0];
+
+                if (_typedActions.Count > 1)
+                {
+                    data.TypedActions = _typedActions.GetRange(1, _typedActions.Count - 1);
                 }
             }
 

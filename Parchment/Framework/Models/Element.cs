@@ -54,6 +54,9 @@ namespace Parchment.Framework.Models
         /// <summary>Whether a typewriter is still revealing this link's text, which keeps the cursor and a controller off it until all of it is showing.</summary>
         public bool IsAwaitingReveal { get; set; }
 
+        /// <summary>Whether this element's typed actions have run this reading, which is what keeps them to once however often its page comes back into view.</summary>
+        public bool HasRunTypedActions { get; set; }
+
         /// <summary>The container this element sits inside, whether as a child or in one of its layers. Null for anything at the top of a page or a book's Underlay and Overlay.
         /// Set once when the element is created, so it always points into the same book rather than following an element that was carried across a refresh.
         /// </summary>

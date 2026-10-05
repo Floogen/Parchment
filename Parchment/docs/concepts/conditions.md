@@ -127,6 +127,7 @@ The direction of `InputMatches` is the thing to keep straight: the typed text is
 | `PeacefulEnd.Parchment_IsLastPage` | — | The book's very last page is visible, not the current chapter's. |
 | `PeacefulEnd.Parchment_IsPagingForward` | — | A page turn is in progress and it's going forward. Only meaningful while the book is `Turning`. |
 | `PeacefulEnd.Parchment_CanGoBack` | — | The reader has somewhere to return to, so [`GoBack`](actions.md#going-back) would do something. |
+| `PeacefulEnd.Parchment_HasFinishedTyping` | `<elementId>...` | Every [typewriter](../reference/elements/index.md#typewriter) in each named element's text has finished, whether it typed out or the reader clicked to finish it. An element with no typewriter never counts as finished. Nor does one that hasn't been on screen yet this reading. |
 
 ### The cursor
 

@@ -390,8 +390,9 @@ namespace Parchment.Framework.UI.Menus
                 // Mapped rather than copied, or the first frame of every animation would run its actions again on each refresh
                 element.LastPlayedFrame = MapPlayedFrame(previousElement, element);
 
-                // Carried so a refresh doesn't type text out again that the reader has already watched appear
+                // Carried so a refresh doesn't type text out again that the reader has already watched appear, nor run its typed actions a second time
                 element.TypingStates = previousElement.TypingStates;
+                element.HasRunTypedActions = previousElement.HasRunTypedActions;
 
                 CarryElementState(previousElement.Children, element.Children);
                 CarryElementState(previousElement.Background, element.Background);
@@ -1798,7 +1799,7 @@ namespace Parchment.Framework.UI.Menus
             return _spreadTypewriterElements;
         }
 
-        /// <summary>Moves every typewriter on screen along: scheduling any that have come into view, deciding which links are revealed enough to reach and playing the typing sound.
+        /// <summary>Moves every typewriter on screen along: scheduling any that have come into view, deciding which links are revealed enough to reach, playing the typing sound and running the typed actions of whatever has finished.
         /// The spread's typewriters only move once it has settled, so the pages a turn is bringing in stay blank until it lands and then type out.
         /// </summary>
         private void UpdateTyping()
@@ -1828,6 +1829,44 @@ namespace Parchment.Framework.UI.Menus
             {
                 PlaySound(sound);
             }
+
+            // Last, as an action can turn the page or close the book. The book's layers go first since they stay on screen whatever the action does to the spread
+            if (RunTypedActions(Book.TypewriterElements) is true && isSpreadSettled)
+            {
+                RunTypedActions(CollectSpreadTypewriterElements());
+            }
+        }
+
+        /// <summary>Runs the typed actions of every element whose typewriters have all finished and haven't run them yet this reading. Only called for what is on screen and settled,
+        /// so typing finished by turning away runs its actions once that page is back in view rather than while it turns.
+        /// Reports whether the book is still settled where it was afterwards, since an action that turns the page or closes the book leaves the rest of the list no longer on screen.
+        /// </summary>
+        private bool RunTypedActions(List<Element> elements)
+        {
+            MenuState startingState = CurrentState;
+            (int ChapterIndex, int LeftPageIndex)? startingSpread = _typingSpreadKey;
+
+            // A copy, as an action that changes the spread refills the list being walked
+            foreach (Element element in elements.ToList())
+            {
+                if (element.HasRunTypedActions || element.Data.HasTypedActions is false || TypewriterHelper.HasFinishedTyping(element) is false)
+                {
+                    continue;
+                }
+
+                // Marked before running, so an action that refreshes the book carries the mark across rather than running again on the rebuilt element
+                element.HasRunTypedActions = true;
+
+                RunActions(element.Data.GetTypedActions(), element, "Element typed action");
+                RefreshVisiblePages();
+
+                if (CurrentState != startingState || _typingSpreadKey != startingSpread)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Finishes everything still typing on screen when the reader clicks, the way a click finishes the game's dialogue. Reports whether there was anything to finish,
