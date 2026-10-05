@@ -91,7 +91,7 @@ Every element understands these, whatever its type.
 
 Understood by [`Title`](title.md), [`Heading`](heading.md), [`Paragraph`](paragraph.md), [`Banner`](banner.md), [`Button`](button.md), [`Image`](image.md) and [`Input`](input.md).
 
-Any element's `Text` can carry [tokens](../../concepts/actions.md#tokens), placeholders replaced with something the book knows as the element is laid out. That covers Parchment's own `%Token%` forms and the game's `[Token]` [tokenizable strings](../../concepts/actions.md#game-tokens). Part of it can also be colored with [inline color](#inline-color) markup or turned into a [link](#links) on a `Title`, `Heading`, `Paragraph` or `PageNumber`.
+Any element's `Text` can carry [tokens](../../concepts/actions.md#tokens), placeholders replaced with something the book knows as the element is laid out. That covers Parchment's own `%Token%` forms and the game's `[Token]` [tokenizable strings](../../concepts/actions.md#game-tokens). Part of it can also be colored with [inline color](#inline-color) markup, given a [text effect](#text-effects) or turned into a [link](#links) on a `Title`, `Heading`, `Paragraph` or `PageNumber`.
 
 --8<-- "text-content.md"
 
@@ -170,7 +170,7 @@ The value takes any of the [color forms](#colors) above. Everything outside a ta
 Markup is read on every text element except `Input`, whatever `ParseTokenizableStrings` is set to.
 
 !!! note "Where markup isn't drawn"
-    `SpriteText` keeps its own color, so markup on an element drawn in it is ignored with a warning. A tooltip's `DisplayName` and `Description` draw in a single color, so any markup in them is taken out rather than shown.
+    `SpriteText` keeps its own color, so `[color]` and `[rainbow]` on an element drawn in it are ignored with a warning. A tooltip's `DisplayName` and `Description` draw plain text, so any markup in them is taken out rather than shown.
 
 ## Links
 
@@ -216,6 +216,32 @@ A link behaves like an element of its own: it has its own tooltip, runs its own 
 
 !!! note "Links in `SpriteText`"
     A link drawn in `SpriteText` keeps its tooltip, actions and tags. Its `TextColor` and `HoverTextColor` are ignored, as `SpriteText` keeps its own color.
+
+## Text effects
+
+Three tags move or recolor each character of the text they wrap, without changing how it's laid out:
+
+| Tag | What it does | Value | Default |
+| --- | --- | --- | --- |
+| `[wave]` | Bobs each character up and down a beat behind the one before it. | amplitude and period | `2 1000` |
+| `[shake]` | Jitters each character to a new spot every period. | amplitude and period | `1 80` |
+| `[rainbow]` | Colors each character one step further along the game's rainbow, cycling through every color once per period. | period | `2000` |
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "A [wave]legendary[/wave] catch! The line [shake=2]snapped[/shake] on a [rainbow]prismatic[/rainbow] fish."
+}
+```
+
+- **Values.** Every value is optional. `[wave=4]` sets only the amplitude and `[wave=4 500]` sets both, separated by a space. `[shake]` reads its value the same way. `[rainbow]` takes only a period, so `[rainbow=1000]` cycles twice as fast and `[rainbow=0]` holds still, the way the game draws its own rainbow text.
+- **Units.** An amplitude is in unscaled pixels multiplied by the text's scale (its `Scale`, which is `TextScale` on an element with a sprite). A period is in milliseconds: how long one bob takes for a wave, how long each spot is held for a shake and how long a full trip through the colors takes for a rainbow.
+- **Layout.** An effect only changes the drawing. Lines keep the room they were laid out with, so a large amplitude overlaps the lines around it rather than pushing them apart. A moving link is still reached where its text rests.
+- **Combining.** Effects stack, so `[shake][rainbow]...[/rainbow][/shake]` both jitters and recolors. They also work inside and around `[color]` and `[link]`. A rainbow covers any `[color]` on the same text, but a hovered link's `HoverTextColor` covers the rainbow so the link still shows it's under the cursor.
+- **Continuity.** An effect carries on unbroken across a color change or a line break.
+- **Fonts.** `[wave]` and `[shake]` work in every font, `SpriteText` included. `[rainbow]` is a color, which `SpriteText` ignores with a warning.
+- **Cost.** Each character under an effect is drawn on its own, so keep effects to a word or a phrase rather than a whole page.
+- **Mistakes.** An amplitude or period that won't parse keeps its default with a warning. Unclosed and stray tags behave as they do for [inline color](#inline-color).
 
 ## Rectangles and points
 

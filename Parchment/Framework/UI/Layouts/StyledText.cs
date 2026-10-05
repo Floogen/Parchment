@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Parchment.Framework.Models.Enums;
 using System;
 using System.Collections.Generic;
 
@@ -42,10 +43,50 @@ namespace Parchment.Framework.UI.Layouts
         }
     }
 
-    /// <summary>An element's text with its tokens resolved and its markup taken out, holding where each color and link applies alongside the plain text that is measured and drawn.</summary>
+    /// <summary>One effect opened by markup, such as a [wave], moving each character it covers at draw time without touching the layout.</summary>
+    public class TextEffect
+    {
+        public TextEffectType Type { get; }
+
+        /// <summary>How far the effect moves a character, in unscaled pixels multiplied by the text's scale.</summary>
+        public float Amplitude { get; }
+
+        /// <summary>How long one cycle of the effect takes, in milliseconds.</summary>
+        public float Period { get; }
+
+        /// <summary>Where the effect's tag opened in <see cref="StyledText.Text"/>. Each character's place in the effect is counted from here, so the effect carries on unbroken across a color change or a line break.</summary>
+        public int Start { get; }
+
+        public TextEffect(TextEffectType type, float amplitude, float period, int start)
+        {
+            Type = type;
+            Amplitude = amplitude;
+            Period = period;
+            Start = start;
+        }
+    }
+
+    /// <summary>A stretch of <see cref="StyledText.Text"/> under one set of effects, given as character offsets into it. Every effect still open over the stretch is listed, outermost first.</summary>
+    public class EffectRun
+    {
+        public int Start { get; }
+        public int Length { get; }
+        public IReadOnlyList<TextEffect> Effects { get; }
+
+        public int End => Start + Length;
+
+        public EffectRun(int start, int length, IReadOnlyList<TextEffect> effects)
+        {
+            Start = start;
+            Length = length;
+            Effects = effects;
+        }
+    }
+
+    /// <summary>An element's text with its tokens resolved and its markup taken out, holding where each color, link and effect applies alongside the plain text that is measured and drawn.</summary>
     public class StyledText
     {
-        public static readonly StyledText Empty = new StyledText(string.Empty, Array.Empty<ColorRun>(), Array.Empty<LinkRun>());
+        public static readonly StyledText Empty = new StyledText(string.Empty, Array.Empty<ColorRun>(), Array.Empty<LinkRun>(), Array.Empty<EffectRun>());
 
         /// <summary>The text to draw, with its line breaks already normalized to a bare \n.</summary>
         public string Text { get; }
@@ -56,11 +97,15 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>The linked runs in order and never overlapping. A link nested inside another takes over the text it covers.</summary>
         public IReadOnlyList<LinkRun> LinkRuns { get; }
 
-        public StyledText(string text, IReadOnlyList<ColorRun> colorRuns, IReadOnlyList<LinkRun> linkRuns)
+        /// <summary>The runs under at least one effect, in order and never overlapping.</summary>
+        public IReadOnlyList<EffectRun> EffectRuns { get; }
+
+        public StyledText(string text, IReadOnlyList<ColorRun> colorRuns, IReadOnlyList<LinkRun> linkRuns, IReadOnlyList<EffectRun> effectRuns)
         {
             Text = text;
             ColorRuns = colorRuns;
             LinkRuns = linkRuns;
+            EffectRuns = effectRuns;
         }
     }
 }

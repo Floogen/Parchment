@@ -27,7 +27,7 @@ Unlike every other text element, `PageNumber` takes no `Text`. Giving it one is 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `Scope` <span class="opt">optional</span> | `Book` \| `Chapter` | `Book` | What the number counts from. `Chapter` starts again at `1` on each [chapter's](../page.md#chapters) first page, rather than running through the book. No effect in a book without chapters, where the whole book counts as one. |
-| `Format` <span class="opt">optional</span> | `string` | — | A wrapper around the number, where `{0}` is the number. `"Page {0}"` gives `Page 4`, `"- {0} -"` gives `- 4 -`. When omitted the number is drawn on its own. Can carry [color](index.md#inline-color) and [link](index.md#links) markup, such as `"[link=contents]Page {0}[/link]"`. |
+| `Format` <span class="opt">optional</span> | `string` | — | A wrapper around the number, where `{0}` is the number. `"Page {0}"` gives `Page 4`, `"- {0} -"` gives `- 4 -`. When omitted the number is drawn on its own. Can carry [color](index.md#inline-color), [effect](index.md#text-effects) and [link](index.md#links) markup, such as `"[link=contents]Page {0}[/link]"`. |
 
 ```json
 {
