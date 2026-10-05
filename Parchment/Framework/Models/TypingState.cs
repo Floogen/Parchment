@@ -15,6 +15,9 @@
         /// <summary>Whether the typewriter's condition failed when it would have started, so its text showed in full at once rather than typing out.</summary>
         public bool IsInstant { get; set; }
 
+        /// <summary>Whether each of the typewriter's pauses holds, by its place in <see cref="UI.Layouts.TextEffect.Pauses"/>. Taken once when the typewriter starts, the same moment its own condition is checked.</summary>
+        public List<bool> PausesHeld { get; } = new List<bool>();
+
         /// <summary>How many characters were showing when the sound was last played for it, so each newly revealed character can be told apart from one already counted.</summary>
         public int LastSoundedCount { get; set; }
     }

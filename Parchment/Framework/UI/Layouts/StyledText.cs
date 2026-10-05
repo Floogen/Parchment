@@ -43,6 +43,12 @@ namespace Parchment.Framework.UI.Layouts
         }
     }
 
+    /// <summary>A [pause] inside a typewriter, holding the reveal before the character at <see cref="Position"/> appears.</summary>
+    /// <param name="Position">Where the pause sits, counted from the typewriter's first character. A pause after the last character holds whatever waits on the typewriter, such as the next one or its element's typed actions.</param>
+    /// <param name="Duration">How long it holds, in milliseconds.</param>
+    /// <param name="Condition">A game state query checked once when the typewriter starts. The pause only holds when it passes. Null when it always holds.</param>
+    public readonly record struct TypingPause(int Position, float Duration, string? Condition);
+
     /// <summary>How a [typewriter] reveals its text, read from the tag's value.</summary>
     public class TypingOptions
     {
@@ -102,6 +108,9 @@ namespace Parchment.Framework.UI.Layouts
 
         /// <summary>How a typewriter reveals its text. Null for every other effect.</summary>
         public TypingOptions? Typing { get; init; }
+
+        /// <summary>The pauses inside a typewriter, in the order they appear. Empty for every other effect and for a typewriter without any.</summary>
+        public List<TypingPause> Pauses { get; } = new List<TypingPause>();
 
         /// <summary>Which typewriter in the element's text this is, counting from zero in the order they open. It is how the typewriter finds its progress again on the element, since the effect itself is rebuilt each time the text is laid out.</summary>
         public int TypingOrdinal { get; init; } = -1;

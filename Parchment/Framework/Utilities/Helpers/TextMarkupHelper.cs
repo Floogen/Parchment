@@ -27,6 +27,7 @@ namespace Parchment.Framework.Utilities.Helpers
         public const char LINK_CLOSE_MARKER = '\u0005';
         public const char EFFECT_OPEN_MARKER = '\u0006';
         public const char EFFECT_CLOSE_MARKER = '\u0007';
+        public const char PAUSE_MARKER = '\u0008';
 
         public const float DEFAULT_WAVE_AMPLITUDE = 2f;
         public const float DEFAULT_WAVE_PERIOD = 1000f;
@@ -38,6 +39,7 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_PULSE_PERIOD = 1500f;
         public const float DEFAULT_TYPEWRITER_SPEED = 30f;
         public const float DEFAULT_TYPEWRITER_FADE = 100f;
+        public const float DEFAULT_PAUSE_DURATION = 500f;
 
         private const string TYPEWRITER_IMMEDIATE_OPTION = "immediate";
         private const string TYPEWRITER_FADE_OPTION = "fade";
@@ -55,9 +57,9 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER };
+        private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER };
 
         /// <summary>A link tag as it was read, being which occurrence it is (-1 for one that names nothing the element defines) and the color it draws its text in.</summary>
         private readonly record struct OpenedLink(int Occurrence, Color? Color, IReadOnlyList<OpenedEffect> HoverEffects)
@@ -89,6 +91,7 @@ namespace Parchment.Framework.Utilities.Helpers
             public List<OpenedLink> OpenedLinks { get; } = new List<OpenedLink>();
             public List<OpenedEffect> OpenedEffects { get; } = new List<OpenedEffect>();
             public List<TextEffectType> ClosedEffects { get; } = new List<TextEffectType>();
+            public List<(float Duration, string? Condition)> Pauses { get; } = new List<(float Duration, string? Condition)>();
 
             public bool IsEmpty => OpenedColors.Count is 0 && OpenedLinks.Count is 0 && OpenedEffects.Count is 0;
         }
@@ -107,7 +110,8 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (Match match in _markupPattern.Matches(text))
             {
-                if (match.Groups["closingTag"].Success)
+                // A pause's condition is checked once when its typewriter starts, the same as the typewriter's own, so it isn't refreshed with the rest
+                if (match.Groups["closingTag"].Success || match.Groups["pause"].Success)
                 {
                     continue;
                 }
@@ -382,6 +386,21 @@ namespace Parchment.Framework.Utilities.Helpers
                     return EFFECT_OPEN_MARKER.ToString();
                 }
 
+                if (match.Groups["pause"].Success)
+                {
+                    // Only a typewriter has anything to hold, so a pause anywhere else is taken out of the text and does nothing
+                    if (effectDepths.GetValueOrDefault(TextEffectType.Typewriter) is 0)
+                    {
+                        Parchment.monitor.LogOnce($"'{text}' has a [pause] outside a [typewriter], where there's nothing for it to hold, so it was ignored.", LogLevel.Warn);
+                        return string.Empty;
+                    }
+
+                    string? pauseValue = ExtractCondition(match.Groups["pauseValue"].Success ? match.Groups["pauseValue"].Value : null, out string? pauseCondition);
+                    record.Pauses.Add((ParsePauseDuration(pauseValue, text), pauseCondition));
+
+                    return PAUSE_MARKER.ToString();
+                }
+
                 string closingTag = match.Groups["closingTag"].Value;
 
                 if (string.Equals(closingTag, COLOR_TAG, StringComparison.OrdinalIgnoreCase))
@@ -496,6 +515,23 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return colors;
+        }
+
+        /// <summary>Reads a pause's optional length in milliseconds. Left off (or one that won't parse), it holds for <see cref="DEFAULT_PAUSE_DURATION"/>.</summary>
+        private static float ParsePauseDuration(string? value, string source)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return DEFAULT_PAUSE_DURATION;
+            }
+
+            if (float.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float duration) && duration >= 0f)
+            {
+                return duration;
+            }
+
+            Parchment.monitor.LogOnce($"'{source}' has a [pause] of '{value}', which isn't a number of milliseconds that isn't negative, so the default of {DEFAULT_PAUSE_DURATION} is used.{GetSeparatorHint(value, "pause")}", LogLevel.Warn);
+            return DEFAULT_PAUSE_DURATION;
         }
 
         /// <summary>Reads a decoration's optional color. Left off (or one that won't parse), the decoration takes its default, which for most is the color of the text it decorates.</summary>
@@ -795,6 +831,7 @@ namespace Parchment.Framework.Utilities.Helpers
             int nextEffectIndex = 0;
             int nextClosedEffectIndex = 0;
             int nextTypingOrdinal = 0;
+            int nextPauseIndex = 0;
 
             Color? currentColor = null;
             int colorRunStart = 0;
@@ -835,6 +872,17 @@ namespace Parchment.Framework.Utilities.Helpers
 
                         nextEffectIndex++;
                         break;
+                    case PAUSE_MARKER:
+                        if (nextPauseIndex < record.Pauses.Count && GetInnermostTypewriter() is TextEffect pausedTypewriter)
+                        {
+                            (float pauseDuration, string? pauseCondition) = record.Pauses[nextPauseIndex];
+                            pausedTypewriter.Pauses.Add(new TypingPause(plainText.Length - pausedTypewriter.Start, pauseDuration, pauseCondition));
+                        }
+
+                        nextPauseIndex++;
+
+                        // Takes no room in the text, so nothing about the runs around it changes
+                        continue;
                     case COLOR_CLOSE_MARKER:
                         CloseInnermost(tag => tag.Kind is TagKind.Color);
                         break;
@@ -895,6 +943,20 @@ namespace Parchment.Framework.Utilities.Helpers
                         openTags.RemoveAt(index);
 
                         return closedTag;
+                    }
+                }
+
+                return null;
+            }
+
+            // The typewriter a pause holds, being the innermost one open where it sits
+            TextEffect? GetInnermostTypewriter()
+            {
+                for (int index = openTags.Count - 1; index >= 0; index--)
+                {
+                    if (openTags[index].Effect is TextEffect effect && effect.Typing is not null)
+                    {
+                        return effect;
                     }
                 }
 

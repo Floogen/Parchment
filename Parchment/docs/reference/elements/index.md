@@ -344,6 +344,24 @@ So `[typewriter=20|500|fade|sound=dialogueCharacter]` waits half a second, then 
 - **Layout.** The text takes its full space from the start, so lines never reflow as they fill in.
 - **Combining.** Other effects work inside and around a typewriter, so `[typewriter][wave]...[/wave][/typewriter]` waves each character as it appears. A typewriter can't be a link's [hover effect](#hover-effects), as it reveals text once rather than coming and going with the cursor.
 
+#### Pauses
+
+A `[pause]` inside a typewriter holds the reveal for a moment before carrying on, for pacing a line the way it would be spoken:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "[typewriter]Wait…[pause=600] what was that?[/typewriter]"
+}
+```
+
+- **Length.** Its value is how many milliseconds it holds. A bare `[pause]` holds for 500.
+- **No closing tag.** Unlike every other tag, `[pause]` marks a single point in the text rather than wrapping any.
+- **What waits.** A pause lengthens its typewriter, so the typewriters after it and the element's [typed actions](#typed-actions) wait for it too. One placed just before `[/typewriter]` holds whatever comes next without holding any of its own text.
+- **Conditions.** `[pause=600|condition=...]` only holds when its [condition](#tag-conditions) passes, checked once when the typewriter starts, the same as a typewriter's own.
+- **Skipping.** A click finishes the whole typewriter, pauses included.
+- **Mistakes.** A `[pause]` outside a typewriter has nothing to hold, so it's ignored with a warning.
+
 #### Typed actions
 
 An element's `TypedAction` and `TypedActions` run once every typewriter in its text has finished. Pair them with something that should only appear once the text is written, such as a button below a letter:

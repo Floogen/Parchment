@@ -69,9 +69,16 @@ namespace Parchment.Framework.Utilities.Helpers
 
                         // Checked once, here, so the text can't appear and vanish as the condition comes and goes. A failed one shows its text in full when it would have started
                         state.IsInstant = typing.Condition is not null && ConditionHelper.Check(typing.Condition, element) is false;
+
+                        // Pause conditions are settled at the same moment, so a pause can't come and go partway through the reveal either
+                        state.PausesHeld.Clear();
+                        foreach (TypingPause pause in effect.Pauses)
+                        {
+                            state.PausesHeld.Add(pause.Condition is null || ConditionHelper.Check(pause.Condition, element));
+                        }
                     }
 
-                    double end = state.IsInstant ? state.StartTime.Value : GetEndTime(effect, typing, state.StartTime.Value);
+                    double end = state.IsInstant ? state.StartTime.Value : GetEndTime(effect, typing, state);
 
                     if (state.IsComplete is false && time >= end)
                     {
@@ -185,7 +192,12 @@ namespace Parchment.Framework.Utilities.Helpers
                         continue;
                     }
 
-                    int revealedCount = Math.Clamp((int)Math.Floor((time - start) / effect.Typing.Speed) + 1, 0, effect.Length);
+                    // Counted on from where the last call left off, as characters only ever appear in order and a pause can't be divided out of a single sum
+                    int revealedCount = state.LastSoundedCount;
+                    while (revealedCount < effect.Length && GetAppearTime(effect, effect.Typing!, state, revealedCount) <= time)
+                    {
+                        revealedCount++;
+                    }
 
                     if (revealedCount > state.LastSoundedCount)
                     {
@@ -210,7 +222,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 return 1f;
             }
 
-            double appearsAt = state.IsInstant ? start : start + (position - effect.Start) * typing.Speed;
+            double appearsAt = state.IsInstant ? start : GetAppearTime(effect, typing, state, position - effect.Start);
 
             if (time < appearsAt)
             {
@@ -238,10 +250,38 @@ namespace Parchment.Framework.Utilities.Helpers
             return true;
         }
 
-        /// <summary>When a typewriter's last character has fully appeared.</summary>
-        private static double GetEndTime(TextEffect effect, TypingOptions typing, double start)
+        /// <summary>When a typewriter's last character has fully appeared, counting every pause that holds. A pause after the last character still counts, so whatever waits on the typewriter waits for it too.</summary>
+        private static double GetEndTime(TextEffect effect, TypingOptions typing, TypingState state)
         {
-            return start + Math.Max(0, effect.Length - 1) * typing.Speed + typing.FadeDuration;
+            return state.StartTime!.Value + Math.Max(0, effect.Length - 1) * typing.Speed + GetPauseDelay(effect, state, int.MaxValue) + typing.FadeDuration;
+        }
+
+        /// <summary>When one of a typewriter's characters appears, held back by every pause before it that holds.</summary>
+        /// <param name="index">The character's place in the typewriter, counting from its first.</param>
+        private static double GetAppearTime(TextEffect effect, TypingOptions typing, TypingState state, int index)
+        {
+            return state.StartTime!.Value + index * typing.Speed + GetPauseDelay(effect, state, index);
+        }
+
+        /// <summary>How long the pauses at or before a place in a typewriter hold for, counting only those whose condition passed when it started.</summary>
+        private static double GetPauseDelay(TextEffect effect, TypingState state, int index)
+        {
+            double delay = 0d;
+
+            for (int pauseIndex = 0; pauseIndex < effect.Pauses.Count; pauseIndex++)
+            {
+                TypingPause pause = effect.Pauses[pauseIndex];
+
+                // One the state has no record of was added by a relayout after the typewriter started, so it holds, as a pause without a condition would
+                bool isHeld = pauseIndex >= state.PausesHeld.Count || state.PausesHeld[pauseIndex];
+
+                if (pause.Position <= index && isHeld)
+                {
+                    delay += pause.Duration;
+                }
+            }
+
+            return delay;
         }
 
         /// <summary>When the element last came into view, counting the containers it sits in, as a panel that appears brings everything inside it along. Null while it or anything around it is hidden.</summary>
