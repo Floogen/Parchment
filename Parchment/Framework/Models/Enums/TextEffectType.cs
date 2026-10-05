@@ -8,6 +8,7 @@
         Rainbow,
         Bounce,
         Gradient,
-        Pulse
+        Pulse,
+        Typewriter
     }
 }

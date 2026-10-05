@@ -171,7 +171,50 @@ namespace Parchment.Framework.UI.Layouts
                 Parchment.monitor.LogOnce($"'{text}' has [color], [rainbow], [gradient] or [pulse] markup but draws in SpriteText, which keeps its own color, so the coloring is ignored.", LogLevel.Warn);
             }
 
+            element.TypewriterEffects = CollectTypewriters(styledText);
+            RecordLinkTextEnds(element, styledText);
+
             return Wrap(styledText, font, maxWidth, scale);
+        }
+
+        /// <summary>The text's typewriters in the order they open, each once. One wrapped around nothing appears in no run and is left out, as there is nothing for it to type.</summary>
+        private static IReadOnlyList<TextEffect> CollectTypewriters(StyledText styledText)
+        {
+            SortedDictionary<int, TextEffect>? typewriters = null;
+
+            foreach (EffectRun run in styledText.EffectRuns)
+            {
+                foreach (TextEffect effect in run.Effects)
+                {
+                    if (effect.Typing is null || effect.TypingOrdinal < 0)
+                    {
+                        continue;
+                    }
+
+                    typewriters ??= new SortedDictionary<int, TextEffect>();
+                    typewriters[effect.TypingOrdinal] = effect;
+                }
+            }
+
+            return typewriters is null ? Array.Empty<TextEffect>() : typewriters.Values.ToList();
+        }
+
+        /// <summary>Notes where each of the element's links ends in its text, which is what a typewriter is checked against before the link can be reached.</summary>
+        private static void RecordLinkTextEnds(Element element, StyledText styledText)
+        {
+            foreach (Element link in element.Children)
+            {
+                link.LinkTextEnd = -1;
+            }
+
+            foreach (LinkRun run in styledText.LinkRuns)
+            {
+                if (run.Occurrence < element.Children.Count)
+                {
+                    Element link = element.Children[run.Occurrence];
+                    link.LinkTextEnd = Math.Max(link.LinkTextEnd, run.End);
+                }
+            }
         }
 
         public static WrappedText Wrap(string text, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords = false)

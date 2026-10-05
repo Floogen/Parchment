@@ -259,6 +259,7 @@ These tags move or recolor each character of the text they wrap, without changin
 | `[rainbow]` | Colors each character one step further along the game's rainbow, cycling through every color once per period. | period | `2000` |
 | `[gradient]` | Blends the text from one color to the next across its whole length, without moving. | two or more colors | *required* |
 | `[pulse]` | Fades the whole stretch towards a color and back once per period. | color and period | *a color is required*, then `1500` |
+| `[typewriter]` | Reveals the text one character at a time, the way the game's dialogue box does. See [Typewriter](#typewriter). | speed, delay and options | `30` and `0` |
 
 ```json
 {
@@ -284,6 +285,38 @@ These tags move or recolor each character of the text they wrap, without changin
 - **Fonts.** `[wave]`, `[bounce]` and `[shake]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]` and `[pulse]` are colors, which `SpriteText` ignores with a warning.
 - **Cost.** Each character under an effect is drawn on its own, so keep effects to a word or a phrase rather than a whole page.
 - **Mistakes.** An amplitude or period that won't parse keeps its default with a warning. When it was written with a space rather than `|`, such as `[wave=4 500]`, the warning shows the corrected tag. A color that won't parse is left out of a gradient. A gradient left with fewer than two colors keeps the color around it with a warning. So does a pulse without a color. Unclosed and stray tags behave as they do for [inline color](#inline-color).
+
+### Typewriter
+
+`[typewriter]` hides the text it wraps and then reveals it a character at a time, at the same pace as the game's dialogue box:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "[typewriter]Dear friend, the fish are biting again.[/typewriter]"
+}
+```
+
+Its value takes two numbers and then any options, all separated by `|` and all optional:
+
+| Part | What it sets | Default |
+| --- | --- | --- |
+| first number | Milliseconds each character takes to appear. | `30` |
+| second number | Milliseconds to wait before the first character. | `0` |
+| `immediate` | Start as soon as the text is on screen instead of waiting for the typewriters before it. | waits its turn |
+| `fade` or `fade=milliseconds` | Fade each character in instead of popping it in. A bare `fade` takes 100 milliseconds. | pops in |
+| `sound=cue` | Play a sound cue as characters appear, such as `sound=dialogueCharacter` for the game's own typing sound. | no sound |
+
+So `[typewriter=20|500|fade|sound=dialogueCharacter]` waits half a second, then types quickly with each character fading in to the game's typing sound.
+
+- **When it starts.** A typewriter on a page starts once its spread has settled into view, after any page turn. One in an element that's hidden until a `Condition` passes or a `ShowElement` names it starts when that element appears instead. One on the book's own `Underlay` or `Overlay` starts when the book first settles, open or on its cover.
+- **Order.** Typewriters on a spread type one after another in the order they're drawn, left page then right, so the spread reads like it's being written. Each waits for the one before it to finish, plus its own delay. `immediate` starts one alongside the others instead, without holding up the ones after it. A hidden element doesn't hold the others up either.
+- **Replaying.** Each typewriter types once per reading. Turning back to a spread shows its text in full, while closing the book and opening it again types it out afresh.
+- **Skipping.** While anything on screen is still typing, a click (or a controller's confirm button) finishes all of it at once and does nothing else, the same as the game's dialogue. It doesn't also press the button it landed on or turn the page. Keybinds are unaffected.
+- **Links.** A link in text that hasn't been typed out yet can't be reached by the cursor or a controller until all of its text is showing.
+- **Sound.** Only one cue plays at a time however many typewriters are revealing at once. It follows the player's own typing sound option, the same as the game's dialogue.
+- **Layout.** The text takes its full space from the start, so lines never reflow as they fill in.
+- **Combining.** Other effects work inside and around a typewriter, so `[typewriter][wave]...[/wave][/typewriter]` waves each character as it appears. A typewriter can't be a link's [hover effect](#hover-effects), as it reveals text once rather than coming and going with the cursor.
 
 ### Hover effects
 

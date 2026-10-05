@@ -36,6 +36,13 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_BOUNCE_AMPLITUDE = 2f;
         public const float DEFAULT_BOUNCE_PERIOD = 800f;
         public const float DEFAULT_PULSE_PERIOD = 1500f;
+        public const float DEFAULT_TYPEWRITER_SPEED = 30f;
+        public const float DEFAULT_TYPEWRITER_FADE = 100f;
+
+        private const string TYPEWRITER_IMMEDIATE_OPTION = "immediate";
+        private const string TYPEWRITER_FADE_OPTION = "fade";
+        private const string TYPEWRITER_SOUND_OPTION = "sound";
+        private const string TYPEWRITER_TAG = "[typewriter";
 
         // What separates the parts of an effect's value, the same for every effect. Not a space, since a color can hold spaces of its own such as "255 215 0"
         private const char VALUE_SEPARATOR = '|';
@@ -45,7 +52,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER };
 
@@ -56,7 +63,7 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>An effect tag as it was read, before it has a place in the plain text to count its characters from.</summary>
-        private readonly record struct OpenedEffect(TextEffectType Type, float Amplitude, float Period, IReadOnlyList<Color> Colors);
+        private readonly record struct OpenedEffect(TextEffectType Type, float Amplitude, float Period, IReadOnlyList<Color> Colors, TypingOptions? Typing = null);
 
         private enum TagKind
         {
@@ -77,6 +84,12 @@ namespace Parchment.Framework.Utilities.Helpers
             public List<TextEffectType> ClosedEffects { get; } = new List<TextEffectType>();
 
             public bool IsEmpty => OpenedColors.Count is 0 && OpenedLinks.Count is 0 && OpenedEffects.Count is 0;
+        }
+
+        /// <summary>Whether authored text holds a [typewriter], which is what puts its element on the list the typing is scheduled from. Read from the authored text, as a token can't bring one in.</summary>
+        public static bool HasTypewriter(string? text)
+        {
+            return string.IsNullOrEmpty(text) is false && text.Contains(TYPEWRITER_TAG, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>The text with its markup taken out, for somewhere that draws plain text such as a tooltip.</summary>
@@ -312,6 +325,8 @@ namespace Parchment.Framework.Utilities.Helpers
                     return new OpenedEffect(effectType, 0f, 0f, ParseGradientColors(parts, tag, source));
                 case TextEffectType.Pulse:
                     return ParsePulse(parts, tag, source);
+                case TextEffectType.Typewriter:
+                    return new OpenedEffect(effectType, 0f, 0f, Array.Empty<Color>(), ParseTypewriter(parts, tag, source));
                 case TextEffectType.Shake:
                     return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_SHAKE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_SHAKE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
                 case TextEffectType.Bounce:
@@ -348,6 +363,89 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return colors;
+        }
+
+        /// <summary>Reads a typewriter's value. Its numbers are its speed and then its delay, both in milliseconds. Any other part is an option: "immediate" to start without waiting for the typewriters before it,
+        /// "fade" (or "fade=milliseconds") to fade each character in rather than pop it in. "sound=cue" plays a sound as characters appear. Every part is optional and the options can come in any order after the numbers.
+        /// </summary>
+        private static TypingOptions ParseTypewriter(string[] parts, string tag, string source)
+        {
+            float speed = DEFAULT_TYPEWRITER_SPEED;
+            float delay = 0f;
+            int numberCount = 0;
+            bool isImmediate = false;
+            float fadeDuration = 0f;
+            string? sound = null;
+
+            foreach (string part in parts)
+            {
+                if (float.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out float number))
+                {
+                    if (numberCount is 0)
+                    {
+                        speed = ReadTypewriterNumber(number, part, "speed", DEFAULT_TYPEWRITER_SPEED, allowZero: false, tag, source);
+                    }
+                    else if (numberCount is 1)
+                    {
+                        delay = ReadTypewriterNumber(number, part, "delay", 0f, allowZero: true, tag, source);
+                    }
+                    else
+                    {
+                        Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than two numbers, so '{part}' was ignored. The first is its speed and the second its delay.", LogLevel.Warn);
+                    }
+
+                    numberCount++;
+                    continue;
+                }
+
+                int separatorIndex = part.IndexOf('=');
+                string option = separatorIndex < 0 ? part : part.Substring(0, separatorIndex).Trim();
+                string? optionValue = separatorIndex < 0 ? null : part.Substring(separatorIndex + 1).Trim();
+
+                if (string.Equals(option, TYPEWRITER_IMMEDIATE_OPTION, StringComparison.OrdinalIgnoreCase))
+                {
+                    isImmediate = true;
+                }
+                else if (string.Equals(option, TYPEWRITER_FADE_OPTION, StringComparison.OrdinalIgnoreCase))
+                {
+                    fadeDuration = DEFAULT_TYPEWRITER_FADE;
+
+                    if (optionValue is not null)
+                    {
+                        if (float.TryParse(optionValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedFade) && parsedFade >= 0f)
+                        {
+                            fadeDuration = parsedFade;
+                        }
+                        else
+                        {
+                            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] fade of '{optionValue}', which isn't a number of milliseconds that isn't negative, so the default of {DEFAULT_TYPEWRITER_FADE} is used.", LogLevel.Warn);
+                        }
+                    }
+                }
+                else if (string.Equals(option, TYPEWRITER_SOUND_OPTION, StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(optionValue) is false)
+                {
+                    sound = optionValue;
+                }
+                else
+                {
+                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] option of '{part}', which isn't one Parchment knows, so it was ignored. Try \"{TYPEWRITER_IMMEDIATE_OPTION}\", \"{TYPEWRITER_FADE_OPTION}\" or \"{TYPEWRITER_SOUND_OPTION}=cue\".{GetSeparatorHint(part, tag)}", LogLevel.Warn);
+                }
+            }
+
+            return new TypingOptions(speed, delay, isImmediate, fadeDuration, sound);
+        }
+
+        private static float ReadTypewriterNumber(float number, string part, string label, float defaultValue, bool allowZero, string tag, string source)
+        {
+            if (number > 0f || (allowZero && number == 0f))
+            {
+                return number;
+            }
+
+            string expected = allowZero ? "a number of milliseconds that isn't negative" : "a positive number of milliseconds";
+            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] {label} of '{part}', which isn't {expected}, so the default of {defaultValue} is used.", LogLevel.Warn);
+
+            return defaultValue;
         }
 
         /// <summary>Reads a pulse's color and then its period. The color is required, as without one there is nothing to fade towards and the text keeps the color around it.</summary>
@@ -477,9 +575,10 @@ namespace Parchment.Framework.Utilities.Helpers
                 string name = separatorIndex < 0 ? trimmedEntry : trimmedEntry.Substring(0, separatorIndex);
                 string? value = separatorIndex < 0 ? null : trimmedEntry.Substring(separatorIndex + 1);
 
-                if (TryGetEffectType(name.Trim(), out TextEffectType effectType) is false)
+                // A typewriter reveals text once rather than coming and going with the cursor, so it has no meaning as a hover effect
+                if (TryGetEffectType(name.Trim(), out TextEffectType effectType) is false || effectType is TextEffectType.Typewriter)
                 {
-                    Parchment.monitor.LogOnce($"The link '{id}' has a hover effect of '{entry}', which isn't an effect Parchment knows. Try one of: {string.Join(", ", Enum.GetNames<TextEffectType>().Select(effectName => effectName.ToLowerInvariant()))}.", LogLevel.Warn);
+                    Parchment.monitor.LogOnce($"The link '{id}' has a hover effect of '{entry}', which isn't an effect that can apply on hover. Try one of: {string.Join(", ", Enum.GetValues<TextEffectType>().Where(hoverType => hoverType is not TextEffectType.Typewriter).Select(hoverType => hoverType.ToString().ToLowerInvariant()))}.", LogLevel.Warn);
                     continue;
                 }
 
@@ -521,6 +620,7 @@ namespace Parchment.Framework.Utilities.Helpers
             int nextLinkIndex = 0;
             int nextEffectIndex = 0;
             int nextClosedEffectIndex = 0;
+            int nextTypingOrdinal = 0;
 
             Color? currentColor = null;
             int colorRunStart = 0;
@@ -554,7 +654,9 @@ namespace Parchment.Framework.Utilities.Helpers
                         if (nextEffectIndex < record.OpenedEffects.Count)
                         {
                             OpenedEffect openedEffect = record.OpenedEffects[nextEffectIndex];
-                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors)));
+                            int typingOrdinal = openedEffect.Typing is null ? -1 : nextTypingOrdinal++;
+
+                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors) { Typing = openedEffect.Typing, TypingOrdinal = typingOrdinal }));
                         }
 
                         nextEffectIndex++;

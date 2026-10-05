@@ -61,6 +61,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// A segment under an effect is drawn a character at a time, each moved from where it was laid out along with its shadow.
         /// An effect that colors, such as a rainbow or a pulse, starts from the segment's own color but leaves a hovered link's alone, so the link still shows the cursor is on it.
         /// A hovered link's own hover effects apply last, timed from the cursor's arrival and eased in, with any color they set starting from the link's hover color.
+        /// A character a typewriter hasn't reached yet is left out. One it is fading in is drawn at the strength it has reached.
         /// </summary>
         /// <param name="keepsOwnColor">Whether the font ignores the colors it's handed, as SpriteText does, in which case every segment takes the element's own.</param>
         private static void DrawSegments(SpriteBatch spriteBatch, Element element, IReadOnlyList<TextSegment> segments, Vector2 linePosition, Color fadedColor, Color shadowColor, float scale, bool keepsOwnColor, double effectTime)
@@ -102,6 +103,14 @@ namespace Parchment.Framework.Utilities.Helpers
                     }
 
                     int position = segment.SourceStart + index;
+
+                    // A typewriter hasn't reached this character yet, so there is nothing to draw
+                    float revealAlpha = segment.Effects is null ? 1f : TypewriterHelper.GetRevealAlpha(element, segment.Effects, position, effectTime);
+                    if (revealAlpha <= 0f)
+                    {
+                        continue;
+                    }
+
                     Vector2 effectOffset = segment.Effects is null ? Vector2.Zero : TextEffectHelper.GetOffset(segment.Effects, position, effectTime, scale);
 
                     if (hoverEffects is not null)
@@ -121,7 +130,8 @@ namespace Parchment.Framework.Utilities.Helpers
                         characterShadowColor = element.GetShadowColor(characterColor);
                     }
 
-                    element.Font!.DrawString(spriteBatch, character, characterPosition, characterColor, characterShadowColor, scale);
+                    // Faded together with its shadow, so a character fading in doesn't leave its shadow standing at full strength behind it
+                    element.Font!.DrawString(spriteBatch, character, characterPosition, characterColor * revealAlpha, characterShadowColor * revealAlpha, scale);
                 }
             }
         }

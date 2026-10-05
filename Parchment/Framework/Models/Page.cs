@@ -50,6 +50,9 @@ namespace Parchment.Framework.Models
         /// <summary>Every Input element on this page carrying a text changed action, gathered once for the same reason as <see cref="FrameActionElements"/>: they are polled every tick.</summary>
         public List<Element> TextChangedActionElements { get; }
 
+        /// <summary>Every element on this page whose text holds a [typewriter], in the order they are drawn, which is the order they type out in. Gathered once so a page with none has nothing to schedule.</summary>
+        public List<Element> TypewriterElements { get; } = new List<Element>();
+
         /// <summary>Every element on this page carrying a frame action, gathered once at construction. Frame actions are dispatched every tick, so this is what keeps a page with none from walking its whole element tree sixty times a second.</summary>
         public List<Element> FrameActionElements { get; }
 
@@ -81,6 +84,10 @@ namespace Parchment.Framework.Models
             CollectElements(Elements, TokenHelper.HasTokenText, TokenTextElements);
             CollectElements(Background, TokenHelper.HasTokenText, TokenTextElements);
             CollectElements(Foreground, TokenHelper.HasTokenText, TokenTextElements);
+
+            CollectElements(Background, TypewriterHelper.HasTypewriterText, TypewriterElements);
+            CollectElements(Elements, TypewriterHelper.HasTypewriterText, TypewriterElements);
+            CollectElements(Foreground, TypewriterHelper.HasTypewriterText, TypewriterElements);
         }
 
         /// <summary>Whether an element is a Grid filling its cells from a Source block.</summary>
@@ -346,8 +353,8 @@ namespace Parchment.Framework.Models
                     continue;
                 }
 
-                // Checked after the children and layers above, so a container the cursor passes through still lets the elements inside it be reached
-                if (element.Data.IgnoreCursor || (interactiveOnly && element.IsInteractive is false))
+                // Checked after the children and layers above, so a container the cursor passes through still lets the elements inside it be reached. A link still being typed out isn't reachable until all of it shows
+                if (element.Data.IgnoreCursor || element.IsAwaitingReveal || (interactiveOnly && element.IsInteractive is false))
                 {
                     continue;
                 }
@@ -376,7 +383,7 @@ namespace Parchment.Framework.Models
                 Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
 
                 // The element is taken before what it holds, so a spread is walked in the order it was authored in and the first target is the one at the top of the page
-                if (element.IsInteractive is true)
+                if (element.IsInteractive is true && element.IsAwaitingReveal is false)
                 {
                     targets.Add(new SnapTarget(GetSnapBounds(element, containerBounds, screenBounds), element));
                 }

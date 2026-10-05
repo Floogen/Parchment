@@ -43,6 +43,34 @@ namespace Parchment.Framework.UI.Layouts
         }
     }
 
+    /// <summary>How a [typewriter] reveals its text, read from the tag's value.</summary>
+    public class TypingOptions
+    {
+        /// <summary>How long each character takes to appear, in milliseconds.</summary>
+        public float Speed { get; }
+
+        /// <summary>How long to wait before the first character, in milliseconds. Counted from when the typewriter would otherwise have started.</summary>
+        public float Delay { get; }
+
+        /// <summary>Whether it starts as soon as its text is on screen, rather than waiting for the typewriters before it on the spread to finish.</summary>
+        public bool IsImmediate { get; }
+
+        /// <summary>How long each character takes to fade in once it appears, in milliseconds. Zero pops it in at once, the way the game's dialogue does.</summary>
+        public float FadeDuration { get; }
+
+        /// <summary>The sound cue played as characters appear (null for none).</summary>
+        public string? Sound { get; }
+
+        public TypingOptions(float speed, float delay, bool isImmediate, float fadeDuration, string? sound)
+        {
+            Speed = speed;
+            Delay = delay;
+            IsImmediate = isImmediate;
+            FadeDuration = fadeDuration;
+            Sound = sound;
+        }
+    }
+
     /// <summary>One effect opened by markup, such as a [wave], moving each character it covers at draw time without touching the layout.</summary>
     public class TextEffect
     {
@@ -62,6 +90,12 @@ namespace Parchment.Framework.UI.Layouts
 
         /// <summary>The colors an effect blends between, being a gradient's stops in order or the one color a pulse fades towards. Empty for an effect that only moves its characters.</summary>
         public IReadOnlyList<Color> Colors { get; }
+
+        /// <summary>How a typewriter reveals its text. Null for every other effect.</summary>
+        public TypingOptions? Typing { get; init; }
+
+        /// <summary>Which typewriter in the element's text this is, counting from zero in the order they open. It is how the typewriter finds its progress again on the element, since the effect itself is rebuilt each time the text is laid out.</summary>
+        public int TypingOrdinal { get; init; } = -1;
 
         public TextEffect(TextEffectType type, float amplitude, float period, int start) : this(type, amplitude, period, start, Array.Empty<Color>())
         {

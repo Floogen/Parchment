@@ -4,6 +4,7 @@ using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Interfaces;
+using Parchment.Framework.UI.Layouts;
 using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using StardewValley;
@@ -21,7 +22,37 @@ namespace Parchment.Framework.Models
     {
         public ElementData Data { get; }
 
-        public bool IsVisible { get; set; } = true;
+        private bool _isVisible = true;
+
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set
+            {
+                // Stamped when the element comes into view, so a typewriter in it starts from its appearance rather than from when the page did
+                if (value is true && _isVisible is false)
+                {
+                    VisibleSince = AnimationHelper.GetAnimationTime();
+                }
+
+                _isVisible = value;
+            }
+        }
+
+        /// <summary>When the element last came into view after being hidden, on the animation clock. Null for an element that has been visible since it was built.</summary>
+        public double? VisibleSince { get; private set; }
+
+        /// <summary>The [typewriter] effects in this element's text as it was last laid out, in the order they open. Empty for an element with none.</summary>
+        public IReadOnlyList<TextEffect> TypewriterEffects { get; set; } = Array.Empty<TextEffect>();
+
+        /// <summary>How far along each of this element's typewriters is, by <see cref="TextEffect.TypingOrdinal"/>. Carried across a refresh, so rebuilding the book doesn't type the text out again.</summary>
+        public Dictionary<int, TypingState> TypingStates { get; set; } = new Dictionary<int, TypingState>();
+
+        /// <summary>Where a link's text ends in its host's text, used to tell whether a typewriter has revealed all of it yet. -1 for anything that isn't a link.</summary>
+        public int LinkTextEnd { get; set; } = -1;
+
+        /// <summary>Whether a typewriter is still revealing this link's text, which keeps the cursor and a controller off it until all of it is showing.</summary>
+        public bool IsAwaitingReveal { get; set; }
 
         /// <summary>The container this element sits inside, whether as a child or in one of its layers. Null for anything at the top of a page or a book's Underlay and Overlay.
         /// Set once when the element is created, so it always points into the same book rather than following an element that was carried across a refresh.
