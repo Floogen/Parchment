@@ -31,7 +31,8 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 if (line.Text.Length > 0)
                 {
-                    float lineX = AlignmentHelper.GetAlignedX(bounds, line.Size.X, element.Data.Alignment);
+                    // The caller's alignment rather than the element's, since Alignment places the element itself while an Image caption, Banner or Button lines its text up on its own terms
+                    float lineX = AlignmentHelper.GetAlignedX(bounds, line.Size.X, alignment);
                     element.Font.DrawString(spriteBatch, line.Text, new Vector2(lineX, currentY), fadedColor, shadowColor, scale);
                 }
 
