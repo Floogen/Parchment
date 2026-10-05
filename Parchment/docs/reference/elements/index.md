@@ -261,6 +261,10 @@ These tags move or recolor each character of the text they wrap, without changin
 | `[gradient]` | Blends the text from one color to the next across its whole length, without moving. | two or more colors | *required* |
 | `[pulse]` | Fades the whole stretch towards a color and back once per period. | color and period | *a color is required*, then `1500` |
 | `[typewriter]` | Reveals the text one character at a time, the way the game's dialogue box does. See [Typewriter](#typewriter). | speed, delay and options | `30` and `0` |
+| `[underline]` | Draws a line under the text. See [Decorations](#decorations). | color | the text's color |
+| `[strike]` | Draws a line through the text. | color | the text's color |
+| `[highlight]` | Draws a marker box behind the text. | color | a soft yellow |
+| `[redact]` | Covers the text with a solid bar, hiding it while keeping its width. | color | the text's color |
 
 ```json
 {
@@ -286,6 +290,26 @@ These tags move or recolor each character of the text they wrap, without changin
 - **Fonts.** `[wave]`, `[bounce]` and `[shake]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]` and `[pulse]` are colors, which `SpriteText` ignores with a warning.
 - **Cost.** Each character under an effect is drawn on its own, so keep effects to a word or a phrase rather than a whole page.
 - **Mistakes.** An amplitude or period that won't parse keeps its default with a warning. When it was written with a space rather than `|`, such as `[wave=4 500]`, the warning shows the corrected tag. A color that won't parse is left out of a gradient. A gradient left with fewer than two colors keeps the color around it with a warning. So does a pulse without a color. Unclosed and stray tags behave as they do for [inline color](#inline-color).
+
+### Decorations
+
+`[underline]`, `[strike]`, `[highlight]` and `[redact]` draw a line or a box over the stretch of text they wrap rather than changing the characters themselves:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "[strike]Catch a carp[/strike] done! Next, the [highlight]Legend[/highlight] in [underline=SkyBlue]Mountain Lake[/underline]."
+}
+```
+
+Each takes one optional color, such as `[highlight=255 200 200 128]` or `[underline=Red]`. Left off, a highlight is a soft translucent yellow and the rest take the color of the text they decorate.
+
+- **Steady.** A decoration stays where the text was laid out, so `[wave][underline]...[/underline][/wave]` keeps a straight underline under the moving letters.
+- **Across lines.** A decoration that wraps is drawn on each line it reaches, joining up wherever its text continues.
+- **Redacting.** `[redact]` draws only its bar, so nothing of the text underneath shows. A link whose text is fully redacted can't be reached by the cursor or a controller either, so its tooltip can't give away what's hidden. Paired with a [tag condition](#tag-conditions), it hides something until the player has earned it: `[redact=condition=!PLAYER_HAS_CAUGHT_FISH Current (O)163]Legend[/redact]`.
+- **Typewriters.** Under a typewriter, a decoration grows along with the text it covers rather than appearing ahead of it.
+- **Hover effects.** `[underline]`, `[strike]` and `[highlight]` work as a link's [hover effects](#hover-effects), so `"HoverEffect": "underline"` underlines a link while the cursor is on it. `[redact]` doesn't, as it would hide the very text the cursor is on.
+- **Fonts.** Decorations are drawn by Parchment rather than the font, so they work in `SpriteText` too. Give them a color there, as `SpriteText` draws its letters in its own color rather than the element's.
 
 ### Typewriter
 
@@ -374,9 +398,9 @@ Any tag can take a `condition=` part holding a [game state query](../../concepts
 }
 ```
 
-It goes alongside the tag's other parts, separated by `|` the same way, in any position: `[wave=4|500|condition=SEASON spring]` or `[gradient=Red|Blue|condition=!IS_FESTIVAL_DAY]`.
+It goes alongside the tag's other parts, separated by `|` the same way, in any position: `[wave=4|500|condition=SEASON spring]` or `[gradient=Red|Blue|condition=!IS_FESTIVAL_DAY]`. On a tag with nothing else to set, the condition is its whole value: `[underline=condition=SEASON spring]`.
 
-- **When it fails.** The tag steps aside and its text is drawn as though the tag weren't there. A failed `[color]` keeps the color around it, a failed effect leaves its characters still and a failed `[link]` is plain text that the cursor can't reach. The text itself always shows.
+- **When it fails.** The tag steps aside and its text is drawn as though the tag weren't there. A failed `[color]` keeps the color around it, a failed effect leaves its characters still, a failed decoration isn't drawn and a failed `[link]` is plain text that the cursor can't reach. The text itself always shows.
 - **When it's checked.** Alongside element [conditions](../../concepts/conditions.md#when-conditions-are-checked), so the text follows the query while the book is open. The query isn't run every time the text is drawn.
 - **Typewriters.** A `[typewriter]`'s condition is checked once, when it would start, so its text can't appear and vanish as the query comes and goes. When it fails the text shows in full at once and the element's [typed actions](#typed-actions) still run.
 - **Links.** A link's own `Condition` switches it off everywhere it's used, while a `condition=` on a `[link]` tag switches off just that one use. Both have to pass.

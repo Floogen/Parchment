@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
+using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.Utilities.Helpers;
@@ -199,12 +200,15 @@ namespace Parchment.Framework.UI.Layouts
             return typewriters is null ? Array.Empty<TextEffect>() : typewriters.Values.ToList();
         }
 
-        /// <summary>Notes where each of the element's links ends in its text, which is what a typewriter is checked against before the link can be reached.</summary>
+        /// <summary>Notes where each of the element's links ends in its text, which is what a typewriter is checked against before the link can be reached.
+        /// Also notes whether all of a link's text is redacted, which keeps it out of reach for as long as the text stays hidden.
+        /// </summary>
         private static void RecordLinkTextEnds(Element element, StyledText styledText)
         {
             foreach (Element link in element.Children)
             {
                 link.LinkTextEnd = -1;
+                link.IsRedacted = true;
             }
 
             foreach (LinkRun run in styledText.LinkRuns)
@@ -213,8 +217,46 @@ namespace Parchment.Framework.UI.Layouts
                 {
                     Element link = element.Children[run.Occurrence];
                     link.LinkTextEnd = Math.Max(link.LinkTextEnd, run.End);
+                    link.IsRedacted &= IsRedacted(styledText, run.Start, run.End);
                 }
             }
+
+            // A link with no text laid out has nothing to hide. It is already out of reach for having no bounds
+            foreach (Element link in element.Children)
+            {
+                if (link.LinkTextEnd < 0)
+                {
+                    link.IsRedacted = false;
+                }
+            }
+        }
+
+        /// <summary>Whether every character from start to end sits under a [redact].</summary>
+        private static bool IsRedacted(StyledText styledText, int start, int end)
+        {
+            int covered = start;
+
+            foreach (EffectRun run in styledText.EffectRuns)
+            {
+                if (run.End <= covered || run.Start > covered)
+                {
+                    continue;
+                }
+
+                if (TextEffectHelper.HasEffect(run.Effects, TextEffectType.Redact) is false)
+                {
+                    return false;
+                }
+
+                covered = run.End;
+
+                if (covered >= end)
+                {
+                    return true;
+                }
+            }
+
+            return covered >= end;
         }
 
         public static WrappedText Wrap(string text, IFont font, float maxWidth, float scale, bool hyphenateBrokenWords = false)

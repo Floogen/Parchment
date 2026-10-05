@@ -54,6 +54,9 @@ namespace Parchment.Framework.Models
         /// <summary>Whether a typewriter is still revealing this link's text, which keeps the cursor and a controller off it until all of it is showing.</summary>
         public bool IsAwaitingReveal { get; set; }
 
+        /// <summary>Whether all of this link's text sits under a [redact], which keeps the cursor and a controller off it so its tooltip can't give away what the bar hides.</summary>
+        public bool IsRedacted { get; set; }
+
         /// <summary>Whether this element's typed actions have run this reading, which is what keeps them to once however often its page comes back into view.</summary>
         public bool HasRunTypedActions { get; set; }
 

@@ -87,6 +87,50 @@ namespace Parchment.Framework.Utilities.Helpers
             return isColored ? currentColor : null;
         }
 
+        /// <summary>Whether an effect decorates the text with a line or box rather than moving or recoloring its characters, which lets a segment carrying only decorations still be drawn whole.</summary>
+        public static bool IsDecoration(TextEffectType effectType)
+        {
+            return effectType is TextEffectType.Underline or TextEffectType.Strike or TextEffectType.Highlight or TextEffectType.Redact;
+        }
+
+        /// <summary>Whether any of the effects works on each character on its own, which is what has a segment drawn a character at a time. Decorations don't count.</summary>
+        public static bool HasCharacterEffects(IReadOnlyList<TextEffect>? effects)
+        {
+            if (effects is null)
+            {
+                return false;
+            }
+
+            foreach (TextEffect effect in effects)
+            {
+                if (IsDecoration(effect.Type) is false)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether any of the effects is of the given type.</summary>
+        public static bool HasEffect(IReadOnlyList<TextEffect>? effects, TextEffectType effectType)
+        {
+            if (effects is null)
+            {
+                return false;
+            }
+
+            foreach (TextEffect effect in effects)
+            {
+                if (effect.Type == effectType)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>How strongly a link's hover effects apply, rising from none when the cursor arrives to all of them once they've eased in.</summary>
         /// <param name="hoverTime">How long the cursor has been over the link, in milliseconds.</param>
         public static float GetHoverStrength(double hoverTime)

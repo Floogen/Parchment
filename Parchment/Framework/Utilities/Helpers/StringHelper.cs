@@ -4,6 +4,7 @@ using Parchment.Framework.Models;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Layouts;
+using StardewValley;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,18 @@ namespace Parchment.Framework.Utilities.Helpers
 {
     public static class StringHelper
     {
+        // How thick an underline or strike is, in unscaled pixels multiplied by the text's scale
+        private const float DECORATION_THICKNESS = 2f;
+
+        // Where the lines and the redaction bar sit, as a share of the line's height measured from its top. Tuned against the game's own fonts, whose lines leave room below the letters
+        private const float UNDERLINE_POSITION = 0.82f;
+        private const float STRIKE_POSITION = 0.5f;
+        private const float REDACT_TOP = 0.12f;
+        private const float REDACT_BOTTOM = 0.88f;
+
+        // A translucent marker yellow, written already faded by its own alpha the way a parsed color is
+        private static readonly Color _defaultHighlightColor = new Color(255, 220, 90) * 0.45f;
+
         public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale)
         {
             // Every text element draws through here, so this is the only place text has to be told about a fade
@@ -47,7 +60,7 @@ namespace Parchment.Framework.Utilities.Helpers
                     }
                     else
                     {
-                        DrawSegments(spriteBatch, element, line.Segments, new Vector2(lineX, currentY), fadedColor, shadowColor, scale, keepsOwnColor, effectTime);
+                        DrawSegments(spriteBatch, element, line.Segments, new Vector2(lineX, currentY), line.Size.Y, fadedColor, shadowColor, scale, keepsOwnColor, effectTime);
                     }
                 }
 
@@ -64,7 +77,8 @@ namespace Parchment.Framework.Utilities.Helpers
         /// A character a typewriter hasn't reached yet is left out. One it is fading in is drawn at the strength it has reached.
         /// </summary>
         /// <param name="keepsOwnColor">Whether the font ignores the colors it's handed, as SpriteText does, in which case every segment takes the element's own.</param>
-        private static void DrawSegments(SpriteBatch spriteBatch, Element element, IReadOnlyList<TextSegment> segments, Vector2 linePosition, Color fadedColor, Color shadowColor, float scale, bool keepsOwnColor, double effectTime)
+        /// <param name="lineHeight">How tall the line is, which decorations such as an underline are placed against.</param>
+        private static void DrawSegments(SpriteBatch spriteBatch, Element element, IReadOnlyList<TextSegment> segments, Vector2 linePosition, float lineHeight, Color fadedColor, Color shadowColor, float scale, bool keepsOwnColor, double effectTime)
         {
             foreach (TextSegment segment in segments)
             {
@@ -83,14 +97,30 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 IReadOnlyList<TextEffect>? hoverEffects = isLinkHovered ? segment.HoverEffects : null;
 
-                if ((segment.Effects is null && hoverEffects is null) || segment.Characters is null || segment.CharacterOffsets is null)
+                double hoverTime = hoverEffects is null ? 0d : effectTime - link!.HoverAnimationStartedAt;
+                float hoverStrength = hoverEffects is null ? 0f : TextEffectHelper.GetHoverStrength(hoverTime);
+
+                DecorationContext decoration = new DecorationContext(element, segment, linePosition, lineHeight, segmentColor, scale, GetDecorationWidth(element, segment, effectTime));
+
+                DrawDecorations(spriteBatch, decoration, segment.Effects, 1f, isBehindText: true);
+                DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength, isBehindText: true);
+
+                // A redacted segment is only its bar, so nothing of the text underneath is drawn
+                if (TextEffectHelper.HasEffect(segment.Effects, TextEffectType.Redact))
                 {
-                    element.Font!.DrawString(spriteBatch, segment.Text, new Vector2(linePosition.X + segment.OffsetX, linePosition.Y), segmentColor, segmentShadowColor, scale);
                     continue;
                 }
 
-                double hoverTime = hoverEffects is null ? 0d : effectTime - link!.HoverAnimationStartedAt;
-                float hoverStrength = hoverEffects is null ? 0f : TextEffectHelper.GetHoverStrength(hoverTime);
+                bool hasCharacterEffects = TextEffectHelper.HasCharacterEffects(segment.Effects) || TextEffectHelper.HasCharacterEffects(hoverEffects);
+
+                if (hasCharacterEffects is false || segment.Characters is null || segment.CharacterOffsets is null)
+                {
+                    element.Font!.DrawString(spriteBatch, segment.Text, new Vector2(linePosition.X + segment.OffsetX, linePosition.Y), segmentColor, segmentShadowColor, scale);
+
+                    DrawDecorations(spriteBatch, decoration, segment.Effects, 1f, isBehindText: false);
+                    DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength, isBehindText: false);
+                    continue;
+                }
 
                 for (int index = 0; index < segment.Characters.Count; index++)
                 {
@@ -133,7 +163,81 @@ namespace Parchment.Framework.Utilities.Helpers
                     // Faded together with its shadow, so a character fading in doesn't leave its shadow standing at full strength behind it
                     element.Font!.DrawString(spriteBatch, character, characterPosition, characterColor * revealAlpha, characterShadowColor * revealAlpha, scale);
                 }
+
+                DrawDecorations(spriteBatch, decoration, segment.Effects, 1f, isBehindText: false);
+                DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength, isBehindText: false);
             }
+        }
+
+        /// <summary>Where and in what color a segment's decorations are drawn, gathered so each decoration doesn't need them passed one by one.</summary>
+        /// <param name="Width">How much of the segment the decorations span, which stops short of whatever a typewriter hasn't revealed yet.</param>
+        /// <param name="InkColor">The color the segment's text is drawn in, already faded, which a decoration without a color of its own takes.</param>
+        private readonly record struct DecorationContext(Element Element, TextSegment Segment, Vector2 LinePosition, float LineHeight, Color InkColor, float Scale, float Width);
+
+        /// <summary>Draws the decorations among the effects that belong on one side of the text: a highlight or redaction behind it, an underline or strike over it.
+        /// They stay where the text was laid out rather than following a moving character, so a waving word keeps a steady underline.
+        /// </summary>
+        /// <param name="strength">How strongly to draw them, being less than full while a link's hover effects are still easing in.</param>
+        private static void DrawDecorations(SpriteBatch spriteBatch, DecorationContext context, IReadOnlyList<TextEffect>? effects, float strength, bool isBehindText)
+        {
+            if (effects is null || context.Width <= 0f || strength <= 0f)
+            {
+                return;
+            }
+
+            // Whole pixels, with the right edge rounded out, so neighbouring segments meet rather than leaving a hairline gap between them
+            int left = (int)Math.Floor(context.LinePosition.X + context.Segment.OffsetX);
+            int right = (int)Math.Ceiling(context.LinePosition.X + context.Segment.OffsetX + context.Width);
+            int top = (int)Math.Round(context.LinePosition.Y);
+            int thickness = Math.Max(1, (int)Math.Round(DECORATION_THICKNESS * context.Scale));
+
+            foreach (TextEffect effect in effects)
+            {
+                Rectangle? area = null;
+                Color color = effect.Colors.Count is 0 ? context.InkColor : effect.Colors[0] * context.Element.DrawAlpha;
+
+                switch (effect.Type)
+                {
+                    case TextEffectType.Highlight when isBehindText:
+                        area = new Rectangle(left, top, right - left, (int)Math.Round(context.LineHeight));
+                        color = effect.Colors.Count is 0 ? _defaultHighlightColor * context.Element.DrawAlpha : color;
+                        break;
+                    case TextEffectType.Redact when isBehindText:
+                        int redactTop = top + (int)Math.Round(context.LineHeight * REDACT_TOP);
+                        area = new Rectangle(left, redactTop, right - left, top + (int)Math.Round(context.LineHeight * REDACT_BOTTOM) - redactTop);
+                        break;
+                    case TextEffectType.Underline when isBehindText is false:
+                        area = new Rectangle(left, top + (int)Math.Round(context.LineHeight * UNDERLINE_POSITION), right - left, thickness);
+                        break;
+                    case TextEffectType.Strike when isBehindText is false:
+                        area = new Rectangle(left, top + (int)Math.Round(context.LineHeight * STRIKE_POSITION) - thickness / 2, right - left, thickness);
+                        break;
+                }
+
+                if (area is Rectangle drawnArea)
+                {
+                    spriteBatch.Draw(Game1.staminaRect, drawnArea, color * strength);
+                }
+            }
+        }
+
+        /// <summary>How much of a segment its decorations span, being all of it unless a typewriter is still revealing it, in which case they stop where the revealed text does.</summary>
+        private static float GetDecorationWidth(Element element, TextSegment segment, double effectTime)
+        {
+            if (TextEffectHelper.HasEffect(segment.Effects, TextEffectType.Typewriter) is false || segment.Characters is null || segment.CharacterOffsets is null)
+            {
+                return segment.Width;
+            }
+
+            for (int index = 0; index < segment.Characters.Count; index++)
+            {
+                if (TypewriterHelper.GetRevealAlpha(element, segment.Effects!, segment.SourceStart + index, effectTime) <= 0f)
+                {
+                    return segment.CharacterOffsets[index] - segment.OffsetX;
+                }
+            }
+
+            return segment.Width;
         }
 
         /// <summary>The color a character's effects give it, before the element's fade. False when no effect over it sets one.

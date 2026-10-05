@@ -55,7 +55,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER };
 
@@ -455,6 +455,11 @@ namespace Parchment.Framework.Utilities.Helpers
                     return ParsePulse(parts, tag, source);
                 case TextEffectType.Typewriter:
                     return new OpenedEffect(effectType, 0f, 0f, Array.Empty<Color>(), ParseTypewriter(parts, tag, source));
+                case TextEffectType.Underline:
+                case TextEffectType.Strike:
+                case TextEffectType.Highlight:
+                case TextEffectType.Redact:
+                    return new OpenedEffect(effectType, 0f, 0f, ParseDecorationColor(parts, tag, source));
                 case TextEffectType.Shake:
                     return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_SHAKE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_SHAKE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
                 case TextEffectType.Bounce:
@@ -491,6 +496,28 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return colors;
+        }
+
+        /// <summary>Reads a decoration's optional color. Left off (or one that won't parse), the decoration takes its default, which for most is the color of the text it decorates.</summary>
+        private static IReadOnlyList<Color> ParseDecorationColor(string[] parts, string tag, string source)
+        {
+            if (parts.Length is 0)
+            {
+                return Array.Empty<Color>();
+            }
+
+            if (parts.Length > 1)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than one part, so everything after its color was ignored.", LogLevel.Warn);
+            }
+
+            if (ColorParser.TryParse(parts[0], out Color color))
+            {
+                return new Color[] { color };
+            }
+
+            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{parts[0]}', which isn't a color Parchment can read, so its default is used.", LogLevel.Warn);
+            return Array.Empty<Color>();
         }
 
         /// <summary>Reads a typewriter's value. Its numbers are its speed and then its delay, both in milliseconds. Any other part is an option: "immediate" to start without waiting for the typewriters before it,
@@ -714,10 +741,10 @@ namespace Parchment.Framework.Utilities.Helpers
                 string name = separatorIndex < 0 ? trimmedEntry : trimmedEntry.Substring(0, separatorIndex);
                 string? value = separatorIndex < 0 ? null : trimmedEntry.Substring(separatorIndex + 1);
 
-                // A typewriter reveals text once rather than coming and going with the cursor, so it has no meaning as a hover effect
-                if (TryGetEffectType(name.Trim(), out TextEffectType effectType) is false || effectType is TextEffectType.Typewriter)
+                // A typewriter reveals text once rather than coming and going with the cursor. A redaction would hide the very text the cursor is on. Neither has a meaning as a hover effect
+                if (TryGetEffectType(name.Trim(), out TextEffectType effectType) is false || effectType is TextEffectType.Typewriter or TextEffectType.Redact)
                 {
-                    Parchment.monitor.LogOnce($"The link '{id}' has a hover effect of '{entry}', which isn't an effect that can apply on hover. Try one of: {string.Join(", ", Enum.GetValues<TextEffectType>().Where(hoverType => hoverType is not TextEffectType.Typewriter).Select(hoverType => hoverType.ToString().ToLowerInvariant()))}.", LogLevel.Warn);
+                    Parchment.monitor.LogOnce($"The link '{id}' has a hover effect of '{entry}', which isn't an effect that can apply on hover. Try one of: {string.Join(", ", Enum.GetValues<TextEffectType>().Where(hoverType => hoverType is not (TextEffectType.Typewriter or TextEffectType.Redact)).Select(hoverType => hoverType.ToString().ToLowerInvariant()))}.", LogLevel.Warn);
                     continue;
                 }
 

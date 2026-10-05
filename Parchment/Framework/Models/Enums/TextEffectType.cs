@@ -9,6 +9,10 @@
         Bounce,
         Gradient,
         Pulse,
-        Typewriter
+        Typewriter,
+        Underline,
+        Strike,
+        Highlight,
+        Redact
     }
 }

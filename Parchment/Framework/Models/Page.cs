@@ -384,7 +384,7 @@ namespace Parchment.Framework.Models
                 }
 
                 // Checked after the children and layers above, so a container the cursor passes through still lets the elements inside it be reached. A link still being typed out isn't reachable until all of it shows
-                if (element.Data.IgnoreCursor || element.IsAwaitingReveal || (interactiveOnly && element.IsInteractive is false))
+                if (element.Data.IgnoreCursor || element.IsAwaitingReveal || element.IsRedacted || (interactiveOnly && element.IsInteractive is false))
                 {
                     continue;
                 }
@@ -413,7 +413,7 @@ namespace Parchment.Framework.Models
                 Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
 
                 // The element is taken before what it holds, so a spread is walked in the order it was authored in and the first target is the one at the top of the page
-                if (element.IsInteractive is true && element.IsAwaitingReveal is false)
+                if (element.IsInteractive is true && element.IsAwaitingReveal is false && element.IsRedacted is false)
                 {
                     targets.Add(new SnapTarget(GetSnapBounds(element, containerBounds, screenBounds), element));
                 }
