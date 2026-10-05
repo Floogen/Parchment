@@ -37,8 +37,8 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_BOUNCE_PERIOD = 800f;
         public const float DEFAULT_PULSE_PERIOD = 1500f;
 
-        // What separates a color from the rest of an effect's value, since a color can hold spaces of its own such as "255 215 0"
-        private const char COLOR_VALUE_SEPARATOR = '|';
+        // What separates the parts of an effect's value, the same for every effect. Not a space, since a color can hold spaces of its own such as "255 215 0"
+        private const char VALUE_SEPARATOR = '|';
 
         private const string COLOR_TAG = "color";
         private const string LINK_TAG = "link";
@@ -294,26 +294,21 @@ namespace Parchment.Framework.Utilities.Helpers
             return Enum.TryParse(tag, ignoreCase: true, out effectType);
         }
 
-        /// <summary>Reads an effect tag's optional value. A wave, shake or bounce takes its amplitude and then its period, separated by a space, while a rainbow takes only its period.
-        /// An effect that takes colors separates them from each other and from anything else with a |, as a color can hold spaces of its own.
+        /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a rainbow takes only its period,
+        /// a gradient takes its colors and a pulse takes its color and then its period. A color keeps any spaces of its own.
         /// A part that is left off or won't parse keeps its default.
         /// </summary>
         private static OpenedEffect ParseEffect(TextEffectType effectType, string? value, string source)
         {
             string tag = effectType.ToString().ToLowerInvariant();
+            string[] parts = string.IsNullOrWhiteSpace(value) ? Array.Empty<string>() : value.Split(VALUE_SEPARATOR, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             switch (effectType)
             {
                 case TextEffectType.Gradient:
-                    return new OpenedEffect(effectType, 0f, 0f, ParseGradientColors(value, tag, source));
+                    return new OpenedEffect(effectType, 0f, 0f, ParseGradientColors(parts, tag, source));
                 case TextEffectType.Pulse:
-                    return ParsePulse(value, tag, source);
-            }
-
-            string[] parts = string.IsNullOrWhiteSpace(value) ? Array.Empty<string>() : value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            switch (effectType)
-            {
+                    return ParsePulse(parts, tag, source);
                 case TextEffectType.Shake:
                     return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_SHAKE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_SHAKE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
                 case TextEffectType.Bounce:
@@ -326,23 +321,20 @@ namespace Parchment.Framework.Utilities.Helpers
             return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_WAVE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_WAVE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
         }
 
-        /// <summary>Reads a gradient's stops, each a color separated from the next by a |. A stop that won't parse is left out. Fewer than two leave the gradient with nothing to blend, so it keeps the color around it.</summary>
-        private static IReadOnlyList<Color> ParseGradientColors(string? value, string tag, string source)
+        /// <summary>Reads a gradient's stops, one color per part. A stop that won't parse is left out. Fewer than two leave the gradient with nothing to blend, so it keeps the color around it.</summary>
+        private static IReadOnlyList<Color> ParseGradientColors(string[] parts, string tag, string source)
         {
             List<Color> colors = new List<Color>();
 
-            if (string.IsNullOrWhiteSpace(value) is false)
+            foreach (string part in parts)
             {
-                foreach (string part in value.Split(COLOR_VALUE_SEPARATOR, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                if (ColorParser.TryParse(part, out Color color))
                 {
-                    if (ColorParser.TryParse(part, out Color color))
-                    {
-                        colors.Add(color);
-                    }
-                    else
-                    {
-                        Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{part}', which isn't a color Parchment can read, so it was left out.", LogLevel.Warn);
-                    }
+                    colors.Add(color);
+                }
+                else
+                {
+                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{part}', which isn't a color Parchment can read, so it was left out.", LogLevel.Warn);
                 }
             }
 
@@ -355,10 +347,9 @@ namespace Parchment.Framework.Utilities.Helpers
             return colors;
         }
 
-        /// <summary>Reads a pulse's color and then its period, separated by a |. The color is required, as without one there is nothing to fade towards and the text keeps the color around it.</summary>
-        private static OpenedEffect ParsePulse(string? value, string tag, string source)
+        /// <summary>Reads a pulse's color and then its period. The color is required, as without one there is nothing to fade towards and the text keeps the color around it.</summary>
+        private static OpenedEffect ParsePulse(string[] parts, string tag, string source)
         {
-            string[] parts = string.IsNullOrWhiteSpace(value) ? Array.Empty<string>() : value.Split(COLOR_VALUE_SEPARATOR, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             float period = ParsePeriod(parts, 1, DEFAULT_PULSE_PERIOD, allowZero: false, tag, source);
 
             if (parts.Length is 0)
@@ -388,7 +379,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 return amplitude;
             }
 
-            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] amplitude of '{parts[0]}', which isn't a number, so the default of {defaultAmplitude} is used.", LogLevel.Warn);
+            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] amplitude of '{parts[0]}', which isn't a number, so the default of {defaultAmplitude} is used.{GetSeparatorHint(parts[0], tag)}", LogLevel.Warn);
             return defaultAmplitude;
         }
 
@@ -407,9 +398,20 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             string expected = allowZero ? "a number of milliseconds that isn't negative" : "a positive number of milliseconds";
-            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] period of '{parts[partIndex]}', which isn't {expected}, so the default of {defaultPeriod} is used.", LogLevel.Warn);
+            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] period of '{parts[partIndex]}', which isn't {expected}, so the default of {defaultPeriod} is used.{GetSeparatorHint(parts[partIndex], tag)}", LogLevel.Warn);
 
             return defaultPeriod;
+        }
+
+        /// <summary>A pointer to the | separator when a number that failed to parse holds a space, which is what writing the parts space separated (such as [wave=4 500]) leaves behind.</summary>
+        private static string GetSeparatorHint(string part, string tag)
+        {
+            if (part.Contains(' ') is false)
+            {
+                return string.Empty;
+            }
+
+            return $" The parts of an effect's value are separated by a |, such as [{tag}={string.Join(VALUE_SEPARATOR, part.Split(' ', StringSplitOptions.RemoveEmptyEntries))}].";
         }
 
         /// <summary>Pairs a [link] tag with the link element built for it, being the next of the element's links still unclaimed. The id was already looked up when that element was built, so it is only compared here rather than looked up again.
