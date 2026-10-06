@@ -882,8 +882,9 @@ namespace Parchment.Framework.UI.Menus
             {
                 RefreshVisiblePages();
 
-                // No turn plays, so the typing clock is started here rather than when the turn settles
+                // No turn plays, so the typing clock starts and the spread's OnView triggers run here rather than when a turn settles
                 StartSpreadTyping();
+                HandleVisiblePages();
             }
         }
 
@@ -1881,11 +1882,13 @@ namespace Parchment.Framework.UI.Menus
         /// <summary>Runs the typed actions of every element whose typewriters have all finished and haven't run them yet this reading. Only called for what is on screen and settled,
         /// so typing finished by turning away runs its actions once that page is back in view rather than while it turns.
         /// Reports whether the book is still settled where it was afterwards, since an action that turns the page or closes the book leaves the rest of the list no longer on screen.
+        /// An action that refreshes the book counts too, as the list then holds the elements the refresh replaced.
         /// </summary>
         private bool RunTypedActions(List<Element> elements)
         {
             MenuState startingState = CurrentState;
             (int ChapterIndex, int LeftPageIndex)? startingSpread = _typingSpreadKey;
+            Book startingBook = Book;
 
             // A copy, as an action that changes the spread refills the list being walked
             foreach (Element element in elements.ToList())
@@ -1901,7 +1904,8 @@ namespace Parchment.Framework.UI.Menus
                 RunActions(element.Data.GetTypedActions(), element, "Element typed action");
                 RefreshVisiblePages();
 
-                if (CurrentState != startingState || _typingSpreadKey != startingSpread)
+                // A refresh copies whether each element has run its typed actions as it stands at that moment, so marking the replaced elements that are left would never reach their rebuilt counterparts. Those run on the next tick instead
+                if (CurrentState != startingState || _typingSpreadKey != startingSpread || Book != startingBook)
                 {
                     return false;
                 }
