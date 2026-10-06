@@ -75,6 +75,11 @@ namespace Parchment.Framework.API
         /// order. Every entry runs on each entry of the cursor, so keep the whole list harmless to repeat.</summary>
         IElementBuilder HoverAction(string action);
 
+        /// <summary>Adds a trigger action to run once every [typewriter] in the element's text has finished, whether it typed out or the reader clicked to finish it. Calling this more than once builds a list run in order.
+        /// They run once per reading. Typing finished by turning away runs them the next time the page is on screen.
+        /// </summary>
+        IElementBuilder TypedAction(string action);
+
         /// <summary>The handle conditions and actions use to reach an Input's text, such as "PeacefulEnd.Parchment_InputMatches search Tulip".</summary>
         IElementBuilder InputId(string inputId);
 
@@ -212,6 +217,12 @@ namespace Parchment.Framework.API
 
         /// <summary>A wrapper around a PageNumber's number, where {0} is the number, such as "Page {0}" or "- {0} -".</summary>
         IElementBuilder Format(string format);
+
+        /// <summary>Adds a link that [link=id] markup in the element's text can point at, on a Title, Heading, Paragraph or PageNumber. Returns the link's builder rather than this one.
+        /// Each occurrence of the id in the text becomes a link of its own, with its own tooltip, actions and tags. Registration fails when two links share an id, ignoring case.
+        /// </summary>
+        /// <param name="linkId">The id the markup names, as in [link=linkId]...[/link].</param>
+        ILinkBuilder AddLink(string linkId);
 
         /// <summary>Adds a child element, on a container such as a Panel.</summary>
         IElementBuilder AddChild(string elementType);

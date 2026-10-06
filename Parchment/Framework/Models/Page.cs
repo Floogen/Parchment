@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
@@ -23,6 +24,9 @@ namespace Parchment.Framework.Models
     {
         /// <summary>A height no page will ever reach, used to stop <see cref="MeasureStack"/> clipping. Kept well short of <see cref="float.MaxValue"/> so the subtraction a container does for its children can't overflow.</summary>
         private const float UNBOUNDED_MEASURE_HEIGHT = 1000000f;
+
+        // How recently an element has to have been drawn to count as on screen when one of its tag conditions changes, in milliseconds. Comfortably longer than a frame, shorter than a page turn
+        private const double ON_SCREEN_WINDOW = 500d;
 
         public PageData Data { get; }
 
@@ -49,16 +53,20 @@ namespace Parchment.Framework.Models
         /// <summary>Every Input element on this page carrying a text changed action, gathered once for the same reason as <see cref="FrameActionElements"/>: they are polled every tick.</summary>
         public List<Element> TextChangedActionElements { get; }
 
+        /// <summary>Every element on this page whose text holds a [typewriter], in the order they are drawn, which is the order they type out in. Gathered once so a page with none has nothing to schedule.</summary>
+        public List<Element> TypewriterElements { get; } = new List<Element>();
+
         /// <summary>Every element on this page carrying a frame action, gathered once at construction. Frame actions are dispatched every tick, so this is what keeps a page with none from walking its whole element tree sixty times a second.</summary>
         public List<Element> FrameActionElements { get; }
 
-        public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver)
+        /// <param name="bookLinks">The links the book defines, which any text element on the page can point at alongside its own.</param>
+        public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null)
         {
             Data = data;
             Index = index;
-            Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver);
-            Background = ElementFactory.CreateList(Data.Background, registry, fontResolver);
-            Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver);
+            Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver, bookLinks);
+            Background = ElementFactory.CreateList(Data.Background, registry, fontResolver, bookLinks);
+            Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver, bookLinks);
 
             FrameActionElements = new List<Element>();
             AnimationHelper.CollectFrameActionElements(Elements, FrameActionElements);
@@ -79,6 +87,10 @@ namespace Parchment.Framework.Models
             CollectElements(Elements, TokenHelper.HasTokenText, TokenTextElements);
             CollectElements(Background, TokenHelper.HasTokenText, TokenTextElements);
             CollectElements(Foreground, TokenHelper.HasTokenText, TokenTextElements);
+
+            CollectElements(Background, TypewriterHelper.HasTypewriterText, TypewriterElements);
+            CollectElements(Elements, TypewriterHelper.HasTypewriterText, TypewriterElements);
+            CollectElements(Foreground, TypewriterHelper.HasTypewriterText, TypewriterElements);
         }
 
         /// <summary>Whether an element is a Grid filling its cells from a Source block.</summary>
@@ -179,9 +191,49 @@ namespace Parchment.Framework.Models
             // Frame conditions don't affect layout, since the element is sized by its source rectangle rather than the active frame, so this deliberately doesn't feed into hasChanged and trigger a relayout
             AnimationHelper.RefreshActiveFrames(element);
 
+            hasChanged |= RefreshInlineConditions(element);
+
             hasChanged |= RefreshConditionsFor(element.Children);
             hasChanged |= RefreshConditionsFor(element.Background);
             hasChanged |= RefreshConditionsFor(element.Foreground);
+
+            return hasChanged;
+        }
+
+        /// <summary>Checks the conditions written into an element's tags, reporting whether any changed. A change lays the text out again so the tags apply or step aside to match.</summary>
+        private static bool RefreshInlineConditions(Element element)
+        {
+            if (element.InlineConditions.Count is 0)
+            {
+                return false;
+            }
+
+            bool hasChanged = element.InlineConditionResults.Count != element.InlineConditions.Count;
+            double time = AnimationHelper.GetAnimationTime();
+
+            // Drawn a moment ago means the reader is looking at it, so a change now is one they get to watch
+            bool isOnScreen = time - element.LastDrawnAt <= ON_SCREEN_WINDOW;
+
+            for (int index = 0; index < element.InlineConditions.Count; index++)
+            {
+                bool isMet = ConditionHelper.Check(element.InlineConditions[index], element);
+
+                if (index < element.InlineConditionResults.Count)
+                {
+                    if (element.InlineConditionResults[index] != isMet)
+                    {
+                        hasChanged = true;
+                        element.InlineConditionChangedAt[index] = isOnScreen ? time : null;
+                    }
+
+                    element.InlineConditionResults[index] = isMet;
+                }
+                else
+                {
+                    element.InlineConditionResults.Add(isMet);
+                    element.InlineConditionChangedAt.Add(null);
+                }
+            }
 
             return hasChanged;
         }
@@ -339,13 +391,13 @@ namespace Parchment.Framework.Models
                 }
 
                 // The element's own bounds decide whether it is the answer, so a container never claims a point that only its contents reached past
-                if (screenBounds.Contains(screenPosition) is false)
+                if (ContainsPoint(element, containerBounds, screenBounds, screenPosition) is false)
                 {
                     continue;
                 }
 
-                // Checked after the children and layers above, so a container the cursor passes through still lets the elements inside it be reached
-                if (element.Data.IgnoreCursor || (interactiveOnly && element.IsInteractive is false))
+                // Checked after the children and layers above, so a container the cursor passes through still lets the elements inside it be reached. A link still being typed out isn't reachable until all of it shows
+                if (element.Data.IgnoreCursor || element.IsAwaitingReveal || element.IsRedacted || (interactiveOnly && element.IsInteractive is false))
                 {
                     continue;
                 }
@@ -374,9 +426,9 @@ namespace Parchment.Framework.Models
                 Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
 
                 // The element is taken before what it holds, so a spread is walked in the order it was authored in and the first target is the one at the top of the page
-                if (element.IsInteractive is true)
+                if (element.IsInteractive is true && element.IsAwaitingReveal is false && element.IsRedacted is false)
                 {
-                    targets.Add(new SnapTarget(screenBounds, element));
+                    targets.Add(new SnapTarget(GetSnapBounds(element, containerBounds, screenBounds), element));
                 }
 
                 // A container's own layers are anchored to its content area, the same rectangle its children are measured against
@@ -384,6 +436,42 @@ namespace Parchment.Framework.Models
                 CollectTargets(element.Children, contentBounds, targets);
                 CollectTargets(element.Foreground, contentBounds, targets);
             }
+        }
+
+        /// <summary>Whether a point lands on an element itself, through its <see cref="Element.HitRegions"/> when it has them and its whole box otherwise.
+        /// A link that wraps is boxed around both of its lines, so the regions are what keep the words between them reaching the text they belong to rather than the link.
+        /// </summary>
+        private static bool ContainsPoint(Element element, Rectangle containerBounds, Rectangle screenBounds, Point screenPosition)
+        {
+            if (element.HitRegions is null)
+            {
+                return screenBounds.Contains(screenPosition);
+            }
+
+            foreach (Rectangle region in element.HitRegions)
+            {
+                if (new Rectangle(region.X + containerBounds.X, region.Y + containerBounds.Y, region.Width, region.Height).Contains(screenPosition))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Where a controller puts the cursor to reach an element, being its first hit region when it has them.
+        /// The middle of a wrapped link's box can fall on text outside the link, so the first line it covers is used instead.
+        /// </summary>
+        private static Rectangle GetSnapBounds(Element element, Rectangle containerBounds, Rectangle screenBounds)
+        {
+            if (element.HitRegions is null || element.HitRegions.Count is 0)
+            {
+                return screenBounds;
+            }
+
+            Rectangle region = element.HitRegions[0];
+
+            return new Rectangle(region.X + containerBounds.X, region.Y + containerBounds.Y, region.Width, region.Height);
         }
 
         /// <summary>Everything an element reaches on screen, being its own bounds unioned with whatever it holds.

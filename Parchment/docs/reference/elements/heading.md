@@ -17,6 +17,10 @@ Section heading text. Identical to [`Title`](title.md) and [`Paragraph`](paragra
 
 --8<-- "text-content.md"
 
+## Link fields
+
+--8<-- "link-fields.md"
+
 ## Common fields
 
 `Scale` on a `Heading` is the **font** scale, since a heading has no sprite.

@@ -3,9 +3,11 @@ using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Rendering;
+using Parchment.Framework.UI.Rendering.Elements;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.ItemTypeDefinitions;
@@ -20,7 +22,11 @@ namespace Parchment.Framework.Utilities.Helpers
 {
     public static class ElementFactory
     {
-        public static List<Element> CreateList(List<ElementData>? elementDataCollection, ElementRegistry registry, FontResolver fontResolver)
+        // Shared by every link, as it holds no state and is never registered for an authored element to use
+        private static readonly LinkElementRenderer _linkRenderer = new LinkElementRenderer();
+
+        /// <param name="bookLinks">The links the book defines, which a text element falls back to when its own Links don't have the id its markup names.</param>
+        public static List<Element> CreateList(List<ElementData>? elementDataCollection, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null)
         {
             var elements = new List<Element>();
 
@@ -31,7 +37,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (var elementData in elementDataCollection)
             {
-                var element = Create(elementData, registry, fontResolver);
+                var element = Create(elementData, registry, fontResolver, bookLinks);
                 if (element is not null)
                 {
                     elements.Add(element);
@@ -41,7 +47,8 @@ namespace Parchment.Framework.Utilities.Helpers
             return elements;
         }
 
-        public static Element? Create(ElementData data, ElementRegistry registry, FontResolver fontResolver)
+        /// <param name="bookLinks">The links the book defines, which a text element falls back to when its own Links don't have the id its markup names.</param>
+        public static Element? Create(ElementData data, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null)
         {
             if (registry.TryResolve(data.Type, out ElementRegistration registration) is false)
             {
@@ -128,15 +135,17 @@ namespace Parchment.Framework.Utilities.Helpers
                 AssignedItemId = assignedItemId,
                 AssignedItemData = assignedItemData,
                 AssignedItem = assignedItem,
-                Children = CreateChildren(data, registry, fontResolver),
-                Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver),
-                Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver)
+                InlineConditions = TextMarkupHelper.GetInlineConditions(GetAuthoredText(data)),
+                Children = data is ILinkHost linkHost ? CreateLinks(data, linkHost, bookLinks) : CreateChildren(data, registry, fontResolver, bookLinks),
+                Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver, bookLinks),
+                Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver, bookLinks)
             };
 
             // Set after construction, as the children are built inside the initializer above and have nothing to point at until it finishes
             AdoptDescendants(element);
 
             WarnOnUnreachableContent(data);
+            WarnOnUnreachableTypedActions(data);
             LogUnmeasurableContainer(data);
 
             // Prep the active frames, so a conditional animation is correct on the first draw rather than after the first condition refresh
@@ -231,17 +240,90 @@ namespace Parchment.Framework.Utilities.Helpers
             Parchment.monitor.LogOnce($"{elementLabel} sets \"IgnoreCursor\" alongside {string.Join(", ", unreachableFields)}, which the cursor never reaches.", LogLevel.Warn);
         }
 
-        private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver)
+        /// <summary>Builds an element for each [link] in a text element's text, in the order they appear, which is the position the text finds each one at again.
+        /// Built once here rather than at layout, so a link keeps the same element (and with it whether it is hovered) across every relayout and refresh.
+        /// This is the one place an id is looked up, first in the element's own Links and then in the book's. The markup reads each link back from the element built here rather than looking it up again.
+        /// </summary>
+        private static IReadOnlyList<Element> CreateLinks(ElementData data, ILinkHost linkHost, Dictionary<string, LinkData>? bookLinks)
+        {
+            List<(string LinkId, LinkData Link)> occurrences = TextMarkupHelper.GetLinkOccurrences(linkHost.GetLinkedText(), linkHost.Links, bookLinks);
+
+            if (occurrences.Count is 0)
+            {
+                return Array.Empty<Element>();
+            }
+
+            var links = new List<Element>(occurrences.Count);
+
+            foreach ((string linkId, LinkData link) in occurrences)
+            {
+                links.Add(new Element(new LinkElementData(linkId, link, data), _linkRenderer)
+                {
+                    DisplayName = link.DisplayName,
+                    Description = link.Description,
+                    HoverTextColor = ResolveLinkHoverColor(linkId, link),
+
+                    // Held off until its condition is first checked, the same as any conditioned element
+                    IsVisible = string.IsNullOrWhiteSpace(link.Condition)
+                });
+            }
+
+            return links;
+        }
+
+        /// <summary>The text an element's markup is written in, being its Text or, for a PageNumber, its Format.</summary>
+        private static string? GetAuthoredText(ElementData data)
+        {
+            if (data is ILinkHost linkHost)
+            {
+                return linkHost.GetLinkedText();
+            }
+
+            return data is ITextContent textContent ? textContent.Text : null;
+        }
+
+        private static Color? ResolveLinkHoverColor(string linkId, LinkData link)
+        {
+            if (string.IsNullOrWhiteSpace(link.HoverTextColor))
+            {
+                return null;
+            }
+
+            if (ColorParser.TryParse(link.HoverTextColor, out Color parsedColor) is false)
+            {
+                Parchment.monitor.LogOnce($"The link '{linkId}' has an unparsable \"HoverTextColor\" '{link.HoverTextColor}', so it keeps its usual color when hovered.", LogLevel.Warn);
+                return null;
+            }
+
+            return parsedColor;
+        }
+
+        /// <summary>Reports typed actions on an element with no [typewriter] in its text, which never finishes typing and so never runs them.
+        /// Logged once per element type and ID, as a Grid builds one element per cell from the same template.
+        /// </summary>
+        private static void WarnOnUnreachableTypedActions(ElementData data)
+        {
+            if (data.HasTypedActions is false || TypewriterHelper.HasTypewriterText(data) is true)
+            {
+                return;
+            }
+
+            string elementLabel = string.IsNullOrWhiteSpace(data.Id) ? $"A {data.Type} element" : $"The {data.Type} element \"{data.Id}\"";
+
+            Parchment.monitor.LogOnce($"{elementLabel} has a \"TypedAction\" or \"TypedActions\" but no [typewriter] in its text, so it never finishes typing and they never run.", LogLevel.Warn);
+        }
+
+        private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks)
         {
             if (layerData is null || layerData.Count is 0)
             {
                 return Array.Empty<Element>();
             }
 
-            return CreateList(layerData, registry, fontResolver);
+            return CreateList(layerData, registry, fontResolver, bookLinks);
         }
 
-        private static IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver)
+        private static IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks)
         {
             if (data is not IContainer container || (container.Children is null && data is not GridElementData { Source: not null }))
             {
@@ -256,7 +338,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 for (int index = 0; index < slotCount; index++)
                 {
-                    var slot = Create(template, registry, fontResolver);
+                    var slot = Create(template, registry, fontResolver, bookLinks);
                     if (slot is not null)
                     {
                         // A cell starts empty and is shown once the filter hands it an item, so a grid never flashes a full set of blanks before its first assignment
@@ -270,7 +352,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (ElementData childData in container.Children)
             {
-                var child = Create(childData, registry, fontResolver);
+                var child = Create(childData, registry, fontResolver, bookLinks);
                 if (child is not null)
                 {
                     children.Add(child);

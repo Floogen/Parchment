@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Data.Sources;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Rendering;
@@ -22,6 +23,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<ElementBuilder> _foreground = new List<ElementBuilder>();
         private readonly List<FrameRecipe> _frames = new List<FrameRecipe>();
         private readonly List<FrameRecipe> _hoverFrames = new List<FrameRecipe>();
+        private readonly List<LinkBuilder> _links = new List<LinkBuilder>();
 
         // The frame FrameOffset applies to, being whichever was added last from either list
         private FrameRecipe? _lastFrame;
@@ -29,6 +31,7 @@ namespace Parchment.Framework.API.Builders
         private readonly List<string> _tags = new List<string>();
         private readonly List<string> _actions = new List<string>();
         private readonly List<string> _hoverActions = new List<string>();
+        private readonly List<string> _typedActions = new List<string>();
         private readonly List<string> _submitActions = new List<string>();
         private readonly List<string> _textChangedActions = new List<string>();
 
@@ -110,6 +113,13 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder HoverAction(string action)
         {
             _hoverActions.Add(action);
+
+            return this;
+        }
+
+        public IElementBuilder TypedAction(string action)
+        {
+            _typedActions.Add(action);
 
             return this;
         }
@@ -259,6 +269,14 @@ namespace Parchment.Framework.API.Builders
             return this;
         }
 
+        public ILinkBuilder AddLink(string linkId)
+        {
+            var link = new LinkBuilder(linkId);
+            _links.Add(link);
+
+            return link;
+        }
+
         public IElementBuilder AddChild(string elementType)
         {
             var child = new ElementBuilder(elementType);
@@ -342,6 +360,16 @@ namespace Parchment.Framework.API.Builders
                 if (_hoverActions.Count > 1)
                 {
                     data.HoverActions = _hoverActions.GetRange(1, _hoverActions.Count - 1);
+                }
+            }
+
+            if (_typedActions.Count > 0)
+            {
+                data.TypedAction = _typedActions[0];
+
+                if (_typedActions.Count > 1)
+                {
+                    data.TypedActions = _typedActions.GetRange(1, _typedActions.Count - 1);
                 }
             }
 
@@ -433,6 +461,11 @@ namespace Parchment.Framework.API.Builders
                 gridData.Source = source;
             }
 
+            if (_links.Count > 0 && TryBuildLinks(data, out error) is false)
+            {
+                return false;
+            }
+
             if (_children.Count > 0)
             {
                 if (data is not IContainer container)
@@ -485,6 +518,27 @@ namespace Parchment.Framework.API.Builders
             }
 
             element = data;
+            error = string.Empty;
+
+            return true;
+        }
+
+        /// <summary>Builds the element's links into its Links. Ids are compared ignoring case, as the markup is when it looks a link up.</summary>
+        private bool TryBuildLinks(ElementData data, out string error)
+        {
+            if (data is not ILinkHost linkHost)
+            {
+                error = $"[{Label}] links can only be added to a Title, Heading, Paragraph or PageNumber";
+                return false;
+            }
+
+            if (LinkBuilder.TryBuildAll(_links, out Dictionary<string, LinkData> links, out error) is false)
+            {
+                error = $"[{Label}] {error}";
+                return false;
+            }
+
+            linkHost.Links = links;
             error = string.Empty;
 
             return true;

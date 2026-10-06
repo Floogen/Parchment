@@ -44,6 +44,9 @@ namespace Parchment.Framework.Models
         /// <summary>Every element on the book's own layers whose text carries a token.</summary>
         public List<Element> TokenTextElements { get; }
 
+        /// <summary>Every element on the book's own layers whose text holds a [typewriter], in the order they are drawn. These type out once the book first settles, whatever page is open.</summary>
+        public List<Element> TypewriterElements { get; } = new List<Element>();
+
         /// <summary>Every Grid on the book's own layers whose cells come from a Source block.</summary>
         public List<Element> ResultElements { get; }
 
@@ -61,8 +64,8 @@ namespace Parchment.Framework.Models
             List<PageGroup> pageGroups = GroupPages();
 
             Pages = CreatePages(pageGroups, elementRegistry, fontResolver);
-            Underlay = ElementFactory.CreateList(Data.Underlay, elementRegistry, fontResolver);
-            Overlay = ElementFactory.CreateList(Data.Overlay, elementRegistry, fontResolver);
+            Underlay = ElementFactory.CreateList(Data.Underlay, elementRegistry, fontResolver, Data.Links);
+            Overlay = ElementFactory.CreateList(Data.Overlay, elementRegistry, fontResolver, Data.Links);
             Chapters = CreateChapters(pageGroups);
 
             FrameActionElements = new List<Element>();
@@ -84,6 +87,9 @@ namespace Parchment.Framework.Models
             TokenTextElements = new List<Element>();
             Page.CollectElements(Underlay, TokenHelper.HasTokenText, TokenTextElements);
             Page.CollectElements(Overlay, TokenHelper.HasTokenText, TokenTextElements);
+
+            Page.CollectElements(Underlay, TypewriterHelper.HasTypewriterText, TypewriterElements);
+            Page.CollectElements(Overlay, TypewriterHelper.HasTypewriterText, TypewriterElements);
         }
 
         private static void InvalidateResults(IReadOnlyList<Element> resultElements)
@@ -197,7 +203,7 @@ namespace Parchment.Framework.Models
                 foreach (PageData pageData in pageGroup.Pages)
                 {
                     // The page's own index is its position in the built list rather than in the authored one, so a skipped page leaves no gap and a page gathered into an earlier chapter counts from where it is read
-                    pages.Add(new Page(pageData, pages.Count, elementRegistry, fontResolver));
+                    pages.Add(new Page(pageData, pages.Count, elementRegistry, fontResolver, Data.Links));
                 }
             }
 

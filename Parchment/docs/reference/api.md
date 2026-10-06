@@ -40,8 +40,8 @@ public interface IParchmentApi
 }
 ```
 
-!!! note "`CreateBook` needs three more interfaces"
-    `IBookBuilder`, `IPageBuilder` and `IElementBuilder` are listed in [Building books in C#](building-books.md). Copy all four or drop `CreateBook` from your copy, since `GetApi` returns `null` when it can't map every member.
+!!! note "`CreateBook` needs the builder interfaces"
+    `IBookBuilder`, `IPageBuilder`, `IElementBuilder`, `IKeybindBuilder`, `IVariableBuilder` and `ILinkBuilder` are listed in [Building books in C#](building-books.md). Copy them all alongside `IParchmentApi` or drop `CreateBook` from your copy, since `GetApi` returns `null` when it can't map every member.
 
 Then fetch it once both mods have loaded in `GameLaunched`:
 

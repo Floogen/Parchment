@@ -103,10 +103,10 @@ namespace Parchment.Framework.UI.Rendering.Elements
                 return null;
             }
 
-            WrappedText wrappedText = TextWrapper.Wrap(TokenHelper.Resolve(data.Text, element, quoteValues: false), element.Font, textArea.Width, data.TextScale);
+            WrappedText wrappedText = TextWrapper.WrapElementText(data.Text, element, element.Font, textArea.Width, data.TextScale);
             if (wrappedText.Size.Y > textArea.Height)
             {
-                Parchment.monitor.LogOnce($"Image text is {(int)wrappedText.Size.Y}px tall but the text area is only {(int)textArea.Height}px; the text will overflow. Try a smaller {nameof(data.TextScale)}.", LogLevel.Warn);
+                Parchment.monitor.LogOnce($"Image text is {(int)wrappedText.Size.Y}px tall but the text area is only {(int)textArea.Height}px; the text will overflow. Try a smaller {nameof(data.TextScale)}.", LogLevel.Trace);
             }
 
             return wrappedText;

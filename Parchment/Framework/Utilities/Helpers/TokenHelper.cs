@@ -20,9 +20,8 @@ namespace Parchment.Framework.Utilities.Helpers
     public static class TokenHelper
     {
         private const string ESCAPED_PERCENT = "%%";
-        private const string ESCAPED_PERCENT_PLACEHOLDER = "\u0001";
 
-        private static readonly Regex _tokenPattern = new Regex(@"%(?<name>[A-Za-z]+)(?:\.(?<property>[A-Za-z]+))?(?::(?<argument>[^%]+))?%", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _tokenPattern = new Regex(@"%%|%(?<name>[A-Za-z]+)(?:\.(?<property>[A-Za-z]+))?(?::(?<argument>[^%]+))?%", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>Whether a string is worth running through <see cref="Resolve"/> at all, which is what keeps the change watch off every element that has no tokens in it.</summary>
         public static bool HasTokens(string? text)
@@ -42,13 +41,17 @@ namespace Parchment.Framework.Utilities.Helpers
             return string.IsNullOrEmpty(text) is false && text.Contains('[');
         }
 
-        /// <summary>Whether an element's authored text carries a token, and so needs watching for a value that changes without a condition changing with it.</summary>
+        /// <summary>Whether an element's authored text carries a token, meaning it needs watching for a value that changes without a condition changing with it.
+        /// Color markup is looked past, since its square brackets would otherwise read as a game token and put every colored element on the watch for nothing.
+        /// </summary>
         public static bool HasTokenText(Element element)
         {
-            return element.Data is ITextContent textContent && HasTokens(textContent.Text);
+            return element.Data is ITextContent textContent && textContent.Text is not null && HasTokens(TextMarkupHelper.RemoveMarkup(textContent.Text));
         }
 
-        /// <summary>The element's authored text with its tokens resolved, or null when it has no text of its own.</summary>
+        /// <summary>The element's authored text with its tokens resolved and its color markup taken out. Null when it has no text of its own.
+        /// Resolved the same way the element's layout resolves it, so a game token that picks at random lands on the same answer in both and the watch never sees a change that isn't there.
+        /// </summary>
         public static string? ResolveElementText(Element element)
         {
             if (element.Data is not ITextContent textContent || textContent.Text is null)
@@ -56,7 +59,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 return null;
             }
 
-            return Resolve(textContent.Text, element, quoteValues: false);
+            return TextMarkupHelper.Resolve(textContent.Text, element).Text;
         }
 
         /// <summary>Replaces every token in a string with what it stands for. An unknown or unresolvable token is left in place and logged, so a typo fails visibly rather than turning into an empty gap.</summary>
@@ -91,12 +94,8 @@ namespace Parchment.Framework.Utilities.Helpers
                 return text;
             }
 
-            // Held aside so a literal %% can't be read as an empty token, and put back once the real ones are done
-            string workingText = text.Replace(ESCAPED_PERCENT, ESCAPED_PERCENT_PLACEHOLDER);
-
-            workingText = _tokenPattern.Replace(workingText, match => ResolveToken(match, text, element, quoteValues, stripBrackets));
-
-            return workingText.Replace(ESCAPED_PERCENT_PLACEHOLDER, "%");
+            // Read left to right in one pass, so %Variable:a%%Variable:b% is two tokens while 100%% is a literal percent
+            return _tokenPattern.Replace(text, match => ResolveToken(match, text, element, quoteValues, stripBrackets));
         }
 
         /// <summary>Hands the string to the game so its [Token] forms resolve against the current save. A string the game refuses is kept as it was rather than blanked, which matches how an unknown Parchment token is left in place.
@@ -229,6 +228,11 @@ namespace Parchment.Framework.Utilities.Helpers
 
         private static string ResolveToken(Match match, string source, Element? element, bool quoteValues, bool stripBrackets)
         {
+            if (match.Value == ESCAPED_PERCENT)
+            {
+                return "%";
+            }
+
             string name = match.Groups["name"].Value;
             string property = match.Groups["property"].Value;
             string argument = match.Groups["argument"].Value;
@@ -370,6 +374,8 @@ namespace Parchment.Framework.Utilities.Helpers
         /// </param>
         private static string Format(string value, bool quoteValues, bool stripBrackets)
         {
+            value = TextMarkupHelper.RemoveMarkers(value);
+
             string plainValue = stripBrackets is false ? value : value.Replace("[", string.Empty).Replace("]", string.Empty);
 
             return quoteValues is false ? plainValue : string.Concat("\"", plainValue.Replace("\"", string.Empty), "\"");

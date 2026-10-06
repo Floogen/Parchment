@@ -4,6 +4,7 @@ using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Animations;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Interfaces;
+using Parchment.Framework.UI.Layouts;
 using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
 using StardewValley;
@@ -21,7 +22,57 @@ namespace Parchment.Framework.Models
     {
         public ElementData Data { get; }
 
-        public bool IsVisible { get; set; } = true;
+        private bool _isVisible = true;
+
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set
+            {
+                // Stamped when the element comes into view, so a typewriter in it starts from its appearance rather than from when the page did
+                if (value is true && _isVisible is false)
+                {
+                    VisibleSince = AnimationHelper.GetAnimationTime();
+                }
+
+                _isVisible = value;
+            }
+        }
+
+        /// <summary>When the element last came into view after being hidden, on the animation clock. Null for an element that has been visible since it was built.</summary>
+        public double? VisibleSince { get; private set; }
+
+        /// <summary>The [typewriter] effects in this element's text as it was last laid out, in the order they open. Empty for an element with none.</summary>
+        public IReadOnlyList<TextEffect> TypewriterEffects { get; set; } = Array.Empty<TextEffect>();
+
+        /// <summary>How far along each of this element's typewriters is, by <see cref="TextEffect.TypingOrdinal"/>. Carried across a refresh, so rebuilding the book doesn't type the text out again.</summary>
+        public Dictionary<int, TypingState> TypingStates { get; set; } = new Dictionary<int, TypingState>();
+
+        /// <summary>Where a link's text ends in its host's text, used to tell whether a typewriter has revealed all of it yet. -1 for anything that isn't a link.</summary>
+        public int LinkTextEnd { get; set; } = -1;
+
+        /// <summary>Whether a typewriter is still revealing this link's text, which keeps the cursor and a controller off it until all of it is showing.</summary>
+        public bool IsAwaitingReveal { get; set; }
+
+        /// <summary>Whether all of this link's text sits under a [redact], which keeps the cursor and a controller off it so its tooltip can't give away what the bar hides.</summary>
+        public bool IsRedacted { get; set; }
+
+        /// <summary>Whether this element's typed actions have run this reading, which is what keeps them to once however often its page comes back into view.</summary>
+        public bool HasRunTypedActions { get; set; }
+
+        /// <summary>The conditions written into this element's tags with a "condition=" part, in the order the tags appear, leaving out a typewriter's. Read once from the authored text.</summary>
+        public IReadOnlyList<string> InlineConditions { get; init; } = Array.Empty<string>();
+
+        /// <summary>Whether each of <see cref="InlineConditions"/> passes, refreshed alongside the element's own Condition. A change lays the text out again so the tags follow it.</summary>
+        public List<bool> InlineConditionResults { get; } = new List<bool>();
+
+        /// <summary>When each of <see cref="InlineConditionResults"/> last changed, on the animation clock, which is what a [scramble] settles from. Null when it hasn't changed since it was first checked,
+        /// or changed while the element wasn't on screen, so text the reader never saw scrambled doesn't settle in front of them.
+        /// </summary>
+        public List<double?> InlineConditionChangedAt { get; } = new List<double?>();
+
+        /// <summary>When this element's text was last drawn, on the animation clock, which is how a change to one of its conditions is told to have happened in front of the reader.</summary>
+        public double LastDrawnAt { get; set; } = double.MinValue;
 
         /// <summary>The container this element sits inside, whether as a child or in one of its layers. Null for anything at the top of a page or a book's Underlay and Overlay.
         /// Set once when the element is created, so it always points into the same book rather than following an element that was carried across a refresh.
@@ -48,6 +99,14 @@ namespace Parchment.Framework.Models
         public Color? ShadowColor { get; init; }
 
         public Color TintColor { get; init; } = Color.White;
+
+        /// <summary>The color this element's text takes while the cursor is over it (null to keep its usual color). Only a link has one, which its host draws the linked text in.</summary>
+        public Color? HoverTextColor { get; init; }
+
+        /// <summary>The rectangles the cursor reaches this element through, measured from the same origin as <see cref="Bounds"/>. Null when the whole of <see cref="Bounds"/> counts.
+        /// A link that wraps covers a stretch of two lines rather than the box around them, so it is reached through one rectangle per line while <see cref="Bounds"/> holds their union.
+        /// </summary>
+        public IReadOnlyList<Rectangle>? HitRegions { get; set; }
         public IAssetName? TextureAssetName { get; init; }
 
         /// <summary>The item this element is currently showing, when it is a Grid result cell or something inside one. Null everywhere else, and what the %Item% token resolves to.</summary>
@@ -101,6 +160,12 @@ namespace Parchment.Framework.Models
                 bool hasHoverAnimation = this.ActiveHoverFrames is not null && this.ActiveHoverFrames.Count is not 0;
 
                 _isHovered = value;
+
+                // A link's hover effects are timed from the cursor's arrival rather than the shared clock, so they ease in from rest instead of appearing mid-cycle
+                if (value is true && Data is LinkElementData { HasHoverEffects: true })
+                {
+                    this.HoverAnimationStartedAt = AnimationHelper.GetAnimationTime();
+                }
 
                 if (hasHoverAnimation is false)
                 {
@@ -180,11 +245,11 @@ namespace Parchment.Framework.Models
             }
         }
 
-        /// <summary>Whether this element does anything when the cursor reaches it, whether that is a tooltip, an action or a swap to hover art.
+        /// <summary>Whether this element does anything when the cursor reaches it, whether that is a tooltip, an action, a swap to hover art or a hover text color.
         /// Absolutely positioned layers such as <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/> use this so purely decorative art passes the cursor through to whatever sits under it.
         /// Always false when <see cref="ElementData.IgnoreCursor"/> is set, since that element is stepped over wherever it sits.
         /// </summary>
-        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data.Tags is not null && Data.Tags.Count is not 0) || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0));
+        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data.Tags is not null && Data.Tags.Count is not 0) || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0) || HoverTextColor is not null);
 
         /// <summary>The shadow to draw behind text of the given color, where <paramref name="drawnTextColor"/> is the text color as it will actually be drawn, after any fade.
         /// Without a given <see cref="ShadowColor"/> the game's own follows the text's alpha, which is what keeps a translucent or fading element from leaving its shadow behind.

@@ -497,6 +497,13 @@
         "PeacefulEnd.Parchment.ExamplePack_GuideBook": {
           "Format": "1.12.0",
           "Id": "PeacefulEnd.Parchment.ExamplePack_GuideBook",
+          "Variables": [
+            {
+              "Id": "showInlineTextEffects",
+              "Type": "Boolean",
+              "Default": "false"
+            }
+          ],
           "Appearance": {
             "TintColor": "165 42 42"
           },
@@ -1433,6 +1440,135 @@
                   "Alignment": "Center",
                   "Action": "PeacefulEnd.Parchment_GoToStart",
                   "Sound": "bigSelect"
+                }
+              ]
+            },
+            {
+              "Id": "inline-text",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Heading",
+                  "Text": "Parchment v1.12.2",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "Condition": "!PeacefulEnd.Parchment_HasVariable PeacefulEnd.Parchment.ExamplePack_GuideBook showInlineTextEffects true"
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "...",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "Condition": "!PeacefulEnd.Parchment_HasVariable PeacefulEnd.Parchment.ExamplePack_GuideBook showInlineTextEffects true"
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "[shake]Parch[/shake][shake=4|160]ment[/shake] [wave=4|1000][color=Gold]v[/color][color=Red]1[/color].[color=Green]13[/color].[color=Blue]0[/color][/wave]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "Condition": "PeacefulEnd.Parchment_HasVariable PeacefulEnd.Parchment.ExamplePack_GuideBook showInlineTextEffects true"
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[shake][rainbow]wOW![/rainbow][/shake]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "Condition": "PeacefulEnd.Parchment_HasVariable PeacefulEnd.Parchment.ExamplePack_GuideBook showInlineTextEffects true"
+                },
+                {
+                  "Type": "Button",
+                  "TexturePath": "Assets/PeacefulEnd.Parchment/button1",
+                  "TextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 0,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "HoverTextureSourceRectangle": {
+                    "X": 0,
+                    "Y": 18,
+                    "Width": 18,
+                    "Height": 18
+                  },
+                  "Text": "Click here!",
+                  "FontType": "Small",
+                  "TextScale": 1,
+                  "Padding": 2,
+                  "Sizing": "ShrinkToFit",
+                  "Scale": 2,
+                  "Alignment": "Center",
+                  "Action": "PeacefulEnd.Parchment_ToggleVariable PeacefulEnd.Parchment.ExamplePack_GuideBook showInlineTextEffects",
+                  "Sound": "bigSelect"
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "Examples of [shake][link=hover_example]hover text[/link][/shake] within a [rainbow][link=paragraph_example]paragraph[/link][/rainbow]!",
+                  "Links": {
+                    "hover_example": {
+                      "TextColor": "Gold",
+                      "HoverTextColor": "Orange",
+                      "DisplayName": "Example",
+                      "Description": "This is some hover text."
+                    },
+                    "paragraph_example": {
+                      "DisplayName": "Another Example",
+                      "Description": "..."
+                    }
+                  },
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "Condition": "PeacefulEnd.Parchment_HasVariable PeacefulEnd.Parchment.ExamplePack_GuideBook showInlineTextEffects true"
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[typewriter][pause=3000]This is typewriter text... [pause=600]It can pause a bit before continuing to type![pause=500][/typewriter]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "TypedAction": "PeacefulEnd.Parchment_SetFlag firstTypewriterFinished",
+                  "Condition": "PeacefulEnd.Parchment_HasVariable PeacefulEnd.Parchment.ExamplePack_GuideBook showInlineTextEffects true"
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[typewriter=80|250]Typewriters normally wait for the previous one before typing...[/typewriter]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "TypedAction": "PeacefulEnd.Parchment_SetFlag secondTypewriterFinished",
+                  "Condition": "PeacefulEnd.Parchment_HasVariable PeacefulEnd.Parchment.ExamplePack_GuideBook showInlineTextEffects true"
+                }
+              ]
+            },
+            {
+              "Id": "inline-text-2",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Paragraph",
+                  "Text": "[typewriter=fade=500|immediate]However [underline]this typewriter[/underline] only waits for the first one to finish![/typewriter]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "Condition": "PeacefulEnd.Parchment_HasFlag firstTypewriterFinished"
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[typewriter=80|250|fade=500]Did you [bounce=5|1200]notice[/bounce] that the text can [pulse=White|3000]fade in[/pulse]?[/typewriter]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "Condition": "PeacefulEnd.Parchment_HasFlag secondTypewriterFinished"
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[typewriter]\n[strike]Strike[/strike] this!\n\n[pause=500][highlight=Gold]Highlight[/highlight] that!\n\n[pause=500][redact]Hide[/redact] [redact]this[/redact] ?\n\n[pause=500][scramble]Scramble![/scramble][/typewriter]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "Condition": "PeacefulEnd.Parchment_HasFlag secondTypewriterFinished"
+                },
+                {
+                  "Type": "Paragraph",
+                  "Scale": 2,
+                  "Text": "[typewriter][pause=1500][rainbow=5000][wave]Out now[/wave][bounce=5|500]![/bounce][/rainbow][/typewriter]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "Condition": "PeacefulEnd.Parchment_HasFlag secondTypewriterFinished"
                 }
               ]
             },

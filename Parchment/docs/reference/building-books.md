@@ -173,6 +173,7 @@ A callback which throws is logged and the book opens as it stood, rather than th
 | `AddOverlay(type)` | Adds an element drawn in front of everything. |
 | `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. Readable straight away, before the book is registered or opened. |
 | `OnKeyPress(keybind)` | Adds a key pressed on any page of the book, or on its shut cover, and returns its [keybind builder](#the-keybind-builder). A page binding the same key takes it over. |
+| `AddLink(linkId)` | Adds a [shared link](elements/index.md#shared-links) any text element in the book can point at. Returns its [link builder](#the-link-builder). An element's own link with the same id replaces it for that element. |
 | `OnRefresh(onRefresh)` | What to run when the book is asked to rebuild. See [Refreshing an open book](#refreshing-an-open-book). |
 | `OnOpening(onOpening)` | What to run just before the book is put on screen. See [Rebuilding before the book opens](#rebuilding-before-the-book-opens). |
 | `TryRegister(out error)` | Validates and registers the book. |
@@ -275,6 +276,7 @@ Most methods are named after the field they set, so anything you've written in a
 | `Item(itemId)` | `ItemId` |
 | `Action(action)` / `Action(action, sound)` | A click [action](../concepts/actions.md). Call it more than once to build a list. |
 | `HoverAction(action)` | A hover action. Call it more than once to build a list. |
+| `TypedAction(action)` | An action run once the element's [typewriters](elements/index.md#typed-actions) finish. Call it more than once to build a list. |
 | `SubmitAction(action)` | An action run when enter is pressed in an [`Input`](elements/input.md). Call it more than once to build a list. |
 | `TextChangedAction(action)` | An action run once an `Input`'s text settles. Call it more than once to build a list. |
 | `TextChangedDelay(textChangedDelay)` | An `Input`'s `TextChangedDelay` |
@@ -313,8 +315,33 @@ Most methods are named after the field they set, so anything you've written in a
 | `AddChild(type)` | A child element on a container such as a Panel |
 | `AddBackground(type)` | An element behind a container's children, placed by `Position` within its content area |
 | `AddForeground(type)` | An element over a container's children, placed the same way |
+| `AddLink(linkId)` | A [link](elements/index.md#links) that `[link=linkId]` markup in the text points at, on a Title, Heading, Paragraph or PageNumber. Returns **the link's** [builder](#the-link-builder). |
 
 Not every method applies to every element type. `Padding` on a `Heading` isn't valid, and asking for it fails at registration with a message naming the fields that type does accept.
+
+## The link builder
+
+`AddLink` returns this rather than the builder you called it on, on the element builder and on the book builder alike. Keep your own reference to that builder when it has more than one link.
+
+| Method | Sets |
+| --- | --- |
+| `Set(field, value)` | Any [link field](elements/index.md#links) by name. |
+| `Condition(condition)` | `Condition` |
+| `TextColor(color)` | `TextColor` |
+| `HoverTextColor(color)` | `HoverTextColor` |
+| `Tooltip(displayName, description)` | `DisplayName` and `Description` |
+| `Action(action)` | A click [action](../concepts/actions.md). Call it more than once to build a list. The click plays the element's own `Sound`. |
+| `HoverAction(action)` | A hover action. Call it more than once to build a list. |
+| `WithTag(tag)` | A [tag](tags.md) carried by the link. Call it more than once to build a list. |
+| `HoverEffect(effect)` | A [hover effect](elements/index.md#hover-effects), written the way its tag is without the brackets, such as `"wave=3"` or `"pulse=Gold"`. Call it more than once to build a list. |
+
+```cs title="A term that explains itself and jumps to its page"
+var paragraph = page.AddParagraph("You reeled in a [link=legend]Legend[/link] at Mountain Lake.");
+
+paragraph.AddLink("legend").TextColor("Gold").HoverTextColor("Orange").Tooltip("Legend", "Only bites in spring rain.").Action("PeacefulEnd.Parchment_JumpToPageId legendary-fish");
+```
+
+Registration fails when a link is added to any other element type. It also fails when two links on the same element or on the book share an id (ignoring case).
 
 ## Setting anything else
 

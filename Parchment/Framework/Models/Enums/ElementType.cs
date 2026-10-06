@@ -19,6 +19,7 @@ namespace Parchment.Framework.Models.Enums
         Button,
         PageNumber,
         Input,
-        Grid
+        Grid,
+        Link
     }
 }

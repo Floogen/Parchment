@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Parchment.Framework.Models.Data.Elements;
+using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.Utilities;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Parchment.Framework.Models.Data
 {
-    public class TitleElementData : ElementData, ITextContent
+    public class TitleElementData : ElementData, ITextContent, ILinkHost
     {
         public override ElementType Type => ElementType.Title;
 
@@ -26,6 +27,14 @@ namespace Parchment.Framework.Models.Data
         public FontType FontType { get; set; } = FontType.SpriteText;
 
         public string? Text { get; set; }
+
+        /// <summary>The links this element's text points at with [link=id] markup, by id. Each occurrence in the text gets its own tooltip, actions and tags from the entry it names.</summary>
+        public Dictionary<string, LinkData>? Links { get; set; }
+
+        public string? GetLinkedText()
+        {
+            return Text;
+        }
 
         public override (bool Result, string Error) IsValid()
         {

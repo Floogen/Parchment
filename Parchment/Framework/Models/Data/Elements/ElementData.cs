@@ -79,6 +79,15 @@ namespace Parchment.Framework.Models.Data.Elements
         /// <summary>The trigger actions to run, in order, when the cursor moves onto this element. Combined with <see cref="HoverAction"/> rather than replacing it.</summary>
         public List<string>? HoverActions { get; set; }
 
+        /// <summary>A trigger action to run once every [typewriter] in this element's text has finished, whether it typed out or the reader clicked to finish it. It runs once per reading.
+        /// Typing finished by turning away from the page runs it the next time that page is on screen, so nothing it does lands while the page is turning.
+        /// Shorthand for a single-entry <see cref="TypedActions"/>. When both are given this one runs first.
+        /// </summary>
+        public string? TypedAction { get; set; }
+
+        /// <summary>The trigger actions to run, in order, once every [typewriter] in this element's text has finished. Combined with <see cref="TypedAction"/> rather than replacing it.</summary>
+        public List<string>? TypedActions { get; set; }
+
         /// <summary>Free-form markers on this element, which other mods can read off whatever the cursor is over.
         /// Parchment leaves most of them alone, acting only on the ones it recognises, currently <see cref="TagHelper.NPC_PREFIX"/> naming the NPC the element is about.
         /// A tagged element is reachable by the cursor wherever it sits, since a tag is only useful on something that can be hovered.
@@ -135,6 +144,12 @@ namespace Parchment.Framework.Models.Data.Elements
         /// <summary>Whether this element has at least one hover action, from either <see cref="HoverAction"/> or <see cref="HoverActions"/>.</summary>
         internal bool HasHoverActions => HasAny(HoverAction, HoverActions);
 
+        /// <summary>Whether this element has at least one typed action, from either <see cref="TypedAction"/> or <see cref="TypedActions"/>.</summary>
+        public bool HasTypedActions => HasAny(TypedAction, TypedActions);
+
+        /// <summary>Every typed action on this element, <see cref="TypedAction"/> first and then <see cref="TypedActions"/> in order, skipping empty entries.</summary>
+        public IEnumerable<string> GetTypedActions() => Combine(TypedAction, TypedActions);
+
         /// <summary>Every click action on this element, <see cref="Action"/> first and then <see cref="Actions"/> in order, skipping empty entries.</summary>
         public IEnumerable<string> GetActions() => Combine(Action, Actions);
 
@@ -177,6 +192,11 @@ namespace Parchment.Framework.Models.Data.Elements
             if (HoverActions is not null && HoverActions.Any(string.IsNullOrWhiteSpace))
             {
                 return (false, $"\"HoverActions\" contains an empty entry.");
+            }
+
+            if (TypedActions is not null && TypedActions.Any(string.IsNullOrWhiteSpace))
+            {
+                return (false, $"\"TypedActions\" contains an empty entry.");
             }
 
             if (Tags is not null)

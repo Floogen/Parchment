@@ -117,6 +117,22 @@ namespace Parchment.Framework.UI.Menus
 
         // Everywhere the cursor can be sent, rebuilt whenever it is asked for rather than held between passes, since a condition can take an element away between one step and the next
         private readonly List<SnapTarget> _snapTargets = new List<SnapTarget>();
+
+        // When the spread on screen settled into view, which is when its typewriters start counting from. Null until the first spread has
+        private double? _typingSpreadViewTime;
+
+        // The spread the typing clock above belongs to, as its chapter and left page, so settling on the same spread again (after a refresh, say) doesn't restart it
+        private (int ChapterIndex, int LeftPageIndex)? _typingSpreadKey;
+
+        // When the book first settled, open or on its cover, which is when the typewriters on its own layers start counting from
+        private double? _layerTypingStartTime;
+
+        // Reused every tick for the visible spread's typewriter elements, left page then right
+        private readonly List<Element> _spreadTypewriterElements = new List<Element>();
+
+        // The typewriter elements of the spread the typing clock belongs to, taken when it settled, so leaving it finishes them whichever spread the page indexes already point at.
+        // A refresh carries each element's typing state across by reference, so finishing these also finishes their rebuilt counterparts
+        private readonly List<Element> _typingSpreadElements = new List<Element>();
         private SnapTarget? _snappedTarget;
 
         private Texture2D? _pageCurlTexture;
@@ -313,10 +329,48 @@ namespace Parchment.Framework.UI.Menus
 
             RestoreReadingPosition(previousPageId, previousChapterIndex, previousSpread);
             RefreshVisiblePages();
+            RestoreSpreadTyping(previousPageId);
 
             error = null;
 
             return true;
+        }
+
+        /// <summary>Points the typing clock at wherever a refresh left the reader. Back on the page they were reading, the clock carries on under the spread the page now sits at,
+        /// as pages added or removed before it can move it to another spread. Anywhere else is a spread the reader hasn't watched type, so it starts its own clock once it is settled.
+        /// </summary>
+        /// <param name="previousPageId">The page the reader was on before the refresh, being the left page or the right when the left has no ID.</param>
+        private void RestoreSpreadTyping(string? previousPageId)
+        {
+            if (_typingSpreadKey is null)
+            {
+                return;
+            }
+
+            (int ChapterIndex, int LeftPageIndex) spreadKey = (_currentChapterIndex, GetLeftPageIndex());
+            string? currentPageId = GetPageId(GetLeftPageIndex()) ?? GetPageId(GetRightPageIndex());
+
+            // Pages without an ID are put back at the same position, so landing on the same spread position is the closest thing to being on the same page
+            bool isSamePage = previousPageId is null ? spreadKey == _typingSpreadKey : string.Equals(previousPageId, currentPageId, StringComparison.OrdinalIgnoreCase);
+
+            if (isSamePage)
+            {
+                _typingSpreadKey = spreadKey;
+
+                // The rebuilt elements share their typing state with the ones they replaced, so finishing either finishes both. These are the ones a later turn finds on screen
+                _typingSpreadElements.Clear();
+                _typingSpreadElements.AddRange(CollectSpreadTypewriterElements());
+
+                return;
+            }
+
+            // Cleared rather than left pointing at a spread position that now holds other pages, which a later turn could land on and mistake for the one already typed
+            _typingSpreadKey = null;
+
+            if (CurrentState is MenuState.Ready)
+            {
+                StartSpreadTyping();
+            }
         }
 
         /// <summary>Hands the rebuilt book's elements the clocks their counterparts were running on, so a refresh doesn't replay every animation from its first frame or take away something that was only just put up.
@@ -373,6 +427,10 @@ namespace Parchment.Framework.UI.Menus
 
                 // Mapped rather than copied, or the first frame of every animation would run its actions again on each refresh
                 element.LastPlayedFrame = MapPlayedFrame(previousElement, element);
+
+                // Carried so a refresh doesn't type text out again that the reader has already watched appear, nor run its typed actions a second time
+                element.TypingStates = previousElement.TypingStates;
+                element.HasRunTypedActions = previousElement.HasRunTypedActions;
 
                 CarryElementState(previousElement.Children, element.Children);
                 CarryElementState(previousElement.Background, element.Background);
@@ -823,6 +881,10 @@ namespace Parchment.Framework.UI.Menus
             if (CurrentState is MenuState.Ready)
             {
                 RefreshVisiblePages();
+
+                // No turn plays, so the typing clock starts and the spread's OnView triggers run here rather than when a turn settles
+                StartSpreadTyping();
+                HandleVisiblePages();
             }
         }
 
@@ -1638,7 +1700,8 @@ namespace Parchment.Framework.UI.Menus
                 return text;
             }
 
-            return TokenHelper.Resolve(text, element, quoteValues: false);
+            // A tooltip draws in one color, so any color markup is taken out rather than shown as written
+            return TokenHelper.Resolve(TextMarkupHelper.RemoveMarkup(text), element, quoteValues: false);
         }
 
         /// <summary>Runs an element's click actions in order, from <see cref="ElementData.Action"/> and then <see cref="ElementData.Actions"/>.
@@ -1721,10 +1784,159 @@ namespace Parchment.Framework.UI.Menus
             // The book state is itself testable through CurrentBookState, so a transition can change what's visible. Refreshing here rather than waiting for the next tick keeps the swap in step with the animation it belongs to
             RefreshVisiblePages();
 
+            // The book's own layers are on screen from here on whatever page is open, so this is where their typewriters start
+            if ((menuState is MenuState.Ready or MenuState.Cover) && _layerTypingStartTime is null)
+            {
+                _layerTypingStartTime = AnimationHelper.GetAnimationTime();
+            }
+
             if (menuState is MenuState.Ready)
             {
+                StartSpreadTyping();
                 HandleVisiblePages();
             }
+        }
+
+        /// <summary>Starts the typing clock for the spread that just settled into view. Settling on a different spread first finishes whatever was typing on the one before,
+        /// so turning back to it shows its text in full rather than typing it out again within the same reading.
+        /// </summary>
+        private void StartSpreadTyping()
+        {
+            (int ChapterIndex, int LeftPageIndex) spreadKey = (_currentChapterIndex, GetLeftPageIndex());
+
+            if (_typingSpreadKey == spreadKey)
+            {
+                return;
+            }
+
+            double time = AnimationHelper.GetAnimationTime();
+
+            TypewriterHelper.Complete(_typingSpreadElements, time);
+
+            _typingSpreadKey = spreadKey;
+            _typingSpreadViewTime = time;
+
+            _typingSpreadElements.Clear();
+            _typingSpreadElements.AddRange(CollectSpreadTypewriterElements());
+        }
+
+        /// <summary>Gathers the visible spread's typewriter elements, left page then right, into the reused list.</summary>
+        private List<Element> CollectSpreadTypewriterElements()
+        {
+            _spreadTypewriterElements.Clear();
+
+            int leftPageIndex = GetLeftPageIndex();
+            int rightPageIndex = GetRightPageIndex();
+
+            if (leftPageIndex < _pages.Count)
+            {
+                _spreadTypewriterElements.AddRange(_pages[leftPageIndex].TypewriterElements);
+            }
+
+            if (rightPageIndex < _pages.Count && rightPageIndex != leftPageIndex)
+            {
+                _spreadTypewriterElements.AddRange(_pages[rightPageIndex].TypewriterElements);
+            }
+
+            return _spreadTypewriterElements;
+        }
+
+        /// <summary>Moves every typewriter on screen along: scheduling any that have come into view, deciding which links are revealed enough to reach, playing the typing sound and running the typed actions of whatever has finished.
+        /// The spread's typewriters only move once it has settled, so the pages a turn is bringing in stay blank until it lands and then type out.
+        /// </summary>
+        private void UpdateTyping()
+        {
+            double time = AnimationHelper.GetAnimationTime();
+            bool isSpreadSettled = CurrentState is MenuState.Ready && _typingSpreadViewTime is not null;
+
+            if (_layerTypingStartTime is double layerStartTime)
+            {
+                TypewriterHelper.Schedule(Book.TypewriterElements, layerStartTime, time);
+                TypewriterHelper.RefreshLinkReveal(Book.TypewriterElements, time);
+            }
+
+            List<Element> spreadElements = CollectSpreadTypewriterElements();
+
+            if (isSpreadSettled)
+            {
+                TypewriterHelper.Schedule(spreadElements, _typingSpreadViewTime!.Value, time);
+            }
+
+            TypewriterHelper.RefreshLinkReveal(spreadElements, time);
+
+            string? sound = TypewriterHelper.TakeSound(Book.TypewriterElements, time) ?? (isSpreadSettled ? TypewriterHelper.TakeSound(spreadElements, time) : null);
+
+            // The player's own typing sound option decides, the same as it does for the game's dialogue
+            if (sound is not null && Game1.options.dialogueTyping)
+            {
+                PlaySound(sound);
+            }
+
+            // Last, as an action can turn the page or close the book. The book's layers go first since they stay on screen whatever the action does to the spread
+            if (RunTypedActions(Book.TypewriterElements) is true && isSpreadSettled)
+            {
+                RunTypedActions(CollectSpreadTypewriterElements());
+            }
+        }
+
+        /// <summary>Runs the typed actions of every element whose typewriters have all finished and haven't run them yet this reading. Only called for what is on screen and settled,
+        /// so typing finished by turning away runs its actions once that page is back in view rather than while it turns.
+        /// Reports whether the book is still settled where it was afterwards, since an action that turns the page or closes the book leaves the rest of the list no longer on screen.
+        /// An action that refreshes the book counts too, as the list then holds the elements the refresh replaced.
+        /// </summary>
+        private bool RunTypedActions(List<Element> elements)
+        {
+            MenuState startingState = CurrentState;
+            (int ChapterIndex, int LeftPageIndex)? startingSpread = _typingSpreadKey;
+            Book startingBook = Book;
+
+            // A copy, as an action that changes the spread refills the list being walked
+            foreach (Element element in elements.ToList())
+            {
+                if (element.HasRunTypedActions || element.Data.HasTypedActions is false || TypewriterHelper.HasFinishedTyping(element) is false)
+                {
+                    continue;
+                }
+
+                // Marked before running, so an action that refreshes the book carries the mark across rather than running again on the rebuilt element
+                element.HasRunTypedActions = true;
+
+                RunActions(element.Data.GetTypedActions(), element, "Element typed action");
+                RefreshVisiblePages();
+
+                // A refresh copies whether each element has run its typed actions as it stands at that moment, so marking the replaced elements that are left would never reach their rebuilt counterparts. Those run on the next tick instead
+                if (CurrentState != startingState || _typingSpreadKey != startingSpread || Book != startingBook)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>Finishes everything still typing on screen when the reader clicks, the way a click finishes the game's dialogue. Reports whether there was anything to finish,
+        /// in which case the click is used up by it rather than also pressing whatever it landed on.
+        /// </summary>
+        /// <param name="includeSpread">Whether the spread's typewriters count too, which they don't while the book is shut on its cover.</param>
+        private bool TryFinishTyping(bool includeSpread)
+        {
+            bool isTyping = TypewriterHelper.IsTyping(Book.TypewriterElements) || (includeSpread && TypewriterHelper.IsTyping(CollectSpreadTypewriterElements()));
+
+            if (isTyping is false)
+            {
+                return false;
+            }
+
+            double time = AnimationHelper.GetAnimationTime();
+
+            TypewriterHelper.Complete(Book.TypewriterElements, time);
+
+            if (includeSpread)
+            {
+                TypewriterHelper.Complete(CollectSpreadTypewriterElements(), time);
+            }
+
+            return true;
         }
 
         /// <summary>Runs the visible spread's <see cref="PageData.OnView"/> triggers, then records the spread as seen.
@@ -2692,6 +2904,11 @@ namespace Parchment.Framework.UI.Menus
 
             if (CurrentState == MenuState.Cover)
             {
+                if (TryFinishTyping(includeSpread: false))
+                {
+                    return;
+                }
+
                 // An overlay element gets first refusal, so a button authored onto the cover still works
                 Element? coverElement = GetElementAt(new Point(x, y));
                 if (coverElement is not null && coverElement.Data.HasActions)
@@ -2731,6 +2948,11 @@ namespace Parchment.Framework.UI.Menus
                 // Skip turn
                 CommitPageTurn();
                 SetMenuState(MenuState.Ready);
+                return;
+            }
+
+            if (TryFinishTyping(includeSpread: true))
+            {
                 return;
             }
 
@@ -2818,6 +3040,8 @@ namespace Parchment.Framework.UI.Menus
             RefreshResults();
 
             RefreshTokenText();
+
+            UpdateTyping();
 
             // Tracked in every state, since an action a keybind ran may have started an animation the reader is now holding the button through
             UpdateForceCloseHold(elapsedMilliseconds);
