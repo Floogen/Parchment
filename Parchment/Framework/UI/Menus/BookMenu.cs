@@ -329,10 +329,48 @@ namespace Parchment.Framework.UI.Menus
 
             RestoreReadingPosition(previousPageId, previousChapterIndex, previousSpread);
             RefreshVisiblePages();
+            RestoreSpreadTyping(previousPageId);
 
             error = null;
 
             return true;
+        }
+
+        /// <summary>Points the typing clock at wherever a refresh left the reader. Back on the page they were reading, the clock carries on under the spread the page now sits at,
+        /// as pages added or removed before it can move it to another spread. Anywhere else is a spread the reader hasn't watched type, so it starts its own clock once it is settled.
+        /// </summary>
+        /// <param name="previousPageId">The page the reader was on before the refresh, being the left page or the right when the left has no ID.</param>
+        private void RestoreSpreadTyping(string? previousPageId)
+        {
+            if (_typingSpreadKey is null)
+            {
+                return;
+            }
+
+            (int ChapterIndex, int LeftPageIndex) spreadKey = (_currentChapterIndex, GetLeftPageIndex());
+            string? currentPageId = GetPageId(GetLeftPageIndex()) ?? GetPageId(GetRightPageIndex());
+
+            // Pages without an ID are put back at the same position, so landing on the same spread position is the closest thing to being on the same page
+            bool isSamePage = previousPageId is null ? spreadKey == _typingSpreadKey : string.Equals(previousPageId, currentPageId, StringComparison.OrdinalIgnoreCase);
+
+            if (isSamePage)
+            {
+                _typingSpreadKey = spreadKey;
+
+                // The rebuilt elements share their typing state with the ones they replaced, so finishing either finishes both. These are the ones a later turn finds on screen
+                _typingSpreadElements.Clear();
+                _typingSpreadElements.AddRange(CollectSpreadTypewriterElements());
+
+                return;
+            }
+
+            // Cleared rather than left pointing at a spread position that now holds other pages, which a later turn could land on and mistake for the one already typed
+            _typingSpreadKey = null;
+
+            if (CurrentState is MenuState.Ready)
+            {
+                StartSpreadTyping();
+            }
         }
 
         /// <summary>Hands the rebuilt book's elements the clocks their counterparts were running on, so a refresh doesn't replay every animation from its first frame or take away something that was only just put up.
@@ -843,6 +881,9 @@ namespace Parchment.Framework.UI.Menus
             if (CurrentState is MenuState.Ready)
             {
                 RefreshVisiblePages();
+
+                // No turn plays, so the typing clock is started here rather than when the turn settles
+                StartSpreadTyping();
             }
         }
 
