@@ -40,6 +40,12 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_TYPEWRITER_SPEED = 30f;
         public const float DEFAULT_TYPEWRITER_FADE = 100f;
         public const float DEFAULT_PAUSE_DURATION = 500f;
+        public const float DEFAULT_SCRAMBLE_PERIOD = 80f;
+        public const float DEFAULT_SCRAMBLE_SETTLE = 40f;
+        public const string DEFAULT_SCRAMBLE_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+        private const string SCRAMBLE_GLYPHS_OPTION = "glyphs";
+        private const string SCRAMBLE_SETTLE_OPTION = "settle";
 
         private const string TYPEWRITER_IMMEDIATE_OPTION = "immediate";
         private const string TYPEWRITER_FADE_OPTION = "fade";
@@ -57,7 +63,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER };
 
@@ -70,6 +76,9 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>An effect tag as it was read, before it has a place in the plain text to count its characters from.</summary>
         private readonly record struct OpenedEffect(TextEffectType Type, float Amplitude, float Period, IReadOnlyList<Color> Colors, TypingOptions? Typing = null)
         {
+            /// <summary>How a scramble hides its text. Null for every other effect.</summary>
+            public ScrambleOptions? Scramble { get; init; }
+
             /// <summary>Whether the effect applies, being false when its tag's condition failed. A failed effect still pairs with its closing tag so the tags around it stay matched.</summary>
             public bool IsActive { get; init; } = true;
         }
@@ -191,6 +200,7 @@ namespace Parchment.Framework.Utilities.Helpers
             if (conditionIndex == element.InlineConditionResults.Count)
             {
                 element.InlineConditionResults.Add(isMet);
+                element.InlineConditionChangedAt.Add(null);
             }
 
             return isMet;
@@ -378,6 +388,14 @@ namespace Parchment.Framework.Utilities.Helpers
                     {
                         record.OpenedEffects.Add(openedEffect with { Typing = openedEffect.Typing?.WithCondition(effectCondition) });
                     }
+                    else if (openedType is TextEffectType.Scramble)
+                    {
+                        // Never stepped aside like other tags, as settling needs to see the condition stop passing. It keeps its place among the element's conditions and reads the result as it draws
+                        int? scrambleConditionIndex = effectCondition is null ? null : nextConditionIndex;
+                        IsConditionMet(effectCondition, element, ref nextConditionIndex);
+
+                        record.OpenedEffects.Add(openedEffect with { Scramble = openedEffect.Scramble! with { ConditionIndex = scrambleConditionIndex } });
+                    }
                     else
                     {
                         record.OpenedEffects.Add(openedEffect with { IsActive = IsConditionMet(effectCondition, element, ref nextConditionIndex) });
@@ -479,6 +497,8 @@ namespace Parchment.Framework.Utilities.Helpers
                 case TextEffectType.Highlight:
                 case TextEffectType.Redact:
                     return new OpenedEffect(effectType, 0f, 0f, ParseDecorationColor(parts, tag, source));
+                case TextEffectType.Scramble:
+                    return new OpenedEffect(effectType, 0f, 0f, Array.Empty<Color>()) { Scramble = ParseScramble(parts, tag, source) };
                 case TextEffectType.Shake:
                     return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_SHAKE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_SHAKE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
                 case TextEffectType.Bounce:
@@ -515,6 +535,53 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return colors;
+        }
+
+        /// <summary>Reads a scramble's value. A number is how often its glyphs change, in milliseconds. "glyphs=…" sets the characters it picks from and "settle=milliseconds" sets how long each character takes to lock into place after the one before it.
+        /// Every part is optional and the named ones can come in any order.
+        /// </summary>
+        private static ScrambleOptions ParseScramble(string[] parts, string tag, string source)
+        {
+            float period = DEFAULT_SCRAMBLE_PERIOD;
+            string glyphs = DEFAULT_SCRAMBLE_GLYPHS;
+            float settle = DEFAULT_SCRAMBLE_SETTLE;
+
+            foreach (string part in parts)
+            {
+                if (float.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out float number))
+                {
+                    if (number > 0f)
+                    {
+                        period = number;
+                    }
+                    else
+                    {
+                        Parchment.monitor.LogOnce($"'{source}' has a [{tag}] period of '{part}', which isn't a positive number of milliseconds, so the default of {DEFAULT_SCRAMBLE_PERIOD} is used.", LogLevel.Warn);
+                    }
+
+                    continue;
+                }
+
+                int separatorIndex = part.IndexOf('=');
+                string option = separatorIndex < 0 ? part : part.Substring(0, separatorIndex).Trim();
+                string optionValue = separatorIndex < 0 ? string.Empty : part.Substring(separatorIndex + 1);
+
+                if (string.Equals(option, SCRAMBLE_GLYPHS_OPTION, StringComparison.OrdinalIgnoreCase) && optionValue.Length > 0)
+                {
+                    // Inner spaces are kept, since a space in the set is a glyph like any other
+                    glyphs = optionValue.Trim();
+                }
+                else if (string.Equals(option, SCRAMBLE_SETTLE_OPTION, StringComparison.OrdinalIgnoreCase) && float.TryParse(optionValue.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedSettle) && parsedSettle >= 0f)
+                {
+                    settle = parsedSettle;
+                }
+                else
+                {
+                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] part of '{part}', which isn't one Parchment can read, so it was ignored. Try a number of milliseconds, \"{SCRAMBLE_GLYPHS_OPTION}=…\" or \"{SCRAMBLE_SETTLE_OPTION}=milliseconds\".{GetSeparatorHint(part, tag)}", LogLevel.Warn);
+                }
+            }
+
+            return new ScrambleOptions(period, glyphs, settle);
         }
 
         /// <summary>Reads a pause's optional length in milliseconds. Left off (or one that won't parse), it holds for <see cref="DEFAULT_PAUSE_DURATION"/>.</summary>
@@ -777,10 +844,10 @@ namespace Parchment.Framework.Utilities.Helpers
                 string name = separatorIndex < 0 ? trimmedEntry : trimmedEntry.Substring(0, separatorIndex);
                 string? value = separatorIndex < 0 ? null : trimmedEntry.Substring(separatorIndex + 1);
 
-                // A typewriter reveals text once rather than coming and going with the cursor. A redaction would hide the very text the cursor is on. Neither has a meaning as a hover effect
-                if (TryGetEffectType(name.Trim(), out TextEffectType effectType) is false || effectType is TextEffectType.Typewriter or TextEffectType.Redact)
+                // A typewriter reveals text once rather than coming and going with the cursor. A redaction or a scramble would hide the very text the cursor is on. None of them has a meaning as a hover effect
+                if (TryGetEffectType(name.Trim(), out TextEffectType effectType) is false || effectType is TextEffectType.Typewriter or TextEffectType.Redact or TextEffectType.Scramble)
                 {
-                    Parchment.monitor.LogOnce($"The link '{id}' has a hover effect of '{entry}', which isn't an effect that can apply on hover. Try one of: {string.Join(", ", Enum.GetValues<TextEffectType>().Where(hoverType => hoverType is not (TextEffectType.Typewriter or TextEffectType.Redact)).Select(hoverType => hoverType.ToString().ToLowerInvariant()))}.", LogLevel.Warn);
+                    Parchment.monitor.LogOnce($"The link '{id}' has a hover effect of '{entry}', which isn't an effect that can apply on hover. Try one of: {string.Join(", ", Enum.GetValues<TextEffectType>().Where(hoverType => hoverType is not (TextEffectType.Typewriter or TextEffectType.Redact or TextEffectType.Scramble)).Select(hoverType => hoverType.ToString().ToLowerInvariant()))}.", LogLevel.Warn);
                     continue;
                 }
 
@@ -867,7 +934,7 @@ namespace Parchment.Framework.Utilities.Helpers
                             OpenedEffect openedEffect = record.OpenedEffects[nextEffectIndex];
                             int typingOrdinal = openedEffect.Typing is null ? -1 : nextTypingOrdinal++;
 
-                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors) { Typing = openedEffect.Typing, TypingOrdinal = typingOrdinal }, IsSuppressed: openedEffect.IsActive is false));
+                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors) { Typing = openedEffect.Typing, TypingOrdinal = typingOrdinal, Scramble = openedEffect.Scramble }, IsSuppressed: openedEffect.IsActive is false));
                         }
 
                         nextEffectIndex++;

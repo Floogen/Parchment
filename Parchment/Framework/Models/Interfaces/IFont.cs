@@ -12,5 +12,8 @@ namespace Parchment.Framework.Models.Interfaces
     {
         Vector2 MeasureString(string text, float scale);
         void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale);
+
+        /// <summary>Whether the font has a glyph of its own for the character, rather than drawing a stand-in for it.</summary>
+        bool CanDraw(char character);
     }
 }

@@ -265,6 +265,7 @@ These tags move or recolor each character of the text they wrap, without changin
 | `[strike]` | Draws a line through the text. | color | the text's color |
 | `[highlight]` | Draws a marker box behind the text. | color | a soft yellow |
 | `[redact]` | Covers the text with a solid bar, hiding it while keeping its width. | color | the text's color |
+| `[scramble]` | Shows random glyphs in place of the text until its condition stops passing, then locks the real characters into place. See [Scramble](#scramble). | period and options | `80` |
 
 ```json
 {
@@ -308,8 +309,38 @@ Each takes one optional color, such as `[highlight=255 200 200 128]` or `[underl
 - **Across lines.** A decoration that wraps is drawn on each line it reaches, joining up wherever its text continues.
 - **Redacting.** `[redact]` draws only its bar, so nothing of the text underneath shows. A link whose text is fully redacted can't be reached by the cursor or a controller either, so its tooltip can't give away what's hidden. Paired with a [tag condition](#tag-conditions), it hides something until the player has earned it: `[redact=condition=!PLAYER_HAS_CAUGHT_FISH Current (O)163]Legend[/redact]`.
 - **Typewriters.** Under a typewriter, a decoration grows along with the text it covers rather than appearing ahead of it.
-- **Hover effects.** `[underline]`, `[strike]` and `[highlight]` work as a link's [hover effects](#hover-effects), so `"HoverEffect": "underline"` underlines a link while the cursor is on it. `[redact]` doesn't, as it would hide the very text the cursor is on.
+- **Hover effects.** `[underline]`, `[strike]` and `[highlight]` work as a link's [hover effects](#hover-effects), so `"HoverEffect": "underline"` underlines a link while the cursor is on it. `[redact]` doesn't, as it would hide the very text the cursor is on (and neither does `[scramble]`).
 - **Fonts.** Decorations are drawn by Parchment rather than the font, so they work in `SpriteText` too. Give them a color there, as `SpriteText` draws its letters in its own color rather than the element's.
+
+### Scramble
+
+`[scramble]` shows a random glyph in place of each character, picking a new one every period. With a [condition](#tag-conditions), the text stays scrambled while the condition passes and locks into place once it stops:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "The legendary [scramble=condition=!PLAYER_HAS_CAUGHT_FISH Current (O)163]Legend[/scramble] lurks in the mountain lake."
+}
+```
+
+Without a condition it stays scrambled for good, which suits cipher text that's never meant to be read.
+
+Its value takes a number and then any options, all separated by `|` and all optional:
+
+| Part | What it sets | Default |
+| --- | --- | --- |
+| number | Milliseconds each random glyph shows before the next. | `80` |
+| `glyphs=…` | The characters a scrambled character can show. | capital letters and digits |
+| `settle=milliseconds` | How long each character waits after the one before it to lock into place. `settle=0` shows the real text all at once. | `40` |
+
+So `[scramble=60|glyphs=0123456789|settle=25|condition=!PeacefulEnd.Parchment_HasFlag decoded]` flickers through digits until the `decoded` flag is set, then settles quickly from left to right.
+
+- **Glyphs.** Every scrambled character picks from `glyphs=` alone, so `glyphs=123456` only ever shows 1 to 6. A character listed more than once is picked more often, a single character gives a steady mask such as `####` and a space in the set can blank a character out. Characters the font can't draw are left out with a warning, falling back to capital letters and digits when none are left. `|`, `[` and `]` can't go in the set.
+- **Spaces.** Spaces stay spaces, so the shape of the words still shows. Everything else, punctuation included, is scrambled.
+- **Widths.** Each glyph is drawn centered in the room its real character was laid out with, so the text never shifts when it settles.
+- **Settling.** Settling only plays when the condition changes while the text is on screen. One that changed while the page was elsewhere shows the real text straight away the next time it's seen.
+- **Links.** A link whose text is fully scrambled can't be reached by the cursor or a controller until it settles, so its tooltip can't give the answer away.
+- **Combining.** Under a typewriter, characters type in already scrambled. Decorations still draw at the text's real width. Moving effects move the glyphs. A scramble can't be a link's [hover effect](#hover-effects), as it would hide the very text the cursor is on.
 
 ### Typewriter
 
@@ -418,7 +449,7 @@ Any tag can take a `condition=` part holding a [game state query](../../concepts
 
 It goes alongside the tag's other parts, separated by `|` the same way, in any position: `[wave=4|500|condition=SEASON spring]` or `[gradient=Red|Blue|condition=!IS_FESTIVAL_DAY]`. On a tag with nothing else to set, the condition is its whole value: `[underline=condition=SEASON spring]`.
 
-- **When it fails.** The tag steps aside and its text is drawn as though the tag weren't there. A failed `[color]` keeps the color around it, a failed effect leaves its characters still, a failed decoration isn't drawn and a failed `[link]` is plain text that the cursor can't reach. The text itself always shows.
+- **When it fails.** The tag steps aside and its text is drawn as though the tag weren't there. A failed `[color]` keeps the color around it, a failed effect leaves its characters still, a failed decoration isn't drawn and a failed `[link]` is plain text that the cursor can't reach. The text itself always shows. A `[scramble]` settles into its real text rather than snapping, as described under [Scramble](#scramble).
 - **When it's checked.** Alongside element [conditions](../../concepts/conditions.md#when-conditions-are-checked), so the text follows the query while the book is open. The query isn't run every time the text is drawn.
 - **Typewriters.** A `[typewriter]`'s condition is checked once, when it would start, so its text can't appear and vanish as the query comes and goes. When it fails the text shows in full at once and the element's [typed actions](#typed-actions) still run.
 - **Links.** A link's own `Condition` switches it off everywhere it's used, while a `condition=` on a `[link]` tag switches off just that one use. Both have to pass.

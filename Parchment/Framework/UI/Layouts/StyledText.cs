@@ -49,6 +49,16 @@ namespace Parchment.Framework.UI.Layouts
     /// <param name="Condition">A game state query checked once when the typewriter starts. The pause only holds when it passes. Null when it always holds.</param>
     public readonly record struct TypingPause(int Position, float Duration, string? Condition);
 
+    /// <summary>How a [scramble] hides its text, read from the tag's value.</summary>
+    /// <param name="Period">How long each random glyph shows before the next, in milliseconds.</param>
+    /// <param name="Glyphs">The characters a scrambled character can show, as written. Narrowed to what the font can draw when the text is laid out.</param>
+    /// <param name="SettleDuration">How long each character waits after the one before it to lock into place once the condition stops passing, in milliseconds. Zero shows the real text at once.</param>
+    public record ScrambleOptions(float Period, string Glyphs, float SettleDuration)
+    {
+        /// <summary>Which of the element's tag conditions this scramble waits on (null for one that never settles).</summary>
+        public int? ConditionIndex { get; init; }
+    }
+
     /// <summary>How a [typewriter] reveals its text, read from the tag's value.</summary>
     public class TypingOptions
     {
@@ -108,6 +118,12 @@ namespace Parchment.Framework.UI.Layouts
 
         /// <summary>How a typewriter reveals its text. Null for every other effect.</summary>
         public TypingOptions? Typing { get; init; }
+
+        /// <summary>How a scramble hides its text. Null for every other effect.</summary>
+        public ScrambleOptions? Scramble { get; init; }
+
+        /// <summary>The glyphs a scramble picks from, each as its own string and narrowed to what the element's font can draw. Filled when the text is laid out, as that is when the font is known.</summary>
+        public IReadOnlyList<string> ScrambleGlyphs { get; set; } = Array.Empty<string>();
 
         /// <summary>The pauses inside a typewriter, in the order they appear. Empty for every other effect and for a typewriter without any.</summary>
         public List<TypingPause> Pauses { get; } = new List<TypingPause>();

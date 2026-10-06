@@ -14,6 +14,9 @@ namespace Parchment.Framework.UI.Fonts
     {
         private readonly SpriteFont _spriteFont;
 
+        // Built on first use, as the font's own list is walked from the start for every lookup
+        private HashSet<char>? _characters;
+
         internal SpriteFontAdapter(SpriteFont spriteFont)
         {
             _spriteFont = spriteFont;
@@ -30,6 +33,13 @@ namespace Parchment.Framework.UI.Fonts
         public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale)
         {
             Utility.drawTextWithColoredShadow(spriteBatch, text, _spriteFont, position, color, shadowColor, scale);
+        }
+
+        public bool CanDraw(char character)
+        {
+            _characters ??= new HashSet<char>(_spriteFont.Characters);
+
+            return _characters.Contains(character);
         }
     }
 }

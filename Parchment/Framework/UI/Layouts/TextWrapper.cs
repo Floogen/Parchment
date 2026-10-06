@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
-using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.Utilities.Helpers;
@@ -173,6 +172,7 @@ namespace Parchment.Framework.UI.Layouts
             }
 
             element.TypewriterEffects = CollectTypewriters(styledText);
+            ResolveScrambleGlyphs(styledText, font, text);
             RecordLinkTextEnds(element, styledText);
 
             return Wrap(styledText, font, maxWidth, scale);
@@ -200,8 +200,63 @@ namespace Parchment.Framework.UI.Layouts
             return typewriters is null ? Array.Empty<TextEffect>() : typewriters.Values.ToList();
         }
 
+        /// <summary>Narrows each scramble's glyphs to the ones the font can draw, so a random glyph never comes out as the font's stand-in for a character it lacks.
+        /// None left falls back to the default set, narrowed the same way.
+        /// </summary>
+        private static void ResolveScrambleGlyphs(StyledText styledText, IFont font, string? source)
+        {
+            HashSet<TextEffect>? resolved = null;
+
+            foreach (EffectRun run in styledText.EffectRuns)
+            {
+                foreach (TextEffect effect in run.Effects)
+                {
+                    if (effect.Scramble is not ScrambleOptions scramble)
+                    {
+                        continue;
+                    }
+
+                    resolved ??= new HashSet<TextEffect>();
+                    if (resolved.Add(effect) is false)
+                    {
+                        continue;
+                    }
+
+                    List<string> glyphs = GetDrawableGlyphs(scramble.Glyphs, font);
+
+                    if (glyphs.Count < scramble.Glyphs.Length)
+                    {
+                        Parchment.monitor.LogOnce($"'{source}' has a [scramble] glyph set of '{scramble.Glyphs}' holding characters its font can't draw, so they were left out.", LogLevel.Warn);
+                    }
+
+                    if (glyphs.Count is 0)
+                    {
+                        glyphs = GetDrawableGlyphs(TextMarkupHelper.DEFAULT_SCRAMBLE_GLYPHS, font);
+                    }
+
+                    effect.ScrambleGlyphs = glyphs;
+                }
+            }
+        }
+
+        /// <summary>Each character of a glyph set the font can draw, as its own string, keeping repeats so they still weigh the pick.</summary>
+        private static List<string> GetDrawableGlyphs(string glyphs, IFont font)
+        {
+            List<string> drawableGlyphs = new List<string>(glyphs.Length);
+
+            foreach (char glyph in glyphs)
+            {
+                if (glyph == ' ' || font.CanDraw(glyph))
+                {
+                    drawableGlyphs.Add(glyph.ToString());
+                }
+            }
+
+            return drawableGlyphs;
+        }
+
         /// <summary>Notes where each of the element's links ends in its text, which is what a typewriter is checked against before the link can be reached.
-        /// Also notes whether all of a link's text is redacted, which keeps it out of reach for as long as the text stays hidden.
+        /// Also notes whether all of a link's text is redacted or scrambled, which keeps it out of reach for as long as the text stays hidden.
         /// </summary>
         private static void RecordLinkTextEnds(Element element, StyledText styledText)
         {
@@ -217,7 +272,7 @@ namespace Parchment.Framework.UI.Layouts
                 {
                     Element link = element.Children[run.Occurrence];
                     link.LinkTextEnd = Math.Max(link.LinkTextEnd, run.End);
-                    link.IsRedacted &= IsRedacted(styledText, run.Start, run.End);
+                    link.IsRedacted &= IsHidden(element, styledText, run.Start, run.End);
                 }
             }
 
@@ -231,8 +286,8 @@ namespace Parchment.Framework.UI.Layouts
             }
         }
 
-        /// <summary>Whether every character from start to end sits under a [redact].</summary>
-        private static bool IsRedacted(StyledText styledText, int start, int end)
+        /// <summary>Whether every character from start to end sits under a [redact] or a [scramble] that is hiding its text.</summary>
+        private static bool IsHidden(Element element, StyledText styledText, int start, int end)
         {
             int covered = start;
 
@@ -243,7 +298,7 @@ namespace Parchment.Framework.UI.Layouts
                     continue;
                 }
 
-                if (TextEffectHelper.HasEffect(run.Effects, TextEffectType.Redact) is false)
+                if (run.Effects.Any(effect => TextEffectHelper.IsHiding(element, effect)) is false)
                 {
                     return false;
                 }

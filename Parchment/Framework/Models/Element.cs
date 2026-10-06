@@ -66,6 +66,14 @@ namespace Parchment.Framework.Models
         /// <summary>Whether each of <see cref="InlineConditions"/> passes, refreshed alongside the element's own Condition. A change lays the text out again so the tags follow it.</summary>
         public List<bool> InlineConditionResults { get; } = new List<bool>();
 
+        /// <summary>When each of <see cref="InlineConditionResults"/> last changed, on the animation clock, which is what a [scramble] settles from. Null when it hasn't changed since it was first checked,
+        /// or changed while the element wasn't on screen, so text the reader never saw scrambled doesn't settle in front of them.
+        /// </summary>
+        public List<double?> InlineConditionChangedAt { get; } = new List<double?>();
+
+        /// <summary>When this element's text was last drawn, on the animation clock, which is how a change to one of its conditions is told to have happened in front of the reader.</summary>
+        public double LastDrawnAt { get; set; } = double.MinValue;
+
         /// <summary>The container this element sits inside, whether as a child or in one of its layers. Null for anything at the top of a page or a book's Underlay and Overlay.
         /// Set once when the element is created, so it always points into the same book rather than following an element that was carried across a refresh.
         /// </summary>

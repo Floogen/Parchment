@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Enums;
+using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Layouts;
 using StardewValley;
@@ -27,6 +28,9 @@ namespace Parchment.Framework.Utilities.Helpers
         // A translucent marker yellow, written already faded by its own alpha the way a parsed color is
         private static readonly Color _defaultHighlightColor = new Color(255, 220, 90) * 0.45f;
 
+        // Scramble glyph widths by font, glyph and scale, filled as they're first drawn
+        private static readonly Dictionary<(IFont Font, string Glyph, float Scale), float> _glyphWidths = new Dictionary<(IFont Font, string Glyph, float Scale), float>();
+
         public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale)
         {
             // Every text element draws through here, so this is the only place text has to be told about a fade
@@ -37,6 +41,9 @@ namespace Parchment.Framework.Utilities.Helpers
 
             // Read once for the whole element, so every moving character on it is drawn at the same moment
             double effectTime = AnimationHelper.GetAnimationTime();
+
+            // Noted so a condition that changes while the reader is looking can be told apart from one that changed off screen
+            element.LastDrawnAt = effectTime;
 
             float currentY = bounds.Y;
             foreach (WrappedLine line in wrappedText.Lines)
@@ -148,7 +155,19 @@ namespace Parchment.Framework.Utilities.Helpers
                         effectOffset += TextEffectHelper.GetOffset(hoverEffects, position, hoverTime, scale) * hoverStrength;
                     }
 
-                    Vector2 characterPosition = new Vector2(linePosition.X + segment.CharacterOffsets[index] + effectOffset.X, linePosition.Y + effectOffset.Y);
+                    float characterX = segment.CharacterOffsets[index];
+                    string drawnCharacter = character;
+
+                    // A scrambled character shows a random glyph centred in the room its real one was laid out with, so a wider glyph spills evenly rather than into one neighbour
+                    if (segment.Effects is not null && TextEffectHelper.TryGetScrambleGlyph(element, segment.Effects, position, effectTime, out string glyph))
+                    {
+                        float slotWidth = (index + 1 < segment.CharacterOffsets.Count ? segment.CharacterOffsets[index + 1] : segment.OffsetX + segment.Width) - characterX;
+
+                        characterX += (slotWidth - GetGlyphWidth(element.Font!, glyph, scale)) / 2f;
+                        drawnCharacter = glyph;
+                    }
+
+                    Vector2 characterPosition = new Vector2(linePosition.X + characterX + effectOffset.X, linePosition.Y + effectOffset.Y);
 
                     Color characterColor = segmentColor;
                     Color characterShadowColor = segmentShadowColor;
@@ -161,7 +180,7 @@ namespace Parchment.Framework.Utilities.Helpers
                     }
 
                     // Faded together with its shadow, so a character fading in doesn't leave its shadow standing at full strength behind it
-                    element.Font!.DrawString(spriteBatch, character, characterPosition, characterColor * revealAlpha, characterShadowColor * revealAlpha, scale);
+                    element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * revealAlpha, characterShadowColor * revealAlpha, scale);
                 }
 
                 DrawDecorations(spriteBatch, decoration, segment.Effects, 1f, isBehindText: false);
@@ -219,6 +238,20 @@ namespace Parchment.Framework.Utilities.Helpers
                     spriteBatch.Draw(Game1.staminaRect, drawnArea, color * strength);
                 }
             }
+        }
+
+        /// <summary>How wide a scramble glyph draws, measured once per font and scale and kept, as the same few glyphs are measured every frame while text is scrambled.</summary>
+        private static float GetGlyphWidth(IFont font, string glyph, float scale)
+        {
+            (IFont Font, string Glyph, float Scale) key = (font, glyph, scale);
+
+            if (_glyphWidths.TryGetValue(key, out float width) is false)
+            {
+                width = font.MeasureString(glyph, scale).X;
+                _glyphWidths[key] = width;
+            }
+
+            return width;
         }
 
         /// <summary>How much of a segment its decorations span, being all of it unless a typewriter is still revealing it, in which case they stop where the revealed text does.</summary>

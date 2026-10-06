@@ -13,6 +13,7 @@
         Underline,
         Strike,
         Highlight,
-        Redact
+        Redact,
+        Scramble
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
+using Parchment.Framework.Models;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.UI.Layouts;
 using System;
@@ -16,6 +17,9 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // How long a link's hover effects take to ease in from rest once the cursor arrives, which keeps a wave from appearing mid-cycle
         public const float HOVER_EFFECT_EASE_IN_DURATION = 150f;
+
+        // The hash axis scramble picks its glyphs on, apart from the two a shake moves along, so a shaking scramble doesn't change glyph in step with its jumps
+        private const int SCRAMBLE_HASH_AXIS = 2;
 
         // The game's own rainbow from SparklingText, which hands each character the next color along
         private static readonly Color[] _rainbowColors = new Color[] { Color.Red, Color.Orange, Color.Yellow, Color.Chartreuse, Color.Green, Color.Cyan, Color.Blue, Color.Violet };
@@ -131,6 +135,61 @@ namespace Parchment.Framework.Utilities.Helpers
             return false;
         }
 
+        /// <summary>The random glyph a scrambled character shows right now, from the innermost scramble over it that is still hiding it. False when none is, so the real character is drawn.</summary>
+        /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
+        public static bool TryGetScrambleGlyph(Element element, IReadOnlyList<TextEffect> effects, int position, double time, out string glyph)
+        {
+            for (int index = effects.Count - 1; index >= 0; index--)
+            {
+                TextEffect effect = effects[index];
+
+                if (effect.Scramble is not ScrambleOptions scramble || effect.ScrambleGlyphs.Count is 0 || IsScrambled(element, effect, scramble, position, time) is false)
+                {
+                    continue;
+                }
+
+                long slot = (long)Math.Floor(time / scramble.Period);
+
+                glyph = effect.ScrambleGlyphs[(int)(GetHash(position, slot, SCRAMBLE_HASH_AXIS) % (uint)effect.ScrambleGlyphs.Count)];
+                return true;
+            }
+
+            glyph = string.Empty;
+            return false;
+        }
+
+        /// <summary>Whether a scramble is hiding its text as a whole right now, being always for one without a condition and while its condition passes otherwise.
+        /// Read at layout to keep a link the cursor can't read out of its reach, so it doesn't count a scramble that is partway through settling.
+        /// </summary>
+        public static bool IsHiding(Element element, TextEffect effect)
+        {
+            if (effect.Scramble is not ScrambleOptions scramble)
+            {
+                return effect.Type is TextEffectType.Redact;
+            }
+
+            return scramble.ConditionIndex is not int conditionIndex || conditionIndex >= element.InlineConditionResults.Count || element.InlineConditionResults[conditionIndex];
+        }
+
+        /// <summary>Whether one character of a scramble is still hidden. Once its condition stops passing the characters lock into place one after another, each a settle duration behind the one before it.
+        /// A change the reader wasn't there to see has no time recorded, so the text is simply real.
+        /// </summary>
+        private static bool IsScrambled(Element element, TextEffect effect, ScrambleOptions scramble, int position, double time)
+        {
+            if (IsHiding(element, effect))
+            {
+                return true;
+            }
+
+            int conditionIndex = scramble.ConditionIndex!.Value;
+            if (conditionIndex >= element.InlineConditionChangedAt.Count || element.InlineConditionChangedAt[conditionIndex] is not double changedAt)
+            {
+                return false;
+            }
+
+            return time < changedAt + (position - effect.Start + 1) * scramble.SettleDuration;
+        }
+
         /// <summary>How strongly a link's hover effects apply, rising from none when the cursor arrives to all of them once they've eased in.</summary>
         /// <param name="hoverTime">How long the cursor has been over the link, in milliseconds.</param>
         public static float GetHoverStrength(double hoverTime)
@@ -219,13 +278,19 @@ namespace Parchment.Framework.Utilities.Helpers
         /// </summary>
         private static float GetNoise(int position, long slot, int axis)
         {
+            return GetHash(position, slot, axis) / (float)uint.MaxValue * 2f - 1f;
+        }
+
+        /// <summary>A number that is always the same for the same character, step and axis, which every random looking effect is drawn from. The axis keeps two effects on the same character from moving in step.</summary>
+        private static uint GetHash(int position, long slot, int axis)
+        {
             unchecked
             {
                 uint hash = (uint)position * 374761393u + (uint)slot * 668265263u + (uint)axis * 2246822519u;
                 hash = (hash ^ (hash >> 13)) * 1274126177u;
                 hash ^= hash >> 16;
 
-                return hash / (float)uint.MaxValue * 2f - 1f;
+                return hash;
             }
         }
 

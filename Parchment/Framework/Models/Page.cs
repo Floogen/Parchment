@@ -25,6 +25,9 @@ namespace Parchment.Framework.Models
         /// <summary>A height no page will ever reach, used to stop <see cref="MeasureStack"/> clipping. Kept well short of <see cref="float.MaxValue"/> so the subtraction a container does for its children can't overflow.</summary>
         private const float UNBOUNDED_MEASURE_HEIGHT = 1000000f;
 
+        // How recently an element has to have been drawn to count as on screen when one of its tag conditions changes, in milliseconds. Comfortably longer than a frame, shorter than a page turn
+        private const double ON_SCREEN_WINDOW = 500d;
+
         public PageData Data { get; }
 
         /// <summary>This page's 0-based position within the book, which is what a <see cref="Enums.ElementType.PageNumber"/> element renders (as a 1-based number).</summary>
@@ -206,6 +209,10 @@ namespace Parchment.Framework.Models
             }
 
             bool hasChanged = element.InlineConditionResults.Count != element.InlineConditions.Count;
+            double time = AnimationHelper.GetAnimationTime();
+
+            // Drawn a moment ago means the reader is looking at it, so a change now is one they get to watch
+            bool isOnScreen = time - element.LastDrawnAt <= ON_SCREEN_WINDOW;
 
             for (int index = 0; index < element.InlineConditions.Count; index++)
             {
@@ -213,12 +220,18 @@ namespace Parchment.Framework.Models
 
                 if (index < element.InlineConditionResults.Count)
                 {
-                    hasChanged |= element.InlineConditionResults[index] != isMet;
+                    if (element.InlineConditionResults[index] != isMet)
+                    {
+                        hasChanged = true;
+                        element.InlineConditionChangedAt[index] = isOnScreen ? time : null;
+                    }
+
                     element.InlineConditionResults[index] = isMet;
                 }
                 else
                 {
                     element.InlineConditionResults.Add(isMet);
+                    element.InlineConditionChangedAt.Add(null);
                 }
             }
 

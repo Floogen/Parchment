@@ -1,4 +1,6 @@
-﻿namespace Parchment.Framework.Models
+using System.Collections.Generic;
+
+namespace Parchment.Framework.Models
 {
     /// <summary>How far along one [typewriter] in an element's text is. Kept on the element rather than the effect, as the effect is rebuilt whenever the text is laid out while the typing carries on.</summary>
     public class TypingState

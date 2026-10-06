@@ -38,6 +38,14 @@ namespace Parchment.Framework.UI.Fonts
             }
         }
 
+        /// <summary>Whether SpriteText has a sprite of its own for the character. Its sprites are laid out by character code over the printable ASCII range, so anything outside that is treated as one it can't draw.
+        /// A language that loads its own SpriteText font may draw more, which this doesn't try to read, so it errs on the side of a glyph set that stays drawable everywhere.
+        /// </summary>
+        public bool CanDraw(char character)
+        {
+            return character >= ' ' && character <= '~';
+        }
+
         // TextColor and ShadowColor do nothing for SpriteText, which draws its own outline, though how strongly to draw it still comes from the color's alpha
         public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale)
         {
