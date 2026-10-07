@@ -97,7 +97,7 @@ namespace Parchment.Framework.Utilities.Helpers
             return effectType is TextEffectType.Underline or TextEffectType.Strike or TextEffectType.Highlight or TextEffectType.Redact;
         }
 
-        /// <summary>Whether any of the effects works on each character on its own, which is what has a segment drawn a character at a time. Decorations don't count.</summary>
+        /// <summary>Whether any of the effects works on each character on its own, which is what has a segment drawn a character at a time. Decorations and bold don't count, as both can draw a segment whole.</summary>
         public static bool HasCharacterEffects(IReadOnlyList<TextEffect>? effects)
         {
             if (effects is null)
@@ -107,13 +107,44 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
-                if (IsDecoration(effect.Type) is false)
+                if (IsDecoration(effect.Type) is false && effect.Type is not TextEffectType.Bold)
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        /// <summary>How far a bold shifts its second copy of the text, in screen pixels, being the strongest bold among the effects and a hovered link's hover effects. Zero when there is none.
+        /// Bolds that nest don't add up, as a shift wider than a stroke would split the letters into two rather than thicken them.
+        /// </summary>
+        /// <param name="hoverEffects">A hovered link's hover effects (null when there are none). A hover bold has no size to grow through, so it applies in full from the moment the cursor arrives.</param>
+        /// <param name="scale">The text's scale, which a bold's strength is multiplied by.</param>
+        public static int GetBoldness(IReadOnlyList<TextEffect>? effects, IReadOnlyList<TextEffect>? hoverEffects, float scale)
+        {
+            return Math.Max(GetBoldness(effects, scale), GetBoldness(hoverEffects, scale));
+        }
+
+        private static int GetBoldness(IReadOnlyList<TextEffect>? effects, float scale)
+        {
+            int boldness = 0;
+
+            if (effects is null)
+            {
+                return boldness;
+            }
+
+            foreach (TextEffect effect in effects)
+            {
+                if (effect.Type is TextEffectType.Bold)
+                {
+                    // Whole pixels and never less than one, so a small scale still shows the bold rather than rounding it away
+                    boldness = Math.Max(boldness, Math.Max(1, (int)Math.Round(effect.Amplitude * scale)));
+                }
+            }
+
+            return boldness;
         }
 
         /// <summary>Whether any of the effects is of the given type.</summary>

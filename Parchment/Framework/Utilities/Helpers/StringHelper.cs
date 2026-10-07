@@ -81,6 +81,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// A segment under an effect is drawn a character at a time, each moved from where it was laid out along with its shadow.
         /// An effect that colors, such as a rainbow or a pulse, starts from the segment's own color but leaves a hovered link's alone, so the link still shows the cursor is on it.
         /// A hovered link's own hover effects apply last, timed from the cursor's arrival and eased in, with any color they set starting from the link's hover color.
+        /// A bold draws the segment's text twice, the second copy shifted right, which works the same whether the segment is drawn whole or a character at a time.
         /// A character a typewriter hasn't reached yet is left out. One it is fading in is drawn at the strength it has reached.
         /// </summary>
         /// <param name="keepsOwnColor">Whether the font ignores the colors it's handed, as SpriteText does, in which case every segment takes the element's own.</param>
@@ -106,6 +107,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 double hoverTime = hoverEffects is null ? 0d : effectTime - link!.HoverAnimationStartedAt;
                 float hoverStrength = hoverEffects is null ? 0f : TextEffectHelper.GetHoverStrength(hoverTime);
+                int boldness = TextEffectHelper.GetBoldness(segment.Effects, hoverEffects, scale);
 
                 DecorationContext decoration = new DecorationContext(element, segment, linePosition, lineHeight, segmentColor, scale, GetDecorationWidth(element, segment, effectTime));
 
@@ -122,7 +124,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 if (hasCharacterEffects is false || segment.Characters is null || segment.CharacterOffsets is null)
                 {
-                    element.Font!.DrawString(spriteBatch, segment.Text, new Vector2(linePosition.X + segment.OffsetX, linePosition.Y), segmentColor, segmentShadowColor, scale);
+                    element.Font!.DrawString(spriteBatch, segment.Text, new Vector2(linePosition.X + segment.OffsetX, linePosition.Y), segmentColor, segmentShadowColor, scale, boldness);
 
                     DrawDecorations(spriteBatch, decoration, segment.Effects, 1f, isBehindText: false);
                     DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength, isBehindText: false);
@@ -180,7 +182,7 @@ namespace Parchment.Framework.Utilities.Helpers
                     }
 
                     // Faded together with its shadow, so a character fading in doesn't leave its shadow standing at full strength behind it
-                    element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * revealAlpha, characterShadowColor * revealAlpha, scale);
+                    element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * revealAlpha, characterShadowColor * revealAlpha, scale, boldness);
                 }
 
                 DrawDecorations(spriteBatch, decoration, segment.Effects, 1f, isBehindText: false);

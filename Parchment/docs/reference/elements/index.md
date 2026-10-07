@@ -266,6 +266,7 @@ These tags move or recolor each character of the text they wrap, without changin
 | `[highlight]` | Draws a marker box behind the text. | color | a soft yellow |
 | `[redact]` | Covers the text with a solid bar, hiding it while keeping its width. | color | the text's color |
 | `[scramble]` | Shows random glyphs in place of the text until its condition stops passing, then locks the real characters into place. See [Scramble](#scramble). | period and options | `80` |
+| `[bold]` | Thickens the text by drawing it a second time, shifted to the right. See [Bold](#bold). | strength | `1` |
 
 ```json
 {
@@ -311,6 +312,24 @@ Each takes one optional color, such as `[highlight=255 200 200 128]` or `[underl
 - **Typewriters.** Under a typewriter, a decoration grows along with the text it covers rather than appearing ahead of it.
 - **Hover effects.** `[underline]`, `[strike]` and `[highlight]` work as a link's [hover effects](#hover-effects), so `"HoverEffect": "underline"` underlines a link while the cursor is on it. `[redact]` doesn't, as it would hide the very text the cursor is on (and neither does `[scramble]`).
 - **Fonts.** Decorations are drawn by Parchment rather than the font, so they work in `SpriteText` too. Give them a color there, as `SpriteText` draws its letters in its own color rather than the element's.
+
+### Bold
+
+`[bold]` thickens the text it wraps.
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "Only [bold]one[/bold] legendary fish lives in each spot."
+}
+```
+
+- **Strength.** It takes one optional whole number, being how far the second copy is shifted in unscaled pixels multiplied by the text's scale. `[bold=2]` is heavier than the default of `1`. A strength that isn't a positive whole number keeps the default with a warning.
+- **Layout.** Bold only changes the drawing. The text keeps the width it was laid out with, so its last letter reaches a pixel or two past it.
+- **Translucent text.** The two copies overlap, so text that isn't fully opaque looks more solid than it would on its own. That shows on a translucent color such as `255 0 0 128`, on an element fading in or out and on a typewriter that fades its characters in. Text at full strength looks as it should.
+- **Combining.** Bold works inside and around every other effect. Bolds nested inside one another don't add up, so the strongest applies.
+- **Hover effects.** Bold works as a link's [hover effect](#hover-effects), so `"HoverEffect": "bold"` thickens a link while the cursor is on it.
+- **Fonts.** Bold works in every font, `SpriteText` included. A `SpriteText` letter is built from pixels a few screen pixels wide, so it may take a higher strength such as `[bold=3]` to show.
 
 ### Scramble
 
@@ -427,7 +446,7 @@ A link's `HoverEffect` and `HoverEffects` apply [text effects](#text-effects) to
 }
 ```
 
-- **Easing in.** The effects start from rest when the cursor arrives and grow to full size over a moment, so a wave never appears mid-cycle. They stop as soon as the cursor leaves.
+- **Easing in.** The effects start from rest when the cursor arrives and grow to full size over a moment, so a wave never appears mid-cycle. A bold has no size to grow through, so it applies in full straight away. They all stop as soon as the cursor leaves.
 - **Order.** Hover effects apply after any effects written in the text itself, so they stack on top. A coloring hover effect starts from the link's `HoverTextColor` when one is set, so `HoverTextColor: White` with `pulse=Gold` fades between white and gold.
 - **Whole link.** Each effect covers the whole of the link's text, so a gradient spreads across all of it, even when a link nested inside cuts it in two.
 - **Interactivity.** A link with hover effects is reachable by the cursor even when it has no tooltip or action.

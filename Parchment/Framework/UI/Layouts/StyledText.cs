@@ -101,7 +101,7 @@ namespace Parchment.Framework.UI.Layouts
     {
         public TextEffectType Type { get; }
 
-        /// <summary>How far the effect moves a character, in unscaled pixels multiplied by the text's scale.</summary>
+        /// <summary>How far the effect moves a character (or how far a bold shifts its second copy of the text), in unscaled pixels multiplied by the text's scale.</summary>
         public float Amplitude { get; }
 
         /// <summary>How long one cycle of the effect takes, in milliseconds.</summary>

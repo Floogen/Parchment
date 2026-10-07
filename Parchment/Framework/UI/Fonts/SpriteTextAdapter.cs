@@ -47,25 +47,38 @@ namespace Parchment.Framework.UI.Fonts
         }
 
         // TextColor and ShadowColor do nothing for SpriteText, which draws its own outline, though how strongly to draw it still comes from the color's alpha
-        public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale)
+        public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale, int boldness = 0)
         {
             float previousFontPixelZoom = SpriteText.fontPixelZoom;
             SpriteText.fontPixelZoom = previousFontPixelZoom * scale;
 
             try
             {
-                float currentY = position.Y;
                 float alpha = color.A / 255f;
 
-                foreach (string line in text.Split('\n'))
+                DrawLines(spriteBatch, text, position, alpha);
+
+                // SpriteText's outline is part of each letter, so the second copy simply goes over the first, its own outline landing on the side it was shifted towards
+                if (boldness > 0)
                 {
-                    SpriteText.drawString(spriteBatch, line, (int)position.X, (int)currentY, alpha: alpha);
-                    currentY += SpriteText.getHeightOfString(line);
+                    DrawLines(spriteBatch, text, position + new Vector2(boldness, 0f), alpha);
                 }
             }
             finally
             {
                 SpriteText.fontPixelZoom = previousFontPixelZoom;
+            }
+        }
+
+        /// <summary>Draws each line of the text below the one before it, at whatever pixel zoom the caller has already set.</summary>
+        private static void DrawLines(SpriteBatch spriteBatch, string text, Vector2 position, float alpha)
+        {
+            float currentY = position.Y;
+
+            foreach (string line in text.Split('\n'))
+            {
+                SpriteText.drawString(spriteBatch, line, (int)position.X, (int)currentY, alpha: alpha);
+                currentY += SpriteText.getHeightOfString(line);
             }
         }
     }

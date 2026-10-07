@@ -14,6 +14,7 @@
         Strike,
         Highlight,
         Redact,
-        Scramble
+        Scramble,
+        Bold
     }
 }

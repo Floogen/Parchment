@@ -43,6 +43,7 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_SCRAMBLE_PERIOD = 80f;
         public const float DEFAULT_SCRAMBLE_SETTLE = 40f;
         public const string DEFAULT_SCRAMBLE_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        public const int DEFAULT_BOLD_STRENGTH = 1;
 
         private const string SCRAMBLE_GLYPHS_OPTION = "glyphs";
         private const string SCRAMBLE_SETTLE_OPTION = "settle";
@@ -63,7 +64,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER };
 
@@ -476,7 +477,7 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a rainbow takes only its period,
-        /// a gradient takes its colors and a pulse takes its color and then its period. A color keeps any spaces of its own.
+        /// a gradient takes its colors, a pulse takes its color and then its period and a bold takes its strength. A color keeps any spaces of its own.
         /// A part that is left off or won't parse keeps its default.
         /// </summary>
         private static OpenedEffect ParseEffect(TextEffectType effectType, string? value, string source)
@@ -499,6 +500,9 @@ namespace Parchment.Framework.Utilities.Helpers
                     return new OpenedEffect(effectType, 0f, 0f, ParseDecorationColor(parts, tag, source));
                 case TextEffectType.Scramble:
                     return new OpenedEffect(effectType, 0f, 0f, Array.Empty<Color>()) { Scramble = ParseScramble(parts, tag, source) };
+                case TextEffectType.Bold:
+                    // Kept in the amplitude, being how far the second copy of the text is shifted
+                    return new OpenedEffect(effectType, ParseBoldStrength(parts, tag, source), 0f, Array.Empty<Color>());
                 case TextEffectType.Shake:
                     return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_SHAKE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_SHAKE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
                 case TextEffectType.Bounce:
@@ -582,6 +586,28 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return new ScrambleOptions(period, glyphs, settle);
+        }
+
+        /// <summary>Reads a bold's optional strength, being how far its second copy of the text is shifted in unscaled pixels. Left off (or one that isn't a positive whole number), it is <see cref="DEFAULT_BOLD_STRENGTH"/>.</summary>
+        private static float ParseBoldStrength(string[] parts, string tag, string source)
+        {
+            if (parts.Length is 0)
+            {
+                return DEFAULT_BOLD_STRENGTH;
+            }
+
+            if (parts.Length > 1)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than one part, so everything after its strength was ignored.", LogLevel.Warn);
+            }
+
+            if (int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int strength) && strength > 0)
+            {
+                return strength;
+            }
+
+            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] strength of '{parts[0]}', which isn't a positive whole number of pixels, so the default of {DEFAULT_BOLD_STRENGTH} is used.{GetSeparatorHint(parts[0], tag)}", LogLevel.Warn);
+            return DEFAULT_BOLD_STRENGTH;
         }
 
         /// <summary>Reads a pause's optional length in milliseconds. Left off (or one that won't parse), it holds for <see cref="DEFAULT_PAUSE_DURATION"/>.</summary>
