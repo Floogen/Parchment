@@ -456,11 +456,15 @@ Its value takes two numbers and then any options, all separated by `|` and all o
 | first number | Milliseconds each character takes to appear. | `30` |
 | second number | Milliseconds to wait before the first character. | `0` |
 | `immediate` | Start as soon as the text is on screen instead of waiting for the typewriters before it. | waits its turn |
-| `fade` or `fade=milliseconds` | Fade each character in instead of popping it in. A bare `fade` takes 100 milliseconds. | pops in |
+| `fade` or `fade=milliseconds` | Fade each character in instead of showing it at once. A bare `fade` takes 100 milliseconds. | shows at once |
+| `drop` or `drop=milliseconds` | Have each character fall a short way into place as it appears. A bare `drop` takes 200 milliseconds. | appears in place |
+| `pop` or `pop=milliseconds` | Have each character shrink into place from oversized as it appears. A bare `pop` takes 200 milliseconds. | appears at its size |
 | `sound=cue` | Play a sound cue as characters appear, such as `sound=dialogueCharacter` for the game's own typing sound. | no sound |
 | `condition=query` | Type only when a [game state query](../../concepts/conditions.md) passes, checked once when the typewriter would start. When it fails the text shows in full at once. See [Tag conditions](#tag-conditions). | always types |
 
 So `[typewriter=20|500|fade|sound=dialogueCharacter]` waits half a second, then types quickly with each character fading in to the game's typing sound.
+
+`fade`, `drop` and `pop` can be used together, so `[typewriter=40|fade=300|drop=300]` has each character fade in as it falls. A typewriter counts as finished once its last character has settled, so whatever waits on it (the typewriters after it and its [typed actions](#typed-actions)) waits for the longest of the three.
 
 - **When it starts.** A typewriter on a page starts once its spread has settled into view, after any page turn. One in an element that's hidden until a `Condition` passes or a `ShowElement` names it starts when that element appears instead. One on the book's own `Underlay` or `Overlay` starts when the book first settles, open or on its cover.
 - **Order.** Typewriters on a spread type one after another in the order they're drawn, left page then right, so the spread reads like it's being written. Each waits for the one before it to finish, plus its own delay. `immediate` starts one alongside the others instead, without holding up the ones after it. A hidden element doesn't hold the others up either.
@@ -468,7 +472,7 @@ So `[typewriter=20|500|fade|sound=dialogueCharacter]` waits half a second, then 
 - **Skipping.** While anything on screen is still typing, a click (or a controller's confirm button) finishes all of it at once and does nothing else, the same as the game's dialogue. It doesn't also press the button it landed on or turn the page. Keybinds are unaffected.
 - **Links.** A link in text that hasn't been typed out yet can't be reached by the cursor or a controller until all of its text is showing.
 - **Sound.** Only one cue plays at a time however many typewriters are revealing at once. It follows the player's own typing sound option, the same as the game's dialogue.
-- **Layout.** The text takes its full space from the start, so lines never reflow as they fill in.
+- **Layout.** The text takes its full space from the start, so lines never reflow as they fill in. A dropping or popping character moves within that space, overlapping its neighbours for a moment rather than nudging them.
 - **Combining.** Other effects work inside and around a typewriter, so `[typewriter][wave]...[/wave][/typewriter]` waves each character as it appears. A typewriter can't be a link's [hover effect](#hover-effects), as it reveals text once rather than coming and going with the cursor.
 
 #### Pauses

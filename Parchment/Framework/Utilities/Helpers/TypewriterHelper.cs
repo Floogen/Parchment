@@ -12,6 +12,12 @@ namespace Parchment.Framework.Utilities.Helpers
     /// </summary>
     public static class TypewriterHelper
     {
+        // How far above its resting place a dropping character starts, in unscaled pixels multiplied by the text's scale
+        public const float TYPEWRITER_DROP_HEIGHT = 6f;
+
+        // How large a popping character starts, as a multiple of its own size
+        public const float TYPEWRITER_POP_SCALE = 1.8f;
+
         /// <summary>Whether an element's authored text holds a typewriter, which is what puts it on its page's or book's list to be scheduled.</summary>
         public static bool HasTypewriterText(Element element)
         {
@@ -237,6 +243,51 @@ namespace Parchment.Framework.Utilities.Helpers
             return (float)Math.Clamp((time - appearsAt) / typing.FadeDuration, 0d, 1d);
         }
 
+        /// <summary>How a character is still moving into place after its typewriter revealed it, taken from whichever typewriter over it has the most of its drop or pop left.
+        /// Both ease out, quick at first and slowing as they land, so a character settles rather than stopping with a jolt. A character that has settled (or was finished with a click) is at rest.
+        /// </summary>
+        /// <param name="dropHeight">How far above its resting place to draw the character, in unscaled pixels multiplied by the text's scale.</param>
+        /// <param name="popScale">How much larger than its size to draw the character, being 1 once it has settled.</param>
+        public static void GetRevealMotion(Element element, IReadOnlyList<TextEffect> effects, int position, double time, out float dropHeight, out float popScale)
+        {
+            float dropRemaining = 0f;
+            float popRemaining = 0f;
+
+            foreach (TextEffect effect in effects)
+            {
+                if (effect.Typing is not TypingOptions typing)
+                {
+                    continue;
+                }
+
+                dropRemaining = Math.Max(dropRemaining, GetRemainingMotion(element, effect, typing, position, time, typing.DropDuration));
+                popRemaining = Math.Max(popRemaining, GetRemainingMotion(element, effect, typing, position, time, typing.PopDuration));
+            }
+
+            dropHeight = TYPEWRITER_DROP_HEIGHT * dropRemaining;
+            popScale = 1f + (TYPEWRITER_POP_SCALE - 1f) * popRemaining;
+        }
+
+        /// <summary>How much of a character's reveal motion is left, from 1 as it appears to 0 once it has settled, already eased out. 0 for a motion the typewriter doesn't use.</summary>
+        private static float GetRemainingMotion(Element element, TextEffect effect, TypingOptions typing, int position, double time, float duration)
+        {
+            if (duration <= 0f || element.TypingStates.TryGetValue(effect.TypingOrdinal, out TypingState? state) is false || state.StartTime is not double start)
+            {
+                return 0f;
+            }
+
+            if (state.IsComplete || state.IsInstant)
+            {
+                return 0f;
+            }
+
+            double appearsAt = GetAppearTime(effect, typing, state, position - effect.Start);
+            float progress = (float)Math.Clamp((time - appearsAt) / duration, 0d, 1d);
+
+            // Squared, which eases the motion out so it slows as it lands
+            return (1f - progress) * (1f - progress);
+        }
+
         private static bool IsRevealed(Element element, int position, double time)
         {
             foreach (TextEffect effect in element.TypewriterEffects)
@@ -250,10 +301,10 @@ namespace Parchment.Framework.Utilities.Helpers
             return true;
         }
 
-        /// <summary>When a typewriter's last character has fully appeared, counting every pause that holds. A pause after the last character still counts, so whatever waits on the typewriter waits for it too.</summary>
+        /// <summary>When a typewriter's last character has fully appeared and settled, counting every pause that holds. A pause after the last character still counts, so whatever waits on the typewriter waits for it too.</summary>
         private static double GetEndTime(TextEffect effect, TypingOptions typing, TypingState state)
         {
-            return state.StartTime!.Value + Math.Max(0, effect.Length - 1) * typing.Speed + GetPauseDelay(effect, state, int.MaxValue) + typing.FadeDuration;
+            return state.StartTime!.Value + Math.Max(0, effect.Length - 1) * typing.Speed + GetPauseDelay(effect, state, int.MaxValue) + typing.SettleDuration;
         }
 
         /// <summary>When one of a typewriter's characters appears, held back by every pause before it that holds.</summary>

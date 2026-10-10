@@ -212,6 +212,16 @@ namespace Parchment.Framework.Utilities.Helpers
 
                     Vector2 effectOffset = segment.Effects is null ? Vector2.Zero : TextEffectHelper.GetOffset(segment.Effects, position, effectTime, scale);
 
+                    // A typewriter that drops or pops its characters in is still settling this one into place
+                    float revealDrop = 0f;
+                    float revealPop = 1f;
+
+                    if (segment.Effects is not null)
+                    {
+                        TypewriterHelper.GetRevealMotion(element, segment.Effects, position, effectTime, out revealDrop, out revealPop);
+                        effectOffset.Y -= revealDrop * scale;
+                    }
+
                     if (hoverEffects is not null)
                     {
                         effectOffset += TextEffectHelper.GetOffset(hoverEffects, position, hoverTime, scale) * hoverStrength;
@@ -245,6 +255,7 @@ namespace Parchment.Framework.Utilities.Helpers
                         popScale *= MathHelper.Lerp(1f, TextEffectHelper.GetScale(hoverEffects, position, hoverTime), hoverStrength);
                     }
 
+                    popScale *= revealPop;
                     float characterScale = scale * popScale;
 
                     // Grown about its own center, so a popping letter swells in place rather than spreading right and down

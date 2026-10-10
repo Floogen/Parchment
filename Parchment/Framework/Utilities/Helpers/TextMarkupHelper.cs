@@ -43,6 +43,8 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_PULSE_PERIOD = 1500f;
         public const float DEFAULT_TYPEWRITER_SPEED = 30f;
         public const float DEFAULT_TYPEWRITER_FADE = 100f;
+        public const float DEFAULT_TYPEWRITER_DROP = 200f;
+        public const float DEFAULT_TYPEWRITER_POP = 200f;
         public const float DEFAULT_PAUSE_DURATION = 500f;
         public const float DEFAULT_SCRAMBLE_PERIOD = 80f;
         public const float DEFAULT_SCRAMBLE_SETTLE = 40f;
@@ -70,6 +72,8 @@ namespace Parchment.Framework.Utilities.Helpers
         private const string TYPEWRITER_IMMEDIATE_OPTION = "immediate";
         private const string TYPEWRITER_FADE_OPTION = "fade";
         private const string TYPEWRITER_SOUND_OPTION = "sound";
+        private const string TYPEWRITER_DROP_OPTION = "drop";
+        private const string TYPEWRITER_POP_OPTION = "pop";
         private const string TYPEWRITER_TAG = "[typewriter";
 
         // The part of any tag's value that gates it on a game state query, such as [wave=4|condition=WEATHER Here Rain]
@@ -754,7 +758,8 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Reads a typewriter's value. Its numbers are its speed and then its delay, both in milliseconds. Any other part is an option: "immediate" to start without waiting for the typewriters before it,
-        /// "fade" (or "fade=milliseconds") to fade each character in rather than pop it in. "sound=cue" plays a sound as characters appear. Every part is optional and the options can come in any order after the numbers.
+        /// "fade" (or "fade=milliseconds") to fade each character in rather than show it at once, "drop" (or "drop=milliseconds") to have it fall into place and "pop" (or "pop=milliseconds") to have it shrink in from oversized.
+        /// "sound=cue" plays a sound as characters appear. Every part is optional and the options can come in any order after the numbers, so fade, drop and pop can all be used together.
         /// </summary>
         private static TypingOptions ParseTypewriter(string[] parts, string tag, string source)
         {
@@ -763,6 +768,8 @@ namespace Parchment.Framework.Utilities.Helpers
             int numberCount = 0;
             bool isImmediate = false;
             float fadeDuration = 0f;
+            float dropDuration = 0f;
+            float popDuration = 0f;
             string? sound = null;
 
             foreach (string part in parts)
@@ -796,19 +803,15 @@ namespace Parchment.Framework.Utilities.Helpers
                 }
                 else if (string.Equals(option, TYPEWRITER_FADE_OPTION, StringComparison.OrdinalIgnoreCase))
                 {
-                    fadeDuration = DEFAULT_TYPEWRITER_FADE;
-
-                    if (optionValue is not null)
-                    {
-                        if (float.TryParse(optionValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedFade) && parsedFade >= 0f)
-                        {
-                            fadeDuration = parsedFade;
-                        }
-                        else
-                        {
-                            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] fade of '{optionValue}', which isn't a number of milliseconds that isn't negative, so the default of {DEFAULT_TYPEWRITER_FADE} is used.", LogLevel.Warn);
-                        }
-                    }
+                    fadeDuration = ReadTypewriterDuration(optionValue, DEFAULT_TYPEWRITER_FADE, TYPEWRITER_FADE_OPTION, tag, source);
+                }
+                else if (string.Equals(option, TYPEWRITER_DROP_OPTION, StringComparison.OrdinalIgnoreCase))
+                {
+                    dropDuration = ReadTypewriterDuration(optionValue, DEFAULT_TYPEWRITER_DROP, TYPEWRITER_DROP_OPTION, tag, source);
+                }
+                else if (string.Equals(option, TYPEWRITER_POP_OPTION, StringComparison.OrdinalIgnoreCase))
+                {
+                    popDuration = ReadTypewriterDuration(optionValue, DEFAULT_TYPEWRITER_POP, TYPEWRITER_POP_OPTION, tag, source);
                 }
                 else if (string.Equals(option, TYPEWRITER_SOUND_OPTION, StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(optionValue) is false)
                 {
@@ -816,11 +819,28 @@ namespace Parchment.Framework.Utilities.Helpers
                 }
                 else
                 {
-                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] option of '{part}', which isn't one Parchment knows, so it was ignored. Try \"{TYPEWRITER_IMMEDIATE_OPTION}\", \"{TYPEWRITER_FADE_OPTION}\" or \"{TYPEWRITER_SOUND_OPTION}=cue\".{GetSeparatorHint(part, tag)}", LogLevel.Warn);
+                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] option of '{part}', which isn't one Parchment knows, so it was ignored. Try \"{TYPEWRITER_IMMEDIATE_OPTION}\", \"{TYPEWRITER_FADE_OPTION}\", \"{TYPEWRITER_DROP_OPTION}\", \"{TYPEWRITER_POP_OPTION}\" or \"{TYPEWRITER_SOUND_OPTION}=cue\".{GetSeparatorHint(part, tag)}", LogLevel.Warn);
                 }
             }
 
-            return new TypingOptions(speed, delay, isImmediate, fadeDuration, sound);
+            return new TypingOptions(speed, delay, isImmediate, fadeDuration, sound, dropDuration, popDuration);
+        }
+
+        /// <summary>Reads how long a typewriter's fade, drop or pop takes. Bare, it takes its default. One that isn't a number of milliseconds that isn't negative also takes its default, with a warning.</summary>
+        private static float ReadTypewriterDuration(string? optionValue, float defaultDuration, string option, string tag, string source)
+        {
+            if (optionValue is null)
+            {
+                return defaultDuration;
+            }
+
+            if (float.TryParse(optionValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float duration) && duration >= 0f)
+            {
+                return duration;
+            }
+
+            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] {option} of '{optionValue}', which isn't a number of milliseconds that isn't negative, so the default of {defaultDuration} is used.", LogLevel.Warn);
+            return defaultDuration;
         }
 
         private static float ReadTypewriterNumber(float number, string part, string label, float defaultValue, bool allowZero, string tag, string source)

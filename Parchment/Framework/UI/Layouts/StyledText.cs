@@ -71,28 +71,39 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>Whether it starts as soon as its text is on screen, rather than waiting for the typewriters before it on the spread to finish.</summary>
         public bool IsImmediate { get; }
 
-        /// <summary>How long each character takes to fade in once it appears, in milliseconds. Zero pops it in at once, the way the game's dialogue does.</summary>
+        /// <summary>How long each character takes to fade in once it appears, in milliseconds. Zero shows it at once, the way the game's dialogue does.</summary>
         public float FadeDuration { get; }
 
         /// <summary>The sound cue played as characters appear (null for none).</summary>
         public string? Sound { get; }
 
+        /// <summary>How long each character takes to fall into place once it appears, in milliseconds. Zero has it appear where it rests.</summary>
+        public float DropDuration { get; }
+
+        /// <summary>How long each character takes to shrink to its size from oversized once it appears, in milliseconds. Zero has it appear at its size.</summary>
+        public float PopDuration { get; }
+
         /// <summary>A game state query checked once when the typewriter would start. When it fails the text shows in full straight away, as though it had typed out. Null when it always types.</summary>
         public string? Condition { get; private init; }
 
-        public TypingOptions(float speed, float delay, bool isImmediate, float fadeDuration, string? sound)
+        public TypingOptions(float speed, float delay, bool isImmediate, float fadeDuration, string? sound, float dropDuration = 0f, float popDuration = 0f)
         {
             Speed = speed;
             Delay = delay;
             IsImmediate = isImmediate;
             FadeDuration = fadeDuration;
             Sound = sound;
+            DropDuration = dropDuration;
+            PopDuration = popDuration;
         }
+
+        /// <summary>How long a character takes to settle once it appears, being the longest of its fade, its drop and its pop.</summary>
+        public float SettleDuration => Math.Max(FadeDuration, Math.Max(DropDuration, PopDuration));
 
         /// <summary>A copy gated on the given condition, which comes from the tag's own "condition=" part rather than from the rest of its value.</summary>
         public TypingOptions WithCondition(string? condition)
         {
-            return new TypingOptions(Speed, Delay, IsImmediate, FadeDuration, Sound) { Condition = condition };
+            return new TypingOptions(Speed, Delay, IsImmediate, FadeDuration, Sound, DropDuration, PopDuration) { Condition = condition };
         }
     }
 
