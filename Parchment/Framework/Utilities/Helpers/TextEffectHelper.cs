@@ -33,6 +33,9 @@ namespace Parchment.Framework.Utilities.Helpers
         // How far a pulsing glow dims at the low point of each period, as a share of its full strength
         public const float GLOW_PULSE_DEPTH = 0.6f;
 
+        // The smallest a popping character is drawn, as a share of its own size, which keeps a shrinking pop from making it vanish
+        public const float POP_MINIMUM_SCALE = 0.1f;
+
         // How much of each period a shimmer's band spends crossing the text, with the text resting for the remainder so it reads as a glint rather than a constant scroll
         public const float SHIMMER_SWEEP_FRACTION = 0.5f;
 
@@ -96,6 +99,30 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return rotation;
+        }
+
+        /// <summary>How much larger than its laid out size a character is drawn, multiplying together every pop over it so a pop inside another swells further.
+        /// Each character swells and settles back once per period, a beat behind the one before it like a wave, so the swell travels along the text.
+        /// </summary>
+        /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
+        /// <param name="time">The animation clock, in milliseconds.</param>
+        public static float GetScale(IReadOnlyList<TextEffect> effects, int position, double time)
+        {
+            float characterScale = 1f;
+
+            foreach (TextEffect effect in effects)
+            {
+                if (effect.Type is TextEffectType.Pop)
+                {
+                    double phase = Math.PI * 2d / effect.Period * (time + (position - effect.Start) * WAVE_CHARACTER_DELAY);
+                    float swell = (float)((1d - Math.Cos(phase)) / 2d);
+
+                    // Never shrunk away to nothing, so a negative size that dips below its own size still leaves the letter readable
+                    characterScale *= Math.Max(POP_MINIMUM_SCALE, 1f + effect.Amplitude * swell);
+                }
+            }
+
+            return characterScale;
         }
 
         /// <summary>How strongly a character is drawn, from 0 for not at all to 1 for in full, multiplying together every flicker over it so a flicker inside another dims further.

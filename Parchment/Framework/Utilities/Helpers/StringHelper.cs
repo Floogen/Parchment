@@ -32,6 +32,9 @@ namespace Parchment.Framework.Utilities.Helpers
         // Scramble glyph widths by font, glyph and scale, filled as they're first drawn
         private static readonly Dictionary<(IFont Font, string Glyph, float Scale), float> _glyphWidths = new Dictionary<(IFont Font, string Glyph, float Scale), float>();
 
+        // Glyph sizes by font and glyph at a scale of 1, filled as popping characters are first drawn. A pop's scale changes every frame, so the size is kept unscaled and multiplied out
+        private static readonly Dictionary<(IFont Font, string Glyph), Vector2> _glyphSizes = new Dictionary<(IFont Font, string Glyph), Vector2>();
+
         // Where the game's own SparklingText takes its sparkles from, being six frames side by side starting at the source rectangle
         private const string SPARKLE_TEXTURE = "TileSheets/animations";
         private const int SPARKLE_FRAME_COUNT = 6;
@@ -56,7 +59,7 @@ namespace Parchment.Framework.Utilities.Helpers
         private static readonly List<(Color Color, int Distance)> _haloLayers = new List<(Color Color, int Distance)>();
 
         // A haloed segment's characters, gathered while it draws so every halo goes down before any letter, keeping one letter's outline or glow off the letter beside it
-        private static readonly List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha, float Rotation)> _pendingHaloedCharacters = new List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha, float Rotation)>();
+        private static readonly List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha, float Rotation, float Scale)> _pendingHaloedCharacters = new List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha, float Rotation, float Scale)>();
 
         public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale)
         {
@@ -113,6 +116,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// An outline draws the text in its color shifted every way around before the text itself, which then goes without its shadow as the outline takes its place. SpriteText outlines its own letters, so an outline is left out there.
         /// A glow draws faint rings of the same copies further out behind everything else, keeping the text's shadow. SpriteText keeps its own color, so a glow is left out there too.
         /// A wobble turns each character about its own center, its shadow and any outline or glow turning with it. SpriteText can't turn its letters, so they stay upright there.
+        /// A pop grows each character about its own center, its shadow and any outline or glow growing with it, without moving the letters around it.
         /// A sparkle is drawn over its character after the whole segment, following the character as it moves and fading with it. It is the game's own sparkle, drawn at the text's scale.
         /// A character a typewriter hasn't reached yet is left out. One it is fading in is drawn at the strength it has reached, which a flicker dims further.
         /// </summary>
@@ -234,6 +238,21 @@ namespace Parchment.Framework.Utilities.Helpers
 
                     Vector2 characterPosition = new Vector2(linePosition.X + characterX + effectOffset.X, linePosition.Y + effectOffset.Y);
 
+                    float popScale = segment.Effects is null ? 1f : TextEffectHelper.GetScale(segment.Effects, position, effectTime);
+
+                    if (hoverEffects is not null)
+                    {
+                        popScale *= MathHelper.Lerp(1f, TextEffectHelper.GetScale(hoverEffects, position, hoverTime), hoverStrength);
+                    }
+
+                    float characterScale = scale * popScale;
+
+                    // Grown about its own center, so a popping letter swells in place rather than spreading right and down
+                    if (popScale != 1f)
+                    {
+                        characterPosition += GetGlyphSize(element.Font!, drawnCharacter) * (scale - characterScale) / 2f;
+                    }
+
                     Color characterColor = segmentColor;
                     Color characterShadowColor = segmentShadowColor;
 
@@ -246,12 +265,12 @@ namespace Parchment.Framework.Utilities.Helpers
 
                     if (isHaloed)
                     {
-                        _pendingHaloedCharacters.Add((drawnCharacter, characterPosition, characterColor * characterAlpha, isOutlined ? Color.Transparent : characterShadowColor * characterAlpha, characterAlpha, rotation));
+                        _pendingHaloedCharacters.Add((drawnCharacter, characterPosition, characterColor * characterAlpha, isOutlined ? Color.Transparent : characterShadowColor * characterAlpha, characterAlpha, rotation, characterScale));
                     }
                     else
                     {
                         // Faded together with its shadow, so a character fading in (or flickering) doesn't leave its shadow standing at full strength behind it
-                        element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * characterAlpha, characterShadowColor * characterAlpha, scale, boldness, rotation);
+                        element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * characterAlpha, characterShadowColor * characterAlpha, characterScale, boldness, rotation);
                     }
 
                     if (sparkleTexture is not null)
@@ -266,7 +285,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 if (_pendingHaloedCharacters.Count > 0)
                 {
-                    DrawHaloedCharacters(spriteBatch, element, scale, boldness);
+                    DrawHaloedCharacters(spriteBatch, element, boldness);
                 }
 
                 DrawDecorations(spriteBatch, decoration, segment.Effects, stretchAlpha, isBehindText: false);
@@ -345,16 +364,16 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Draws the gathered characters of a haloed segment, every halo first and then every letter over them, without a shadow when the segment is outlined.</summary>
-        private static void DrawHaloedCharacters(SpriteBatch spriteBatch, Element element, float scale, int boldness)
+        private static void DrawHaloedCharacters(SpriteBatch spriteBatch, Element element, int boldness)
         {
-            foreach ((string text, Vector2 position, Color _, Color _, float alpha, float rotation) in _pendingHaloedCharacters)
+            foreach ((string text, Vector2 position, Color _, Color _, float alpha, float rotation, float characterScale) in _pendingHaloedCharacters)
             {
-                DrawHalos(spriteBatch, element, text, position, alpha, scale, boldness, rotation);
+                DrawHalos(spriteBatch, element, text, position, alpha, characterScale, boldness, rotation);
             }
 
-            foreach ((string text, Vector2 position, Color color, Color shadowColor, float _, float rotation) in _pendingHaloedCharacters)
+            foreach ((string text, Vector2 position, Color color, Color shadowColor, float _, float rotation, float characterScale) in _pendingHaloedCharacters)
             {
-                element.Font!.DrawString(spriteBatch, text, position, color, shadowColor, scale, boldness, rotation);
+                element.Font!.DrawString(spriteBatch, text, position, color, shadowColor, characterScale, boldness, rotation);
             }
 
             _pendingHaloedCharacters.Clear();
@@ -454,6 +473,19 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>How wide a scramble glyph draws, measured once per font and scale and kept, as the same few glyphs are measured every frame while text is scrambled.</summary>
+        private static Vector2 GetGlyphSize(IFont font, string glyph)
+        {
+            (IFont Font, string Glyph) key = (font, glyph);
+
+            if (_glyphSizes.TryGetValue(key, out Vector2 size) is false)
+            {
+                size = font.MeasureString(glyph, 1f);
+                _glyphSizes[key] = size;
+            }
+
+            return size;
+        }
+
         private static float GetGlyphWidth(IFont font, string glyph, float scale)
         {
             (IFont Font, string Glyph, float Scale) key = (font, glyph, scale);

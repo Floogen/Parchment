@@ -22,6 +22,7 @@
         Sparkle,
         Outline,
         Glow,
-        Wobble
+        Wobble,
+        Pop
     }
 }

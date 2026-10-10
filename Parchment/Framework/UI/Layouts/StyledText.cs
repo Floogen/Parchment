@@ -101,7 +101,7 @@ namespace Parchment.Framework.UI.Layouts
     {
         public TextEffectType Type { get; }
 
-        /// <summary>How far the effect moves a character (or how far a bold shifts its second copy of the text), in unscaled pixels multiplied by the text's scale. A wobble keeps how far it rocks either way here, in degrees. A shimmer keeps how many characters wide its band is here instead a flicker or a fade keeps the lowest strength it dims to, a sparkle keeps its chance of showing, an outline keeps its thickness and a glow keeps its radius.</summary>
+        /// <summary>How far the effect moves a character (or how far a bold shifts its second copy of the text), in unscaled pixels multiplied by the text's scale. A wobble keeps how far it rocks either way here, in degrees, and a pop keeps how much it swells, as a share of the character's size. A shimmer keeps how many characters wide its band is here instead a flicker or a fade keeps the lowest strength it dims to, a sparkle keeps its chance of showing, an outline keeps its thickness and a glow keeps its radius.</summary>
         public float Amplitude { get; }
 
         /// <summary>How long one cycle of the effect takes, in milliseconds.</summary>
