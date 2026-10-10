@@ -168,7 +168,7 @@ namespace Parchment.Framework.UI.Layouts
 
             if (font is SpriteTextAdapter && (styledText.ColorRuns.Count is not 0 || styledText.EffectRuns.Any(run => TextEffectHelper.HasColor(run.Effects))))
             {
-                Parchment.monitor.LogOnce($"'{text}' has [color], [rainbow], [gradient], [pulse] or [shimmer] markup but draws in SpriteText, which keeps its own color, so the coloring is ignored.", LogLevel.Warn);
+                Parchment.monitor.LogOnce($"'{text}' has [color], [rainbow], [gradient], [pulse], [shimmer] or [outline] markup but draws in SpriteText, which keeps its own color, so the coloring is ignored.", LogLevel.Warn);
             }
 
             element.TypewriterEffects = CollectTypewriters(styledText);

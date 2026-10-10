@@ -271,6 +271,7 @@ These tags move or recolor each character of the text they wrap, without changin
 | `[redact]` | Covers the text with a solid bar, hiding it while keeping its width. | color | the text's color |
 | `[scramble]` | Shows random glyphs in place of the text until its condition stops passing, then locks the real characters into place. See [Scramble](#scramble). | period and options | `80` |
 | `[bold]` | Thickens the text by drawing it a second time, shifted to the right. See [Bold](#bold). | strength | `1` |
+| `[outline]` | Draws a solid outline around each letter, in place of the text's shadow. See [Outline](#outline). | color and thickness | `Black` and `2` |
 
 ```json
 {
@@ -300,7 +301,7 @@ These tags move or recolor each character of the text they wrap, without changin
 - **Combining.** Effects stack, so `[shake][rainbow]...[/rainbow][/shake]` both jitters and recolors. They also work inside and around `[color]` and `[link]`.
 - **Color order.** Coloring effects apply from the outside in. A rainbow or a gradient replaces the color around it (any `[color]` included), while a pulse or a shimmer fades from whatever color is around it, so `[rainbow][pulse=White]...[/pulse][/rainbow]` pulses the rainbow and `[color=Gold][shimmer]...[/shimmer][/color]` glints across gold text. A hovered link's `HoverTextColor` covers the coloring effects in its text so the link still shows it's under the cursor, though its own [hover effects](#hover-effects) start from it.
 - **Continuity.** An effect carries on unbroken across a color change or a line break. A gradient spreads over its whole stretch rather than restarting on each line. A shimmer's band also carries on from the end of one line to the start of the next.
-- **Fonts.** `[wave]`, `[bounce]`, `[shake]`, `[flicker]`, `[fade]` and `[sparkle]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]`, `[pulse]` and `[shimmer]` are colors, which `SpriteText` ignores with a warning.
+- **Fonts.** `[wave]`, `[bounce]`, `[shake]`, `[flicker]`, `[fade]` and `[sparkle]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]`, `[pulse]` and `[shimmer]` are colors, which `SpriteText` ignores with a warning. So is `[outline]`, as `SpriteText` already outlines its own letters.
 - **Cost.** Each character under an effect is drawn on its own, so keep effects to a word or a phrase rather than a whole page. `[bold]`, `[fade]` and the decorations are the exception, as they can draw their text whole.
 - **Mistakes.** An amplitude or period that won't parse keeps its default with a warning, as does a flicker or fade strength outside `0` to `1`. When it was written with a space rather than `|`, such as `[wave=4 500]`, the warning shows the corrected tag. A color that won't parse is left out of a gradient. A gradient left with fewer than two colors keeps the color around it with a warning. So does a pulse without a color. A shimmer whose color won't parse shimmers in white with a warning. Unclosed and stray tags behave as they do for [inline color](#inline-color).
 
@@ -341,6 +342,26 @@ Each takes one optional color, such as `[highlight=255 200 200 128]` or `[underl
 - **Combining.** Bold works inside and around every other effect. Bolds nested inside one another don't add up, so the strongest applies.
 - **Hover effects.** Bold works as a link's [hover effect](#hover-effects), so `"HoverEffect": "bold"` thickens a link while the cursor is on it.
 - **Fonts.** Bold works in every font, `SpriteText` included. A `SpriteText` letter is built from pixels a few screen pixels wide, so it may take a higher strength such as `[bold=3]` to show.
+
+### Outline
+
+`[outline]` draws a solid outline around each letter of the text it wraps, which keeps light text readable over a busy or dark background.
+
+```json
+{
+  "Type": "Heading",
+  "Text": "[color=White][outline]Night Market[/outline][/color] opens at [color=Gold][outline=95 40 10|1]5pm[/outline][/color]"
+}
+```
+
+- **Values.** It takes an optional color and then a thickness, such as `[outline=Navy]` or `[outline=Navy|3]`. The color takes any of the [color forms](#colors). The thickness is a whole number of unscaled pixels multiplied by the text's scale, so `[outline=Black|1]` is a fine line and `[outline=Black|3]` a heavy one.
+- **Shadow.** An outline takes the place of the text's shadow, so outlined text is drawn without one.
+- **Layout.** An outline only changes the drawing. The text keeps the room it was laid out with, so a thick outline reaches past it into the lines and letters around it.
+- **Combining.** An outline follows its letters through every other effect, so it waves, shakes, fades and flickers with them, wraps `[bold]` text and takes no color from a rainbow or gradient inside it. Outlines nested inside one another don't add up, so the innermost applies.
+- **Hover effects.** Outline works as a link's [hover effect](#hover-effects), so `"HoverEffect": "outline=Gold"` outlines a link while the cursor is on it.
+- **Fonts.** `SpriteText` already outlines its own letters and keeps its own color, so `[outline]` is ignored there with a warning.
+- **Cost.** Every letter is drawn eight extra times, so an outline suits a heading or a phrase rather than a whole page.
+- **Mistakes.** A color that won't parse gives a black outline, while a thickness that isn't a positive whole number keeps the default. Both log a warning.
 
 ### Sparkle
 

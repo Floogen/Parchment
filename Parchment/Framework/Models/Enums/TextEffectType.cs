@@ -19,6 +19,7 @@
         Shimmer,
         Flicker,
         Fade,
-        Sparkle
+        Sparkle,
+        Outline
     }
 }

@@ -165,7 +165,7 @@ namespace Parchment.Framework.Utilities.Helpers
             return effectType is TextEffectType.Underline or TextEffectType.Strike or TextEffectType.Highlight or TextEffectType.Redact;
         }
 
-        /// <summary>Whether any of the effects works on each character on its own, which is what has a segment drawn a character at a time. Decorations, bold and fade don't count, as each can draw a segment whole.</summary>
+        /// <summary>Whether any of the effects works on each character on its own, which is what has a segment drawn a character at a time. Decorations, bold, fade and outline don't count, as each can draw a segment whole.</summary>
         public static bool HasCharacterEffects(IReadOnlyList<TextEffect>? effects)
         {
             if (effects is null)
@@ -175,7 +175,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
-                if (IsDecoration(effect.Type) is false && effect.Type is not (TextEffectType.Bold or TextEffectType.Fade))
+                if (IsDecoration(effect.Type) is false && effect.Type is not (TextEffectType.Bold or TextEffectType.Fade or TextEffectType.Outline))
                 {
                     return true;
                 }
@@ -215,6 +215,34 @@ namespace Parchment.Framework.Utilities.Helpers
             return boldness;
         }
 
+        /// <summary>The innermost outline among the effects, being its color and how far its copies of the text are shifted in screen pixels. False when there is none.
+        /// Outlines nested inside one another don't add up, as each would only be hidden under the one inside it.
+        /// </summary>
+        /// <param name="scale">The text's scale, which an outline's thickness is multiplied by.</param>
+        public static bool TryGetOutline(IReadOnlyList<TextEffect>? effects, float scale, out Color color, out int thickness)
+        {
+            if (effects is not null)
+            {
+                for (int index = effects.Count - 1; index >= 0; index--)
+                {
+                    TextEffect effect = effects[index];
+
+                    if (effect.Type is TextEffectType.Outline && effect.Colors.Count > 0)
+                    {
+                        color = effect.Colors[0];
+
+                        // Whole pixels and never less than one, so a small scale still shows the outline rather than rounding it away
+                        thickness = Math.Max(1, (int)Math.Round(effect.Amplitude * scale));
+                        return true;
+                    }
+                }
+            }
+
+            color = Color.Transparent;
+            thickness = 0;
+            return false;
+        }
+
         /// <summary>Whether any of the effects is of the given type.</summary>
         public static bool HasEffect(IReadOnlyList<TextEffect>? effects, TextEffectType effectType)
         {
@@ -236,7 +264,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         /// <summary>The sparkle showing over a character right now, from the innermost sparkle effect over it that has one showing. False when none does.
         /// Each character gets its own chance of sparkling in every period, with its periods offset from its neighbours' so sparkles come and go at scattered moments rather than all at once.
-        /// A sparkle plays through its frames once over its period, goin g somewhere new over the character each time.
+        /// A sparkle plays through its frames once over its period, the way the game's own does, landing somewhere new over the character each time.
         /// </summary>
         /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
         /// <param name="frameCount">How many frames the sparkle's animation has.</param>
@@ -345,7 +373,7 @@ namespace Parchment.Framework.Utilities.Helpers
         {
             foreach (TextEffect effect in effects)
             {
-                if (effect.Type is TextEffectType.Rainbow or TextEffectType.Gradient or TextEffectType.Pulse or TextEffectType.Shimmer)
+                if (effect.Type is TextEffectType.Rainbow or TextEffectType.Gradient or TextEffectType.Pulse or TextEffectType.Shimmer or TextEffectType.Outline)
                 {
                     return true;
                 }
