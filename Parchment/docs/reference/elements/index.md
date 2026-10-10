@@ -272,6 +272,7 @@ These tags move or recolor each character of the text they wrap, without changin
 | `[scramble]` | Shows random glyphs in place of the text until its condition stops passing, then locks the real characters into place. See [Scramble](#scramble). | period and options | `80` |
 | `[bold]` | Thickens the text by drawing it a second time, shifted to the right. See [Bold](#bold). | strength | `1` |
 | `[outline]` | Draws a solid outline around each letter, in place of the text's shadow. See [Outline](#outline). | color and thickness | `Black` and `2` |
+| `[glow]` | Draws a soft, fading halo behind the text that can breathe in and out. See [Glow](#glow). | color, radius and period | `255 200 80`, `3` and `0` |
 
 ```json
 {
@@ -301,7 +302,7 @@ These tags move or recolor each character of the text they wrap, without changin
 - **Combining.** Effects stack, so `[shake][rainbow]...[/rainbow][/shake]` both jitters and recolors. They also work inside and around `[color]` and `[link]`.
 - **Color order.** Coloring effects apply from the outside in. A rainbow or a gradient replaces the color around it (any `[color]` included), while a pulse or a shimmer fades from whatever color is around it, so `[rainbow][pulse=White]...[/pulse][/rainbow]` pulses the rainbow and `[color=Gold][shimmer]...[/shimmer][/color]` glints across gold text. A hovered link's `HoverTextColor` covers the coloring effects in its text so the link still shows it's under the cursor, though its own [hover effects](#hover-effects) start from it.
 - **Continuity.** An effect carries on unbroken across a color change or a line break. A gradient spreads over its whole stretch rather than restarting on each line. A shimmer's band also carries on from the end of one line to the start of the next.
-- **Fonts.** `[wave]`, `[bounce]`, `[shake]`, `[flicker]`, `[fade]` and `[sparkle]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]`, `[pulse]` and `[shimmer]` are colors, which `SpriteText` ignores with a warning. So is `[outline]`, as `SpriteText` already outlines its own letters.
+- **Fonts.** `[wave]`, `[bounce]`, `[shake]`, `[flicker]`, `[fade]` and `[sparkle]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]`, `[pulse]` and `[shimmer]` are colors, which `SpriteText` ignores with a warning. So are `[outline]` and `[glow]`, as `SpriteText` outlines its own letters in its own color.
 - **Cost.** Each character under an effect is drawn on its own, so keep effects to a word or a phrase rather than a whole page. `[bold]`, `[fade]` and the decorations are the exception, as they can draw their text whole.
 - **Mistakes.** An amplitude or period that won't parse keeps its default with a warning, as does a flicker or fade strength outside `0` to `1`. When it was written with a space rather than `|`, such as `[wave=4 500]`, the warning shows the corrected tag. A color that won't parse is left out of a gradient. A gradient left with fewer than two colors keeps the color around it with a warning. So does a pulse without a color. A shimmer whose color won't parse shimmers in white with a warning. Unclosed and stray tags behave as they do for [inline color](#inline-color).
 
@@ -362,6 +363,28 @@ Each takes one optional color, such as `[highlight=255 200 200 128]` or `[underl
 - **Fonts.** `SpriteText` already outlines its own letters and keeps its own color, so `[outline]` is ignored there with a warning.
 - **Cost.** Every letter is drawn eight extra times, so an outline suits a heading or a phrase rather than a whole page.
 - **Mistakes.** A color that won't parse gives a black outline, while a thickness that isn't a positive whole number keeps the default. Both log a warning.
+
+### Glow
+
+`[glow]` draws a soft halo behind the text it wraps, strongest beside the letters and fading out to its radius.
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "The [glow]Golden Walnut[/glow] hums with power. A [glow=Cyan|4|2000]spirit[/glow] drifts by while a [glow=40 20 10|2][color=White]shadowy figure[/color][/glow] watches."
+}
+```
+
+- **Values.** It takes an optional color, radius and period in that order, so changing its radius means writing its color first, such as `[glow=Gold|5]`. The color takes any of the [color forms](#colors). The radius is a whole number of unscaled pixels multiplied by the text's scale. The period is how long one breath out and back takes, in milliseconds, with the default of `0` holding the glow steady.
+- **Breathing.** A glow with a period dims to less than half its strength and back, so it never quite goes out.
+- **Background.** A glow is translucent, so a light glow shows faintly on a light page. It stands out most on a dark panel or as a dark glow behind light text, where it reads as a soft shadow.
+- **Shadow.** A glow sits behind the text's shadow rather than replacing it. Inside an `[outline]`, the glow goes down first, the outline over it and the text over both without its shadow.
+- **Layout.** A glow only changes the drawing. The text keeps the room it was laid out with, so a wide glow spills into the lines and letters around it.
+- **Combining.** A glow follows its letters through every other effect, so it waves, shakes, fades and flickers with them and wraps `[bold]` text. Glows nested inside one another don't add up, so the innermost applies.
+- **Hover effects.** Glow works as a link's [hover effect](#hover-effects), so `"HoverEffect": "glow=White|3"` lights a link up while the cursor is on it.
+- **Fonts.** `SpriteText` keeps its own color, so `[glow]` is ignored there with a warning.
+- **Cost.** A glow is drawn in up to four rings of eight copies each, so it costs more than an outline. Keep it to a word or a short phrase.
+- **Mistakes.** A color that won't parse uses the default gold, while a radius or period that won't parse keeps its default. Both log a warning.
 
 ### Sparkle
 

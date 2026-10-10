@@ -20,6 +20,7 @@
         Flicker,
         Fade,
         Sparkle,
-        Outline
+        Outline,
+        Glow
     }
 }

@@ -43,14 +43,20 @@ namespace Parchment.Framework.Utilities.Helpers
         // The sparkles over a segment, gathered while its characters draw and drawn after them all so a sparkle is never covered by the letter beside it
         private static readonly List<(Vector2 Center, int Frame, Color Color)> _pendingSparkles = new List<(Vector2 Center, int Frame, Color Color)>();
 
-        // Every way an outline's copies of the text are shifted, diagonals included so its corners are filled
-        private static readonly Vector2[] _outlineDirections = new Vector2[] { new Vector2(-1f, -1f), new Vector2(0f, -1f), new Vector2(1f, -1f), new Vector2(-1f, 0f), new Vector2(1f, 0f), new Vector2(-1f, 1f), new Vector2(0f, 1f), new Vector2(1f, 1f) };
+        // How strongly a glow's innermost ring is drawn, each ring further out weaker until the last barely shows. The rings overlap, so the halo builds up stronger near the letters
+        private const float GLOW_STRENGTH = 0.35f;
 
-        // The outlines over the segment being drawn, being its own and then a hovered link's, each already faded by how far it has eased in
-        private static readonly List<(Color Color, int Thickness)> _activeOutlines = new List<(Color Color, int Thickness)>();
+        // The most rings a glow is drawn in, spread evenly out to its radius, which keeps a wide or scaled up glow from costing a ring for every pixel of it
+        private const int GLOW_MAX_RINGS = 4;
 
-        // An outlined segment's characters, gathered while it draws so every outline goes down before any letter, keeping one letter's outline off the letter beside it
-        private static readonly List<(string Text, Vector2 Position, Color Color, float Alpha)> _pendingOutlinedCharacters = new List<(string Text, Vector2 Position, Color Color, float Alpha)>();
+        // Every way an outline's or a glow's copies of the text are shifted, diagonals included so its corners are filled
+        private static readonly Vector2[] _haloDirections = new Vector2[] { new Vector2(-1f, -1f), new Vector2(0f, -1f), new Vector2(1f, -1f), new Vector2(-1f, 0f), new Vector2(1f, 0f), new Vector2(-1f, 1f), new Vector2(0f, 1f), new Vector2(1f, 1f) };
+
+        // The rings of copies drawn behind the segment being drawn, each a color and how far out it sits, in the order they go down: glows from the outside in and then outlines
+        private static readonly List<(Color Color, int Distance)> _haloLayers = new List<(Color Color, int Distance)>();
+
+        // A haloed segment's characters, gathered while it draws so every halo goes down before any letter, keeping one letter's outline or glow off the letter beside it
+        private static readonly List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha)> _pendingHaloedCharacters = new List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha)>();
 
         public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale)
         {
@@ -105,6 +111,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// A bold draws the segment's text twice, the second copy shifted right, which works the same whether the segment is drawn whole or a character at a time.
         /// A fade dims the whole segment together with its decorations, which works the same whether the segment is drawn whole or a character at a time.
         /// An outline draws the text in its color shifted every way around before the text itself, which then goes without its shadow as the outline takes its place. SpriteText outlines its own letters, so an outline is left out there.
+        /// A glow draws faint rings of the same copies further out behind everything else, keeping the text's shadow. SpriteText keeps its own color, so a glow is left out there too.
         /// A sparkle is drawn over its character after the whole segment, following the character as it moves and fading with it. It is the game's own sparkle, drawn at the text's scale.
         /// A character a typewriter hasn't reached yet is left out. One it is fading in is drawn at the strength it has reached, which a flicker dims further.
         /// </summary>
@@ -152,15 +159,16 @@ namespace Parchment.Framework.Utilities.Helpers
                 Texture2D? sparkleTexture = TextEffectHelper.HasEffect(segment.Effects, TextEffectType.Sparkle) || TextEffectHelper.HasEffect(hoverEffects, TextEffectType.Sparkle) ? GetSparkleTexture() : null;
                 _pendingSparkles.Clear();
 
-                bool isOutlined = keepsOwnColor is false && CollectOutlines(segment.Effects, hoverEffects, scale, hoverStrength);
+                bool isOutlined = false;
+                bool isHaloed = keepsOwnColor is false && CollectHalos(segment.Effects, hoverEffects, scale, effectTime, hoverTime, hoverStrength, out isOutlined);
 
                 if (hasCharacterEffects is false || segment.Characters is null || segment.CharacterOffsets is null)
                 {
                     Vector2 segmentPosition = new Vector2(linePosition.X + segment.OffsetX, linePosition.Y);
 
-                    if (isOutlined)
+                    if (isHaloed)
                     {
-                        DrawOutlines(spriteBatch, element, segment.Text, segmentPosition, stretchAlpha, scale, boldness);
+                        DrawHalos(spriteBatch, element, segment.Text, segmentPosition, stretchAlpha, scale, boldness);
                     }
 
                     element.Font!.DrawString(spriteBatch, segment.Text, segmentPosition, segmentColor * stretchAlpha, isOutlined ? Color.Transparent : segmentShadowColor * stretchAlpha, scale, boldness);
@@ -228,9 +236,9 @@ namespace Parchment.Framework.Utilities.Helpers
                         characterShadowColor = element.GetShadowColor(characterColor);
                     }
 
-                    if (isOutlined)
+                    if (isHaloed)
                     {
-                        _pendingOutlinedCharacters.Add((drawnCharacter, characterPosition, characterColor * characterAlpha, characterAlpha));
+                        _pendingHaloedCharacters.Add((drawnCharacter, characterPosition, characterColor * characterAlpha, isOutlined ? Color.Transparent : characterShadowColor * characterAlpha, characterAlpha));
                     }
                     else
                     {
@@ -248,9 +256,9 @@ namespace Parchment.Framework.Utilities.Helpers
                     }
                 }
 
-                if (_pendingOutlinedCharacters.Count > 0)
+                if (_pendingHaloedCharacters.Count > 0)
                 {
-                    DrawOutlinedCharacters(spriteBatch, element, scale, boldness);
+                    DrawHaloedCharacters(spriteBatch, element, scale, boldness);
                 }
 
                 DrawDecorations(spriteBatch, decoration, segment.Effects, stretchAlpha, isBehindText: false);
@@ -263,54 +271,84 @@ namespace Parchment.Framework.Utilities.Helpers
             }
         }
 
-        /// <summary>Gathers the segment's outline and a hovered link's into <see cref="_activeOutlines"/>, the link's faded by how far its hover effects have eased in. False when there is neither.</summary>
-        private static bool CollectOutlines(IReadOnlyList<TextEffect>? effects, IReadOnlyList<TextEffect>? hoverEffects, float scale, float hoverStrength)
+        /// <summary>Gathers the rings of copies drawn behind the segment into <see cref="_haloLayers"/>: the segment's glow and a hovered link's, then the segment's outline and a hovered link's.
+        /// A hovered link's are faded by how far its hover effects have eased in. False when there are none.
+        /// </summary>
+        /// <param name="isOutlined">Whether any outline is among them, which has the text drawn without its shadow.</param>
+        private static bool CollectHalos(IReadOnlyList<TextEffect>? effects, IReadOnlyList<TextEffect>? hoverEffects, float scale, double effectTime, double hoverTime, float hoverStrength, out bool isOutlined)
         {
-            _activeOutlines.Clear();
-            _pendingOutlinedCharacters.Clear();
+            _haloLayers.Clear();
+            _pendingHaloedCharacters.Clear();
 
-            if (TextEffectHelper.TryGetOutline(effects, scale, out Color color, out int thickness))
+            if (TextEffectHelper.TryGetGlow(effects, scale, effectTime, out Color glowColor, out int glowRadius))
             {
-                _activeOutlines.Add((color, thickness));
+                AddGlowRings(glowColor, glowRadius);
             }
 
-            if (hoverStrength > 0f && TextEffectHelper.TryGetOutline(hoverEffects, scale, out Color hoverColor, out int hoverThickness))
+            if (hoverStrength > 0f && TextEffectHelper.TryGetGlow(hoverEffects, scale, hoverTime, out Color hoverGlowColor, out int hoverGlowRadius))
             {
-                _activeOutlines.Add((hoverColor * hoverStrength, hoverThickness));
+                AddGlowRings(hoverGlowColor * hoverStrength, hoverGlowRadius);
             }
 
-            return _activeOutlines.Count > 0;
+            int glowLayerCount = _haloLayers.Count;
+
+            if (TextEffectHelper.TryGetOutline(effects, scale, out Color outlineColor, out int outlineThickness))
+            {
+                _haloLayers.Add((outlineColor, outlineThickness));
+            }
+
+            if (hoverStrength > 0f && TextEffectHelper.TryGetOutline(hoverEffects, scale, out Color hoverOutlineColor, out int hoverOutlineThickness))
+            {
+                _haloLayers.Add((hoverOutlineColor * hoverStrength, hoverOutlineThickness));
+            }
+
+            isOutlined = _haloLayers.Count > glowLayerCount;
+            return _haloLayers.Count > 0;
         }
 
-        /// <summary>Draws the text once in each active outline's color for every direction around it, without a shadow. Each copy is bold the same as the text, so the outline wraps the thickened letters.</summary>
-        /// <param name="alpha">How strongly the text itself is drawn, which its outline follows so it fades and flickers with it.</param>
-        private static void DrawOutlines(SpriteBatch spriteBatch, Element element, string text, Vector2 position, float alpha, float scale, int boldness)
+        /// <summary>Adds a glow's rings from the outside in, so each nearer and stronger ring goes over the fainter one beyond it. The rings are spread evenly out to the radius, at most <see cref="GLOW_MAX_RINGS"/> of them.</summary>
+        private static void AddGlowRings(Color color, int radius)
         {
-            foreach ((Color color, int thickness) in _activeOutlines)
-            {
-                Color outlineColor = color * element.DrawAlpha * alpha;
+            int ringCount = Math.Min(radius, GLOW_MAX_RINGS);
 
-                foreach (Vector2 direction in _outlineDirections)
+            for (int ring = ringCount; ring >= 1; ring--)
+            {
+                int distance = Math.Max(1, (int)Math.Round(radius * ring / (float)ringCount));
+                float ringStrength = GLOW_STRENGTH * (1f - (ring - 1f) / ringCount);
+
+                _haloLayers.Add((color * ringStrength, distance));
+            }
+        }
+
+        /// <summary>Draws the text once in each halo layer's color for every direction around it, without a shadow. Each copy is bold the same as the text, so an outline or glow wraps the thickened letters.</summary>
+        /// <param name="alpha">How strongly the text itself is drawn, which its halo follows so it fades and flickers with it.</param>
+        private static void DrawHalos(SpriteBatch spriteBatch, Element element, string text, Vector2 position, float alpha, float scale, int boldness)
+        {
+            foreach ((Color color, int distance) in _haloLayers)
+            {
+                Color layerColor = color * element.DrawAlpha * alpha;
+
+                foreach (Vector2 direction in _haloDirections)
                 {
-                    element.Font!.DrawString(spriteBatch, text, position + direction * thickness, outlineColor, Color.Transparent, scale, boldness);
+                    element.Font!.DrawString(spriteBatch, text, position + direction * distance, layerColor, Color.Transparent, scale, boldness);
                 }
             }
         }
 
-        /// <summary>Draws the gathered characters of an outlined segment, every outline first and then every letter over them without a shadow.</summary>
-        private static void DrawOutlinedCharacters(SpriteBatch spriteBatch, Element element, float scale, int boldness)
+        /// <summary>Draws the gathered characters of a haloed segment, every halo first and then every letter over them, without a shadow when the segment is outlined.</summary>
+        private static void DrawHaloedCharacters(SpriteBatch spriteBatch, Element element, float scale, int boldness)
         {
-            foreach ((string text, Vector2 position, Color _, float alpha) in _pendingOutlinedCharacters)
+            foreach ((string text, Vector2 position, Color _, Color _, float alpha) in _pendingHaloedCharacters)
             {
-                DrawOutlines(spriteBatch, element, text, position, alpha, scale, boldness);
+                DrawHalos(spriteBatch, element, text, position, alpha, scale, boldness);
             }
 
-            foreach ((string text, Vector2 position, Color color, float _) in _pendingOutlinedCharacters)
+            foreach ((string text, Vector2 position, Color color, Color shadowColor, float _) in _pendingHaloedCharacters)
             {
-                element.Font!.DrawString(spriteBatch, text, position, color, Color.Transparent, scale, boldness);
+                element.Font!.DrawString(spriteBatch, text, position, color, shadowColor, scale, boldness);
             }
 
-            _pendingOutlinedCharacters.Clear();
+            _pendingHaloedCharacters.Clear();
         }
 
         /// <summary>Adds the sparkle showing over a character right now, if any, to the ones drawn once the segment's characters are all down.</summary>

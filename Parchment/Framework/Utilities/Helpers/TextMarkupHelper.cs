@@ -46,6 +46,9 @@ namespace Parchment.Framework.Utilities.Helpers
         public const int DEFAULT_BOLD_STRENGTH = 1;
         public const int DEFAULT_OUTLINE_THICKNESS = 2;
         public static readonly Color DEFAULT_OUTLINE_COLOR = Color.Black;
+        public const int DEFAULT_GLOW_RADIUS = 3;
+        public const float DEFAULT_GLOW_PERIOD = 0f;
+        public static readonly Color DEFAULT_GLOW_COLOR = new Color(255, 200, 80);
         public const float DEFAULT_SHIMMER_PERIOD = 2500f;
         public const float DEFAULT_SHIMMER_WIDTH = 3f;
         public static readonly Color DEFAULT_SHIMMER_COLOR = Color.White;
@@ -76,7 +79,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER };
 
@@ -489,7 +492,7 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a rainbow takes only its period,
-        /// a gradient takes its colors, a pulse takes its color and then its period, a shimmer takes its color, its period and then its width, a flicker or a fade takes its lowest strength and then its period, a sparkle takes its color, its period and then its chance, an outline takes its color and then its thickness and a bold takes its strength. A color keeps any spaces of its own.
+        /// a gradient takes its colors, a pulse takes its color and then its period, a shimmer takes its color, its period and then its width, a flicker or a fade takes its lowest strength and then its period, a sparkle takes its color, its period and then its chance, an outline takes its color and then its thickness, a glow takes its color, its radius and then its period and a bold takes its strength. A color keeps any spaces of its own.
         /// A part that is left off or won't parse keeps its default.
         /// </summary>
         private static OpenedEffect ParseEffect(TextEffectType effectType, string? value, string source)
@@ -513,6 +516,8 @@ namespace Parchment.Framework.Utilities.Helpers
                     return ParseSparkle(parts, tag, source);
                 case TextEffectType.Outline:
                     return ParseOutline(parts, tag, source);
+                case TextEffectType.Glow:
+                    return ParseGlow(parts, tag, source);
                 case TextEffectType.Typewriter:
                     return new OpenedEffect(effectType, 0f, 0f, Array.Empty<Color>(), ParseTypewriter(parts, tag, source));
                 case TextEffectType.Underline:
@@ -640,6 +645,41 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return new OpenedEffect(TextEffectType.Outline, thickness, 0f, new Color[] { color });
+        }
+
+        /// <summary>Reads a glow's color, its radius and then its period, all optional. The radius is a whole number of unscaled pixels, kept in the effect's amplitude as a glow has nothing else to put there.
+        /// A period of zero (the default) holds the glow steady rather than breathing.
+        /// </summary>
+        private static OpenedEffect ParseGlow(string[] parts, string tag, string source)
+        {
+            Color color = DEFAULT_GLOW_COLOR;
+            int radius = DEFAULT_GLOW_RADIUS;
+            float period = ParsePeriod(parts, 2, DEFAULT_GLOW_PERIOD, allowZero: true, tag, source);
+
+            if (parts.Length > 0 && ColorParser.TryParse(parts[0], out Color parsedColor))
+            {
+                color = parsedColor;
+            }
+            else if (parts.Length > 0)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{parts[0]}', which isn't a color Parchment can read, so its default gold is used.", LogLevel.Warn);
+            }
+
+            if (parts.Length > 1 && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedRadius) && parsedRadius > 0)
+            {
+                radius = parsedRadius;
+            }
+            else if (parts.Length > 1)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] radius of '{parts[1]}', which isn't a positive whole number of pixels, so the default of {DEFAULT_GLOW_RADIUS} is used.{GetSeparatorHint(parts[1], tag)}", LogLevel.Warn);
+            }
+
+            if (parts.Length > 3)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than three parts, so everything after its period was ignored. Its parts are its color, its radius and its period.", LogLevel.Warn);
+            }
+
+            return new OpenedEffect(TextEffectType.Glow, radius, period, new Color[] { color });
         }
 
         /// <summary>Reads a bold's optional strength, being how far its second copy of the text is shifted in unscaled pixels. Left off (or one that isn't a positive whole number), it is <see cref="DEFAULT_BOLD_STRENGTH"/>.</summary>

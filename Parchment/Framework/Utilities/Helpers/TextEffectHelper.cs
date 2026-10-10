@@ -30,6 +30,9 @@ namespace Parchment.Framework.Utilities.Helpers
         private const int SPARKLE_SPREAD_X_HASH_AXIS = 6;
         private const int SPARKLE_SPREAD_Y_HASH_AXIS = 7;
 
+        // How far a pulsing glow dims at the low point of each period, as a share of its full strength
+        public const float GLOW_PULSE_DEPTH = 0.6f;
+
         // How much of each period a shimmer's band spends crossing the text, with the text resting for the remainder so it reads as a glint rather than a constant scroll
         public const float SHIMMER_SWEEP_FRACTION = 0.5f;
 
@@ -165,7 +168,7 @@ namespace Parchment.Framework.Utilities.Helpers
             return effectType is TextEffectType.Underline or TextEffectType.Strike or TextEffectType.Highlight or TextEffectType.Redact;
         }
 
-        /// <summary>Whether any of the effects works on each character on its own, which is what has a segment drawn a character at a time. Decorations, bold, fade and outline don't count, as each can draw a segment whole.</summary>
+        /// <summary>Whether any of the effects works on each character on its own, which is what has a segment drawn a character at a time. Decorations, bold, fade, outline and glow don't count, as each can draw a segment whole.</summary>
         public static bool HasCharacterEffects(IReadOnlyList<TextEffect>? effects)
         {
             if (effects is null)
@@ -175,7 +178,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
-                if (IsDecoration(effect.Type) is false && effect.Type is not (TextEffectType.Bold or TextEffectType.Fade or TextEffectType.Outline))
+                if (IsDecoration(effect.Type) is false && effect.Type is not (TextEffectType.Bold or TextEffectType.Fade or TextEffectType.Outline or TextEffectType.Glow))
                 {
                     return true;
                 }
@@ -240,6 +243,37 @@ namespace Parchment.Framework.Utilities.Helpers
 
             color = Color.Transparent;
             thickness = 0;
+            return false;
+        }
+
+        /// <summary>The innermost glow among the effects, being its color at this moment and how far its halo reaches in screen pixels. False when there is none.
+        /// A glow with a period breathes, dimming towards <see cref="GLOW_PULSE_DEPTH"/> below its full strength and back once per period. Its color already carries that.
+        /// </summary>
+        /// <param name="scale">The text's scale, which a glow's radius is multiplied by.</param>
+        /// <param name="time">The animation clock, in milliseconds.</param>
+        public static bool TryGetGlow(IReadOnlyList<TextEffect>? effects, float scale, double time, out Color color, out int radius)
+        {
+            if (effects is not null)
+            {
+                for (int index = effects.Count - 1; index >= 0; index--)
+                {
+                    TextEffect effect = effects[index];
+
+                    if (effect.Type is not TextEffectType.Glow || effect.Colors.Count is 0)
+                    {
+                        continue;
+                    }
+
+                    float strength = effect.Period > 0f ? 1f - GLOW_PULSE_DEPTH * GetPulseBlend(effect, time) : 1f;
+
+                    color = effect.Colors[0] * strength;
+                    radius = Math.Max(1, (int)Math.Round(effect.Amplitude * scale));
+                    return true;
+                }
+            }
+
+            color = Color.Transparent;
+            radius = 0;
             return false;
         }
 
@@ -373,7 +407,7 @@ namespace Parchment.Framework.Utilities.Helpers
         {
             foreach (TextEffect effect in effects)
             {
-                if (effect.Type is TextEffectType.Rainbow or TextEffectType.Gradient or TextEffectType.Pulse or TextEffectType.Shimmer or TextEffectType.Outline)
+                if (effect.Type is TextEffectType.Rainbow or TextEffectType.Gradient or TextEffectType.Pulse or TextEffectType.Shimmer or TextEffectType.Outline or TextEffectType.Glow)
                 {
                     return true;
                 }

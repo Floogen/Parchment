@@ -101,7 +101,7 @@ namespace Parchment.Framework.UI.Layouts
     {
         public TextEffectType Type { get; }
 
-        /// <summary>How far the effect moves a character (or how far a bold shifts its second copy of the text), in unscaled pixels multiplied by the text's scale. A shimmer keeps how many characters wide its band is here instead a flicker or a fade keeps the lowest strength it dims to, a sparkle keeps its chance of showing and an outline keeps its thickness.</summary>
+        /// <summary>How far the effect moves a character (or how far a bold shifts its second copy of the text), in unscaled pixels multiplied by the text's scale. A shimmer keeps how many characters wide its band is here instead a flicker or a fade keeps the lowest strength it dims to, a sparkle keeps its chance of showing, an outline keeps its thickness and a glow keeps its radius.</summary>
         public float Amplitude { get; }
 
         /// <summary>How long one cycle of the effect takes, in milliseconds.</summary>
@@ -113,7 +113,7 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>How many characters of <see cref="StyledText.Text"/> the effect covers. Set once its closing tag is reached (or the text ends), which is what lets a gradient spread its colors across the whole of it.</summary>
         public int Length { get; set; }
 
-        /// <summary>The colors an effect blends between, being a gradient's stops in order, the one color a pulse or a shimmer fades towards or the one a sparkle or an outline is drawn in. Empty for an effect that only moves its characters.</summary>
+        /// <summary>The colors an effect blends between, being a gradient's stops in order, the one color a pulse or a shimmer fades towards or the one a sparkle, an outline or a glow is drawn in. Empty for an effect that only moves its characters.</summary>
         public IReadOnlyList<Color> Colors { get; }
 
         /// <summary>How a typewriter reveals its text. Null for every other effect.</summary>
