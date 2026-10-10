@@ -46,8 +46,8 @@ namespace Parchment.Framework.UI.Fonts
             return character >= ' ' && character <= '~';
         }
 
-        // TextColor and ShadowColor do nothing for SpriteText, which draws its own outline, though how strongly to draw it still comes from the color's alpha
-        public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale, int boldness = 0)
+        // TextColor and ShadowColor do nothing for SpriteText, which draws its own outline, though how strongly to draw it still comes from the color's alpha. It can't turn its letters either, so a rotation is ignored
+        public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale, int boldness = 0, float rotation = 0f)
         {
             float previousFontPixelZoom = SpriteText.fontPixelZoom;
             SpriteText.fontPixelZoom = previousFontPixelZoom * scale;

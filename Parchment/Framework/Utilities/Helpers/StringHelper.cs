@@ -56,7 +56,7 @@ namespace Parchment.Framework.Utilities.Helpers
         private static readonly List<(Color Color, int Distance)> _haloLayers = new List<(Color Color, int Distance)>();
 
         // A haloed segment's characters, gathered while it draws so every halo goes down before any letter, keeping one letter's outline or glow off the letter beside it
-        private static readonly List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha)> _pendingHaloedCharacters = new List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha)>();
+        private static readonly List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha, float Rotation)> _pendingHaloedCharacters = new List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha, float Rotation)>();
 
         public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale)
         {
@@ -112,6 +112,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// A fade dims the whole segment together with its decorations, which works the same whether the segment is drawn whole or a character at a time.
         /// An outline draws the text in its color shifted every way around before the text itself, which then goes without its shadow as the outline takes its place. SpriteText outlines its own letters, so an outline is left out there.
         /// A glow draws faint rings of the same copies further out behind everything else, keeping the text's shadow. SpriteText keeps its own color, so a glow is left out there too.
+        /// A wobble turns each character about its own center, its shadow and any outline or glow turning with it. SpriteText can't turn its letters, so they stay upright there.
         /// A sparkle is drawn over its character after the whole segment, following the character as it moves and fading with it. It is the game's own sparkle, drawn at the text's scale.
         /// A character a typewriter hasn't reached yet is left out. One it is fading in is drawn at the strength it has reached, which a flicker dims further.
         /// </summary>
@@ -212,6 +213,13 @@ namespace Parchment.Framework.Utilities.Helpers
                         effectOffset += TextEffectHelper.GetOffset(hoverEffects, position, hoverTime, scale) * hoverStrength;
                     }
 
+                    float rotation = segment.Effects is null ? 0f : TextEffectHelper.GetRotation(segment.Effects, position, effectTime);
+
+                    if (hoverEffects is not null)
+                    {
+                        rotation += TextEffectHelper.GetRotation(hoverEffects, position, hoverTime) * hoverStrength;
+                    }
+
                     float layoutX = segment.CharacterOffsets[index];
                     float slotWidth = (index + 1 < segment.CharacterOffsets.Count ? segment.CharacterOffsets[index + 1] : segment.OffsetX + segment.Width) - layoutX;
                     float characterX = layoutX;
@@ -238,12 +246,12 @@ namespace Parchment.Framework.Utilities.Helpers
 
                     if (isHaloed)
                     {
-                        _pendingHaloedCharacters.Add((drawnCharacter, characterPosition, characterColor * characterAlpha, isOutlined ? Color.Transparent : characterShadowColor * characterAlpha, characterAlpha));
+                        _pendingHaloedCharacters.Add((drawnCharacter, characterPosition, characterColor * characterAlpha, isOutlined ? Color.Transparent : characterShadowColor * characterAlpha, characterAlpha, rotation));
                     }
                     else
                     {
                         // Faded together with its shadow, so a character fading in (or flickering) doesn't leave its shadow standing at full strength behind it
-                        element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * characterAlpha, characterShadowColor * characterAlpha, scale, boldness);
+                        element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * characterAlpha, characterShadowColor * characterAlpha, scale, boldness, rotation);
                     }
 
                     if (sparkleTexture is not null)
@@ -322,7 +330,8 @@ namespace Parchment.Framework.Utilities.Helpers
 
         /// <summary>Draws the text once in each halo layer's color for every direction around it, without a shadow. Each copy is bold the same as the text, so an outline or glow wraps the thickened letters.</summary>
         /// <param name="alpha">How strongly the text itself is drawn, which its halo follows so it fades and flickers with it.</param>
-        private static void DrawHalos(SpriteBatch spriteBatch, Element element, string text, Vector2 position, float alpha, float scale, int boldness)
+        /// <param name="rotation">How far the text is turned, which every copy follows so a wobbling letter's halo rocks with it.</param>
+        private static void DrawHalos(SpriteBatch spriteBatch, Element element, string text, Vector2 position, float alpha, float scale, int boldness, float rotation = 0f)
         {
             foreach ((Color color, int distance) in _haloLayers)
             {
@@ -330,7 +339,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 foreach (Vector2 direction in _haloDirections)
                 {
-                    element.Font!.DrawString(spriteBatch, text, position + direction * distance, layerColor, Color.Transparent, scale, boldness);
+                    element.Font!.DrawString(spriteBatch, text, position + direction * distance, layerColor, Color.Transparent, scale, boldness, rotation);
                 }
             }
         }
@@ -338,14 +347,14 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>Draws the gathered characters of a haloed segment, every halo first and then every letter over them, without a shadow when the segment is outlined.</summary>
         private static void DrawHaloedCharacters(SpriteBatch spriteBatch, Element element, float scale, int boldness)
         {
-            foreach ((string text, Vector2 position, Color _, Color _, float alpha) in _pendingHaloedCharacters)
+            foreach ((string text, Vector2 position, Color _, Color _, float alpha, float rotation) in _pendingHaloedCharacters)
             {
-                DrawHalos(spriteBatch, element, text, position, alpha, scale, boldness);
+                DrawHalos(spriteBatch, element, text, position, alpha, scale, boldness, rotation);
             }
 
-            foreach ((string text, Vector2 position, Color color, Color shadowColor, float _) in _pendingHaloedCharacters)
+            foreach ((string text, Vector2 position, Color color, Color shadowColor, float _, float rotation) in _pendingHaloedCharacters)
             {
-                element.Font!.DrawString(spriteBatch, text, position, color, shadowColor, scale, boldness);
+                element.Font!.DrawString(spriteBatch, text, position, color, shadowColor, scale, boldness, rotation);
             }
 
             _pendingHaloedCharacters.Clear();

@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
+using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.Utilities.Helpers;
@@ -169,6 +170,11 @@ namespace Parchment.Framework.UI.Layouts
             if (font is SpriteTextAdapter && (styledText.ColorRuns.Count is not 0 || styledText.EffectRuns.Any(run => TextEffectHelper.HasColor(run.Effects))))
             {
                 Parchment.monitor.LogOnce($"'{text}' has [color], [rainbow], [gradient], [pulse], [shimmer], [outline] or [glow] markup but draws in SpriteText, which keeps its own color, so the coloring is ignored.", LogLevel.Warn);
+            }
+
+            if (font is SpriteTextAdapter && (styledText.EffectRuns.Any(run => TextEffectHelper.HasEffect(run.Effects, TextEffectType.Wobble)) || styledText.LinkHoverEffects.Values.Any(effects => TextEffectHelper.HasEffect(effects, TextEffectType.Wobble))))
+            {
+                Parchment.monitor.LogOnce($"'{text}' has [wobble] markup but draws in SpriteText, which can't turn its letters, so they stay upright.", LogLevel.Warn);
             }
 
             element.TypewriterEffects = CollectTypewriters(styledText);

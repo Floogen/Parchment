@@ -76,6 +76,28 @@ namespace Parchment.Framework.Utilities.Helpers
             return offset;
         }
 
+        /// <summary>How far a character is turned about its center, in radians, adding up every wobble over it.
+        /// Each character rocks a beat behind the one before it, the same as a wave, so the rocking travels along the text rather than tipping it all at once.
+        /// </summary>
+        /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
+        /// <param name="time">The animation clock, in milliseconds.</param>
+        public static float GetRotation(IReadOnlyList<TextEffect> effects, int position, double time)
+        {
+            float rotation = 0f;
+
+            foreach (TextEffect effect in effects)
+            {
+                if (effect.Type is TextEffectType.Wobble)
+                {
+                    double phase = Math.PI * 2d / effect.Period * -(time + (position - effect.Start) * WAVE_CHARACTER_DELAY);
+
+                    rotation += MathHelper.ToRadians(effect.Amplitude) * (float)Math.Sin(phase);
+                }
+            }
+
+            return rotation;
+        }
+
         /// <summary>How strongly a character is drawn, from 0 for not at all to 1 for in full, multiplying together every flicker over it so a flicker inside another dims further.
         /// A fade dims a whole stretch at once rather than each character, so it is left to <see cref="GetStretchAlpha"/>.
         /// </summary>

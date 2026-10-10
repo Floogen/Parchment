@@ -36,6 +36,8 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_RAINBOW_PERIOD = 2000f;
         public const float DEFAULT_BOUNCE_AMPLITUDE = 2f;
         public const float DEFAULT_BOUNCE_PERIOD = 800f;
+        public const float DEFAULT_WOBBLE_ANGLE = 8f;
+        public const float DEFAULT_WOBBLE_PERIOD = 1200f;
         public const float DEFAULT_PULSE_PERIOD = 1500f;
         public const float DEFAULT_TYPEWRITER_SPEED = 30f;
         public const float DEFAULT_TYPEWRITER_FADE = 100f;
@@ -79,7 +81,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow|wobble)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow|wobble)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER };
 
@@ -491,7 +493,7 @@ namespace Parchment.Framework.Utilities.Helpers
             return Enum.TryParse(tag, ignoreCase: true, out effectType);
         }
 
-        /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a rainbow takes only its period,
+        /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a wobble takes its angle in degrees and then its period, a rainbow takes only its period,
         /// a gradient takes its colors, a pulse takes its color and then its period, a shimmer takes its color, its period and then its width, a flicker or a fade takes its lowest strength and then its period, a sparkle takes its color, its period and then its chance, an outline takes its color and then its thickness, a glow takes its color, its radius and then its period and a bold takes its strength. A color keeps any spaces of its own.
         /// A part that is left off or won't parse keeps its default.
         /// </summary>
@@ -534,6 +536,9 @@ namespace Parchment.Framework.Utilities.Helpers
                     return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_SHAKE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_SHAKE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
                 case TextEffectType.Bounce:
                     return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_BOUNCE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_BOUNCE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
+                case TextEffectType.Wobble:
+                    // Its amplitude is how far it rocks either way, in degrees rather than pixels
+                    return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_WOBBLE_ANGLE, tag, source), ParsePeriod(parts, 1, DEFAULT_WOBBLE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
                 case TextEffectType.Rainbow:
                     // Zero holds the colors still, which is how the game draws its own rainbow text
                     return new OpenedEffect(effectType, 0f, ParsePeriod(parts, 0, DEFAULT_RAINBOW_PERIOD, allowZero: true, tag, source), Array.Empty<Color>());

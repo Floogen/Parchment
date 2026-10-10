@@ -21,6 +21,7 @@
         Fade,
         Sparkle,
         Outline,
-        Glow
+        Glow,
+        Wobble
     }
 }
