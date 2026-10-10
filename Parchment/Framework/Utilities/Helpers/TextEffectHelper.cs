@@ -61,7 +61,9 @@ namespace Parchment.Framework.Utilities.Helpers
             return offset;
         }
 
-        /// <summary>How strongly a character is drawn, from 0 for not at all to 1 for in full, multiplying together every flicker over it so a flicker inside another dims further.</summary>
+        /// <summary>How strongly a character is drawn, from 0 for not at all to 1 for in full, multiplying together every flicker over it so a flicker inside another dims further.
+        /// A fade dims a whole stretch at once rather than each character, so it is left to <see cref="GetStretchAlpha"/>.
+        /// </summary>
         /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
         /// <param name="time">The animation clock, in milliseconds.</param>
         public static float GetAlpha(IReadOnlyList<TextEffect> effects, int position, double time)
@@ -73,6 +75,31 @@ namespace Parchment.Framework.Utilities.Helpers
                 if (effect.Type is TextEffectType.Flicker)
                 {
                     alpha *= GetFlickerAlpha(effect, position, time);
+                }
+            }
+
+            return alpha;
+        }
+
+        /// <summary>How strongly a whole stretch is drawn, from 0 for not at all to 1 for in full, multiplying together every fade over it so a fade inside another dims further.
+        /// Every character under a fade shares it, so it applies to a segment drawn whole and to the decorations on it as well as to each character.
+        /// </summary>
+        /// <param name="time">The animation clock, in milliseconds.</param>
+        public static float GetStretchAlpha(IReadOnlyList<TextEffect>? effects, double time)
+        {
+            float alpha = 1f;
+
+            if (effects is null)
+            {
+                return alpha;
+            }
+
+            foreach (TextEffect effect in effects)
+            {
+                if (effect.Type is TextEffectType.Fade)
+                {
+                    // Starts from full strength, so the text is readable the moment it appears and only then begins to dim
+                    alpha *= 1f - (1f - effect.Amplitude) * GetPulseBlend(effect, time);
                 }
             }
 
@@ -126,7 +153,7 @@ namespace Parchment.Framework.Utilities.Helpers
             return effectType is TextEffectType.Underline or TextEffectType.Strike or TextEffectType.Highlight or TextEffectType.Redact;
         }
 
-        /// <summary>Whether any of the effects works on each character on its own, which is what has a segment drawn a character at a time. Decorations and bold don't count, as both can draw a segment whole.</summary>
+        /// <summary>Whether any of the effects works on each character on its own, which is what has a segment drawn a character at a time. Decorations, bold and fade don't count, as each can draw a segment whole.</summary>
         public static bool HasCharacterEffects(IReadOnlyList<TextEffect>? effects)
         {
             if (effects is null)
@@ -136,7 +163,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
-                if (IsDecoration(effect.Type) is false && effect.Type is not TextEffectType.Bold)
+                if (IsDecoration(effect.Type) is false && effect.Type is not (TextEffectType.Bold or TextEffectType.Fade))
                 {
                     return true;
                 }
@@ -286,7 +313,7 @@ namespace Parchment.Framework.Utilities.Helpers
             return Color.Lerp(effect.Colors[stopIndex], effect.Colors[stopIndex + 1], scaledFraction - stopIndex);
         }
 
-        /// <summary>How far along a pulse is towards its color, easing from none to all of it and back once per period. The whole stretch pulses together, as a highlight rather than a ripple.</summary>
+        /// <summary>How far along a pulse is towards its color (or a fade towards its lowest strength), easing from none to all of it and back once per period. The whole stretch pulses together, as a highlight rather than a ripple.</summary>
         private static float GetPulseBlend(TextEffect effect, double time)
         {
             return (float)((1d - Math.Cos(Math.PI * 2d * time / effect.Period)) / 2d);

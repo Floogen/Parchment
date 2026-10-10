@@ -82,6 +82,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// An effect that colors, such as a rainbow or a pulse, starts from the segment's own color but leaves a hovered link's alone, so the link still shows the cursor is on it.
         /// A hovered link's own hover effects apply last, timed from the cursor's arrival and eased in, with any color they set starting from the link's hover color.
         /// A bold draws the segment's text twice, the second copy shifted right, which works the same whether the segment is drawn whole or a character at a time.
+        /// A fade dims the whole segment together with its decorations, which works the same whether the segment is drawn whole or a character at a time.
         /// A character a typewriter hasn't reached yet is left out. One it is fading in is drawn at the strength it has reached, which a flicker dims further.
         /// </summary>
         /// <param name="keepsOwnColor">Whether the font ignores the colors it's handed, as SpriteText does, in which case every segment takes the element's own.</param>
@@ -109,10 +110,13 @@ namespace Parchment.Framework.Utilities.Helpers
                 float hoverStrength = hoverEffects is null ? 0f : TextEffectHelper.GetHoverStrength(hoverTime);
                 int boldness = TextEffectHelper.GetBoldness(segment.Effects, hoverEffects, scale);
 
+                // Eased in with the rest of the hover effects, so a fade on hover starts from full strength rather than dropping the moment the cursor arrives
+                float stretchAlpha = TextEffectHelper.GetStretchAlpha(segment.Effects, effectTime) * MathHelper.Lerp(1f, TextEffectHelper.GetStretchAlpha(hoverEffects, hoverTime), hoverStrength);
+
                 DecorationContext decoration = new DecorationContext(element, segment, linePosition, lineHeight, segmentColor, scale, GetDecorationWidth(element, segment, effectTime));
 
-                DrawDecorations(spriteBatch, decoration, segment.Effects, 1f, isBehindText: true);
-                DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength, isBehindText: true);
+                DrawDecorations(spriteBatch, decoration, segment.Effects, stretchAlpha, isBehindText: true);
+                DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength * stretchAlpha, isBehindText: true);
 
                 // A redacted segment is only its bar, so nothing of the text underneath is drawn
                 if (TextEffectHelper.HasEffect(segment.Effects, TextEffectType.Redact))
@@ -124,10 +128,10 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 if (hasCharacterEffects is false || segment.Characters is null || segment.CharacterOffsets is null)
                 {
-                    element.Font!.DrawString(spriteBatch, segment.Text, new Vector2(linePosition.X + segment.OffsetX, linePosition.Y), segmentColor, segmentShadowColor, scale, boldness);
+                    element.Font!.DrawString(spriteBatch, segment.Text, new Vector2(linePosition.X + segment.OffsetX, linePosition.Y), segmentColor * stretchAlpha, segmentShadowColor * stretchAlpha, scale, boldness);
 
-                    DrawDecorations(spriteBatch, decoration, segment.Effects, 1f, isBehindText: false);
-                    DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength, isBehindText: false);
+                    DrawDecorations(spriteBatch, decoration, segment.Effects, stretchAlpha, isBehindText: false);
+                    DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength * stretchAlpha, isBehindText: false);
                     continue;
                 }
 
@@ -150,7 +154,7 @@ namespace Parchment.Framework.Utilities.Helpers
                         continue;
                     }
 
-                    float characterAlpha = revealAlpha * (segment.Effects is null ? 1f : TextEffectHelper.GetAlpha(segment.Effects, position, effectTime));
+                    float characterAlpha = revealAlpha * stretchAlpha * (segment.Effects is null ? 1f : TextEffectHelper.GetAlpha(segment.Effects, position, effectTime));
 
                     // Eased in with the rest of the hover effects, so a flicker on hover starts from full strength rather than dropping the moment the cursor arrives
                     if (hoverEffects is not null)
@@ -193,8 +197,8 @@ namespace Parchment.Framework.Utilities.Helpers
                     element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * characterAlpha, characterShadowColor * characterAlpha, scale, boldness);
                 }
 
-                DrawDecorations(spriteBatch, decoration, segment.Effects, 1f, isBehindText: false);
-                DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength, isBehindText: false);
+                DrawDecorations(spriteBatch, decoration, segment.Effects, stretchAlpha, isBehindText: false);
+                DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength * stretchAlpha, isBehindText: false);
             }
         }
 

@@ -49,6 +49,8 @@ namespace Parchment.Framework.Utilities.Helpers
         public static readonly Color DEFAULT_SHIMMER_COLOR = Color.White;
         public const float DEFAULT_FLICKER_MINIMUM = 0.3f;
         public const float DEFAULT_FLICKER_PERIOD = 120f;
+        public const float DEFAULT_FADE_MINIMUM = 0.25f;
+        public const float DEFAULT_FADE_PERIOD = 2000f;
 
         private const string SCRAMBLE_GLYPHS_OPTION = "glyphs";
         private const string SCRAMBLE_SETTLE_OPTION = "settle";
@@ -69,7 +71,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER };
 
@@ -482,7 +484,7 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a rainbow takes only its period,
-        /// a gradient takes its colors, a pulse takes its color and then its period, a shimmer takes its color, its period and then its width, a flicker takes its lowest strength and then its period and a bold takes its strength. A color keeps any spaces of its own.
+        /// a gradient takes its colors, a pulse takes its color and then its period, a shimmer takes its color, its period and then its width, a flicker or a fade takes its lowest strength and then its period and a bold takes its strength. A color keeps any spaces of its own.
         /// A part that is left off or won't parse keeps its default.
         /// </summary>
         private static OpenedEffect ParseEffect(TextEffectType effectType, string? value, string source)
@@ -499,7 +501,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 case TextEffectType.Shimmer:
                     return ParseShimmer(parts, tag, source);
                 case TextEffectType.Flicker:
-                    return ParseFlicker(parts, tag, source);
+                    return ParseDimming(effectType, parts, DEFAULT_FLICKER_MINIMUM, DEFAULT_FLICKER_PERIOD, tag, source);
+                case TextEffectType.Fade:
+                    return ParseDimming(effectType, parts, DEFAULT_FADE_MINIMUM, DEFAULT_FADE_PERIOD, tag, source);
                 case TextEffectType.Typewriter:
                     return new OpenedEffect(effectType, 0f, 0f, Array.Empty<Color>(), ParseTypewriter(parts, tag, source));
                 case TextEffectType.Underline:
@@ -794,11 +798,11 @@ namespace Parchment.Framework.Utilities.Helpers
             return new OpenedEffect(TextEffectType.Shimmer, width, period, new Color[] { color });
         }
 
-        /// <summary>Reads a flicker's lowest strength (from 0 to 1) and then its period, both optional. The lowest strength is kept in the effect's amplitude, as a flicker has nothing else to put there.</summary>
-        private static OpenedEffect ParseFlicker(string[] parts, string tag, string source)
+        /// <summary>Reads a flicker's or a fade's lowest strength (from 0 to 1) and then its period, both optional. The lowest strength is kept in the effect's amplitude, as neither has anything else to put there.</summary>
+        private static OpenedEffect ParseDimming(TextEffectType effectType, string[] parts, float defaultMinimum, float defaultPeriod, string tag, string source)
         {
-            float minimum = DEFAULT_FLICKER_MINIMUM;
-            float period = ParsePeriod(parts, 1, DEFAULT_FLICKER_PERIOD, allowZero: false, tag, source);
+            float minimum = defaultMinimum;
+            float period = ParsePeriod(parts, 1, defaultPeriod, allowZero: false, tag, source);
 
             if (parts.Length > 0 && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedMinimum) && parsedMinimum >= 0f && parsedMinimum <= 1f)
             {
@@ -806,7 +810,7 @@ namespace Parchment.Framework.Utilities.Helpers
             }
             else if (parts.Length > 0)
             {
-                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] lowest strength of '{parts[0]}', which isn't a number from 0 to 1, so the default of {DEFAULT_FLICKER_MINIMUM} is used.{GetSeparatorHint(parts[0], tag)}", LogLevel.Warn);
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] lowest strength of '{parts[0]}', which isn't a number from 0 to 1, so the default of {defaultMinimum} is used.{GetSeparatorHint(parts[0], tag)}", LogLevel.Warn);
             }
 
             if (parts.Length > 2)
@@ -814,7 +818,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than two parts, so everything after its period was ignored. Its parts are its lowest strength and its period.", LogLevel.Warn);
             }
 
-            return new OpenedEffect(TextEffectType.Flicker, minimum, period, Array.Empty<Color>());
+            return new OpenedEffect(effectType, minimum, period, Array.Empty<Color>());
         }
 
         private static float ParseAmplitude(string[] parts, float defaultAmplitude, string tag, string source)

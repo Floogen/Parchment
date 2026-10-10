@@ -17,6 +17,7 @@
         Scramble,
         Bold,
         Shimmer,
-        Flicker
+        Flicker,
+        Fade
     }
 }

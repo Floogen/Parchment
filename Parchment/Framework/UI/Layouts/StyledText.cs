@@ -101,7 +101,7 @@ namespace Parchment.Framework.UI.Layouts
     {
         public TextEffectType Type { get; }
 
-        /// <summary>How far the effect moves a character (or how far a bold shifts its second copy of the text), in unscaled pixels multiplied by the text's scale. A shimmer keeps how many characters wide its band is here instead and a flicker keeps the lowest strength it dims to.</summary>
+        /// <summary>How far the effect moves a character (or how far a bold shifts its second copy of the text), in unscaled pixels multiplied by the text's scale. A shimmer keeps how many characters wide its band is here instead and a flicker or a fade keeps the lowest strength it dims to.</summary>
         public float Amplitude { get; }
 
         /// <summary>How long one cycle of the effect takes, in milliseconds.</summary>
