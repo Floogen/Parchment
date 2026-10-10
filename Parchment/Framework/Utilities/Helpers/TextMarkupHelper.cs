@@ -51,6 +51,9 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_FLICKER_PERIOD = 120f;
         public const float DEFAULT_FADE_MINIMUM = 0.25f;
         public const float DEFAULT_FADE_PERIOD = 2000f;
+        public const float DEFAULT_SPARKLE_PERIOD = 400f;
+        public const float DEFAULT_SPARKLE_CHANCE = 0.2f;
+        public static readonly Color DEFAULT_SPARKLE_COLOR = Color.White;
 
         private const string SCRAMBLE_GLYPHS_OPTION = "glyphs";
         private const string SCRAMBLE_SETTLE_OPTION = "settle";
@@ -71,7 +74,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER };
 
@@ -484,7 +487,7 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a rainbow takes only its period,
-        /// a gradient takes its colors, a pulse takes its color and then its period, a shimmer takes its color, its period and then its width, a flicker or a fade takes its lowest strength and then its period and a bold takes its strength. A color keeps any spaces of its own.
+        /// a gradient takes its colors, a pulse takes its color and then its period, a shimmer takes its color, its period and then its width, a flicker or a fade takes its lowest strength and then its period, a sparkle takes its color, its period and then its chance and a bold takes its strength. A color keeps any spaces of its own.
         /// A part that is left off or won't parse keeps its default.
         /// </summary>
         private static OpenedEffect ParseEffect(TextEffectType effectType, string? value, string source)
@@ -504,6 +507,8 @@ namespace Parchment.Framework.Utilities.Helpers
                     return ParseDimming(effectType, parts, DEFAULT_FLICKER_MINIMUM, DEFAULT_FLICKER_PERIOD, tag, source);
                 case TextEffectType.Fade:
                     return ParseDimming(effectType, parts, DEFAULT_FADE_MINIMUM, DEFAULT_FADE_PERIOD, tag, source);
+                case TextEffectType.Sparkle:
+                    return ParseSparkle(parts, tag, source);
                 case TextEffectType.Typewriter:
                     return new OpenedEffect(effectType, 0f, 0f, Array.Empty<Color>(), ParseTypewriter(parts, tag, source));
                 case TextEffectType.Underline:
@@ -819,6 +824,39 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return new OpenedEffect(effectType, minimum, period, Array.Empty<Color>());
+        }
+
+        /// <summary>Reads a sparkle's color, its period and then its chance (from 0 to 1) of showing over each character in a period, all optional. The chance is kept in the effect's amplitude, as a sparkle has nothing else to put there.</summary>
+        private static OpenedEffect ParseSparkle(string[] parts, string tag, string source)
+        {
+            Color color = DEFAULT_SPARKLE_COLOR;
+            float period = ParsePeriod(parts, 1, DEFAULT_SPARKLE_PERIOD, allowZero: false, tag, source);
+            float chance = DEFAULT_SPARKLE_CHANCE;
+
+            if (parts.Length > 0 && ColorParser.TryParse(parts[0], out Color parsedColor))
+            {
+                color = parsedColor;
+            }
+            else if (parts.Length > 0)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{parts[0]}', which isn't a color Parchment can read, so it keeps the sparkle's own colors.", LogLevel.Warn);
+            }
+
+            if (parts.Length > 2 && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedChance) && parsedChance >= 0f && parsedChance <= 1f)
+            {
+                chance = parsedChance;
+            }
+            else if (parts.Length > 2)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] chance of '{parts[2]}', which isn't a number from 0 to 1, so the default of {DEFAULT_SPARKLE_CHANCE} is used.{GetSeparatorHint(parts[2], tag)}", LogLevel.Warn);
+            }
+
+            if (parts.Length > 3)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than three parts, so everything after its chance was ignored. Its parts are its color, its period and its chance.", LogLevel.Warn);
+            }
+
+            return new OpenedEffect(TextEffectType.Sparkle, chance, period, new Color[] { color });
         }
 
         private static float ParseAmplitude(string[] parts, float defaultAmplitude, string tag, string source)

@@ -1,10 +1,11 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Layouts;
+using StardewModdingAPI;
 using StardewValley;
 using System;
 using System.Collections.Generic;
@@ -30,6 +31,16 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // Scramble glyph widths by font, glyph and scale, filled as they're first drawn
         private static readonly Dictionary<(IFont Font, string Glyph, float Scale), float> _glyphWidths = new Dictionary<(IFont Font, string Glyph, float Scale), float>();
+
+        private const string SPARKLE_TEXTURE = "TileSheets/animations";
+        private const int SPARKLE_FRAME_COUNT = 6;
+        private static readonly Rectangle _sparkleSource = new Rectangle(0, 704, 64, 64);
+
+        // Parsed once rather than every frame, as the sheet is looked up each time a segment with sparkles draws
+        private static IAssetName? _sparkleAssetName;
+
+        // The sparkles over a segment, gathered while its characters draw and drawn after them all so a sparkle is never covered by the letter beside it
+        private static readonly List<(Vector2 Center, int Frame, Color Color)> _pendingSparkles = new List<(Vector2 Center, int Frame, Color Color)>();
 
         public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale)
         {
@@ -83,6 +94,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// A hovered link's own hover effects apply last, timed from the cursor's arrival and eased in, with any color they set starting from the link's hover color.
         /// A bold draws the segment's text twice, the second copy shifted right, which works the same whether the segment is drawn whole or a character at a time.
         /// A fade dims the whole segment together with its decorations, which works the same whether the segment is drawn whole or a character at a time.
+        /// A sparkle is drawn over its character after the whole segment, following the character as it moves and fading with it.
         /// A character a typewriter hasn't reached yet is left out. One it is fading in is drawn at the strength it has reached, which a flicker dims further.
         /// </summary>
         /// <param name="keepsOwnColor">Whether the font ignores the colors it's handed, as SpriteText does, in which case every segment takes the element's own.</param>
@@ -125,6 +137,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 }
 
                 bool hasCharacterEffects = TextEffectHelper.HasCharacterEffects(segment.Effects) || TextEffectHelper.HasCharacterEffects(hoverEffects);
+
+                Texture2D? sparkleTexture = TextEffectHelper.HasEffect(segment.Effects, TextEffectType.Sparkle) || TextEffectHelper.HasEffect(hoverEffects, TextEffectType.Sparkle) ? GetSparkleTexture() : null;
+                _pendingSparkles.Clear();
 
                 if (hasCharacterEffects is false || segment.Characters is null || segment.CharacterOffsets is null)
                 {
@@ -169,14 +184,14 @@ namespace Parchment.Framework.Utilities.Helpers
                         effectOffset += TextEffectHelper.GetOffset(hoverEffects, position, hoverTime, scale) * hoverStrength;
                     }
 
-                    float characterX = segment.CharacterOffsets[index];
+                    float layoutX = segment.CharacterOffsets[index];
+                    float slotWidth = (index + 1 < segment.CharacterOffsets.Count ? segment.CharacterOffsets[index + 1] : segment.OffsetX + segment.Width) - layoutX;
+                    float characterX = layoutX;
                     string drawnCharacter = character;
 
                     // A scrambled character shows a random glyph centred in the room its real one was laid out with, so a wider glyph spills evenly rather than into one neighbour
                     if (segment.Effects is not null && TextEffectHelper.TryGetScrambleGlyph(element, segment.Effects, position, effectTime, out string glyph))
                     {
-                        float slotWidth = (index + 1 < segment.CharacterOffsets.Count ? segment.CharacterOffsets[index + 1] : segment.OffsetX + segment.Width) - characterX;
-
                         characterX += (slotWidth - GetGlyphWidth(element.Font!, glyph, scale)) / 2f;
                         drawnCharacter = glyph;
                     }
@@ -195,11 +210,65 @@ namespace Parchment.Framework.Utilities.Helpers
 
                     // Faded together with its shadow, so a character fading in (or flickering) doesn't leave its shadow standing at full strength behind it
                     element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * characterAlpha, characterShadowColor * characterAlpha, scale, boldness);
+
+                    if (sparkleTexture is not null)
+                    {
+                        Vector2 slotCenter = new Vector2(linePosition.X + layoutX + slotWidth / 2f + effectOffset.X, linePosition.Y + effectOffset.Y);
+                        float sparkleAlpha = element.DrawAlpha * characterAlpha;
+
+                        QueueSparkle(segment.Effects, position, effectTime, slotCenter, slotWidth, lineHeight, sparkleAlpha);
+                        QueueSparkle(hoverEffects, position, hoverTime, slotCenter, slotWidth, lineHeight, sparkleAlpha * hoverStrength);
+                    }
                 }
 
                 DrawDecorations(spriteBatch, decoration, segment.Effects, stretchAlpha, isBehindText: false);
                 DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength * stretchAlpha, isBehindText: false);
+
+                if (sparkleTexture is not null)
+                {
+                    DrawSparkles(spriteBatch, sparkleTexture, scale);
+                }
             }
+        }
+
+        /// <summary>Adds the sparkle showing over a character right now, if any, to the ones drawn once the segment's characters are all down.</summary>
+        /// <param name="slotCenter">The middle of the room the character was laid out with, moved along with it, at the top of its line.</param>
+        /// <param name="alpha">How strongly to draw the sparkle, carrying the element's fade and the character's own.</param>
+        private static void QueueSparkle(IReadOnlyList<TextEffect>? effects, int position, double time, Vector2 slotCenter, float slotWidth, float lineHeight, float alpha)
+        {
+            if (alpha <= 0f || TextEffectHelper.TryGetSparkle(effects, position, time, SPARKLE_FRAME_COUNT, out TextEffectHelper.Sparkle sparkle) is false)
+            {
+                return;
+            }
+
+            // Anywhere across the character's room and down the line's height, the way the game scatters its sparkles across the whole of its text
+            Vector2 center = new Vector2(slotCenter.X + sparkle.Spread.X * slotWidth / 2f, slotCenter.Y + sparkle.Spread.Y * lineHeight);
+
+            // Whole pixels, so a sparkle drawn between them doesn't blur
+            _pendingSparkles.Add((new Vector2(MathF.Round(center.X), MathF.Round(center.Y)), sparkle.Frame, sparkle.Color * alpha));
+        }
+
+        /// <summary>Draws the gathered sparkles, each centred on where it landed. The frames sit side by side, so each is the one before it moved a frame's width along.</summary>
+        /// <param name="scale">The text's scale.</param>
+        private static void DrawSparkles(SpriteBatch spriteBatch, Texture2D sparkleTexture, float scale)
+        {
+            Vector2 origin = new Vector2(_sparkleSource.Width / 2, _sparkleSource.Height / 2);
+
+            foreach ((Vector2 center, int frame, Color color) in _pendingSparkles)
+            {
+                Rectangle source = new Rectangle(_sparkleSource.X + frame * _sparkleSource.Width, _sparkleSource.Y, _sparkleSource.Width, _sparkleSource.Height);
+
+                spriteBatch.Draw(sparkleTexture, center, source, color, 0f, origin, scale, SpriteEffects.None, 0f);
+            }
+
+            _pendingSparkles.Clear();
+        }
+
+        private static Texture2D GetSparkleTexture()
+        {
+            _sparkleAssetName ??= Parchment.modHelper.GameContent.ParseAssetName(SPARKLE_TEXTURE);
+
+            return Parchment.modHelper.GameContent.Load<Texture2D>(_sparkleAssetName);
         }
 
         /// <summary>Where and in what color a segment's decorations are drawn, gathered so each decoration doesn't need them passed one by one.</summary>

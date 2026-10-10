@@ -24,11 +24,23 @@ namespace Parchment.Framework.Utilities.Helpers
         // The hash axis flicker picks its strengths on, apart from shake's and scramble's, so a flickering shake doesn't dim in step with its jumps
         private const int FLICKER_HASH_AXIS = 3;
 
+        // The hash axes a sparkle reads, apart from every other effect's so a sparkle never lands in step with a shake, scramble or flicker on the same character
+        private const int SPARKLE_PHASE_HASH_AXIS = 4;
+        private const int SPARKLE_CHANCE_HASH_AXIS = 5;
+        private const int SPARKLE_SPREAD_X_HASH_AXIS = 6;
+        private const int SPARKLE_SPREAD_Y_HASH_AXIS = 7;
+
         // How much of each period a shimmer's band spends crossing the text, with the text resting for the remainder so it reads as a glint rather than a constant scroll
         public const float SHIMMER_SWEEP_FRACTION = 0.5f;
 
         // The game's own rainbow from SparklingText, which hands each character the next color along
         private static readonly Color[] _rainbowColors = new Color[] { Color.Red, Color.Orange, Color.Yellow, Color.Chartreuse, Color.Green, Color.Cyan, Color.Blue, Color.Violet };
+
+        /// <summary>One sparkle showing over a character right now.</summary>
+        /// <param name="Frame">Which frame of the sparkle's animation to draw, counting from zero.</param>
+        /// <param name="Spread">Where over the character it sits, with X from -1 (its left edge) to 1 (its right) and Y from 0 (the top of its line) to 1 (the bottom).</param>
+        /// <param name="Color">The sparkle's tint, before any fade.</param>
+        public readonly record struct Sparkle(int Frame, Vector2 Spread, Color Color);
 
         /// <summary>How far a character is moved from where it was laid out, adding up every effect over it.</summary>
         /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
@@ -219,6 +231,47 @@ namespace Parchment.Framework.Utilities.Helpers
                 }
             }
 
+            return false;
+        }
+
+        /// <summary>The sparkle showing over a character right now, from the innermost sparkle effect over it that has one showing. False when none does.
+        /// Each character gets its own chance of sparkling in every period, with its periods offset from its neighbours' so sparkles come and go at scattered moments rather than all at once.
+        /// A sparkle plays through its frames once over its period, goin g somewhere new over the character each time.
+        /// </summary>
+        /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
+        /// <param name="frameCount">How many frames the sparkle's animation has.</param>
+        public static bool TryGetSparkle(IReadOnlyList<TextEffect>? effects, int position, double time, int frameCount, out Sparkle sparkle)
+        {
+            if (effects is not null && frameCount > 0)
+            {
+                for (int index = effects.Count - 1; index >= 0; index--)
+                {
+                    TextEffect effect = effects[index];
+
+                    if (effect.Type is not TextEffectType.Sparkle || effect.Colors.Count is 0)
+                    {
+                        continue;
+                    }
+
+                    double phase = GetHash(position, 0, SPARKLE_PHASE_HASH_AXIS) / (double)uint.MaxValue * effect.Period;
+                    double step = (time + phase) / effect.Period;
+                    long slot = (long)Math.Floor(step);
+
+                    if (GetHash(position, slot, SPARKLE_CHANCE_HASH_AXIS) / (float)uint.MaxValue >= effect.Amplitude)
+                    {
+                        continue;
+                    }
+
+                    int frame = Math.Min(frameCount - 1, (int)((step - slot) * frameCount));
+
+                    Vector2 spread = new Vector2(GetNoise(position, slot, SPARKLE_SPREAD_X_HASH_AXIS), GetHash(position, slot, SPARKLE_SPREAD_Y_HASH_AXIS) / (float)uint.MaxValue);
+
+                    sparkle = new Sparkle(frame, spread, effect.Colors[0]);
+                    return true;
+                }
+            }
+
+            sparkle = default;
             return false;
         }
 

@@ -263,6 +263,7 @@ These tags move or recolor each character of the text they wrap, without changin
 | `[pulse]` | Fades the whole stretch towards a color and back once per period. | color and period | *a color is required*, then `1500` |
 | `[fade]` | Dims the whole stretch towards a lowest strength and back once per period, as though it were breathing. | lowest strength and period | `0.25` and `2000` |
 | `[shimmer]` | Sweeps a band of color across the text like a glint of light, then rests until the next period. | color, period and width | `White`, `2500` and `3` |
+| `[sparkle]` | Twinkles the game's own sparkles over random characters, each playing out over one period. See [Sparkle](#sparkle). | color, period and chance | `White`, `400` and `0.2` |
 | `[typewriter]` | Reveals the text one character at a time, the way the game's dialogue box does. See [Typewriter](#typewriter). | speed, delay and options | `30` and `0` |
 | `[underline]` | Draws a line under the text. See [Decorations](#decorations). | color | the text's color |
 | `[strike]` | Draws a line through the text. | color | the text's color |
@@ -299,7 +300,7 @@ These tags move or recolor each character of the text they wrap, without changin
 - **Combining.** Effects stack, so `[shake][rainbow]...[/rainbow][/shake]` both jitters and recolors. They also work inside and around `[color]` and `[link]`.
 - **Color order.** Coloring effects apply from the outside in. A rainbow or a gradient replaces the color around it (any `[color]` included), while a pulse or a shimmer fades from whatever color is around it, so `[rainbow][pulse=White]...[/pulse][/rainbow]` pulses the rainbow and `[color=Gold][shimmer]...[/shimmer][/color]` glints across gold text. A hovered link's `HoverTextColor` covers the coloring effects in its text so the link still shows it's under the cursor, though its own [hover effects](#hover-effects) start from it.
 - **Continuity.** An effect carries on unbroken across a color change or a line break. A gradient spreads over its whole stretch rather than restarting on each line. A shimmer's band also carries on from the end of one line to the start of the next.
-- **Fonts.** `[wave]`, `[bounce]`, `[shake]`, `[flicker]` and `[fade]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]`, `[pulse]` and `[shimmer]` are colors, which `SpriteText` ignores with a warning.
+- **Fonts.** `[wave]`, `[bounce]`, `[shake]`, `[flicker]`, `[fade]` and `[sparkle]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]`, `[pulse]` and `[shimmer]` are colors, which `SpriteText` ignores with a warning.
 - **Cost.** Each character under an effect is drawn on its own, so keep effects to a word or a phrase rather than a whole page. `[bold]`, `[fade]` and the decorations are the exception, as they can draw their text whole.
 - **Mistakes.** An amplitude or period that won't parse keeps its default with a warning, as does a flicker or fade strength outside `0` to `1`. When it was written with a space rather than `|`, such as `[wave=4 500]`, the warning shows the corrected tag. A color that won't parse is left out of a gradient. A gradient left with fewer than two colors keeps the color around it with a warning. So does a pulse without a color. A shimmer whose color won't parse shimmers in white with a warning. Unclosed and stray tags behave as they do for [inline color](#inline-color).
 
@@ -340,6 +341,26 @@ Each takes one optional color, such as `[highlight=255 200 200 128]` or `[underl
 - **Combining.** Bold works inside and around every other effect. Bolds nested inside one another don't add up, so the strongest applies.
 - **Hover effects.** Bold works as a link's [hover effect](#hover-effects), so `"HoverEffect": "bold"` thickens a link while the cursor is on it.
 - **Fonts.** Bold works in every font, `SpriteText` included. A `SpriteText` letter is built from pixels a few screen pixels wide, so it may take a higher strength such as `[bold=3]` to show.
+
+### Sparkle
+
+`[sparkle]` twinkles sparkles over the text it wraps, using the same sprite as the game's own sparkling text.
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "A [sparkle]Prismatic Shard[/sparkle] glints in the [sparkle=LightBlue|800|0.4]moonlight[/sparkle]."
+}
+```
+
+- **Values.** It takes an optional color, period and chance in that order, so changing its period means writing its color first, such as `[sparkle=Gold|800]`. The color tints the sparkle and takes any of the [color forms](#colors), while `White` leaves it as the game draws it. The period is how long one sparkle takes to play out. The chance, from `0` to `1`, is how likely each character is to sparkle in any one period, so `0.05` is a rare twinkle and `1` keeps every letter sparkling.
+- **Placement.** Each sparkle lands somewhere new over its letter and follows it, so a waving or shaking word carries its sparkles along. Sparkles come and go at scattered moments rather than all at once. Spaces never sparkle.
+- **Size.** A sparkle is drawn at the text's scale, so at a `Scale` of `1` it's the size the game draws its own.
+- **Combining.** A sparkle fades with its letter, so it shows only once a typewriter reaches the letter and dims under a flicker or a fade. Sparkles inside one another don't add up, so the innermost applies.
+- **Hover effects.** Sparkle works as a link's [hover effect](#hover-effects), so `"HoverEffect": "sparkle"` twinkles a link while the cursor is on it.
+- **Fonts.** The sparkle is drawn by Parchment rather than the font, so it works and takes its color in `SpriteText` too.
+- **Art.** The sparkle is the game's own, the six frames from `0, 704` in `TileSheets/animations`, so a mod that retextures the game's sparkles changes these too.
+- **Mistakes.** A color that won't parse keeps the sparkle's own colors, while a period or chance that won't parse keeps its default. Both log a warning.
 
 ### Scramble
 

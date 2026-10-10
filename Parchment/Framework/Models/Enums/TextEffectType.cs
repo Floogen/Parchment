@@ -18,6 +18,7 @@
         Bold,
         Shimmer,
         Flicker,
-        Fade
+        Fade,
+        Sparkle
     }
 }
