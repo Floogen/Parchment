@@ -44,6 +44,9 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_SCRAMBLE_SETTLE = 40f;
         public const string DEFAULT_SCRAMBLE_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         public const int DEFAULT_BOLD_STRENGTH = 1;
+        public const float DEFAULT_SHIMMER_PERIOD = 2500f;
+        public const float DEFAULT_SHIMMER_WIDTH = 3f;
+        public static readonly Color DEFAULT_SHIMMER_COLOR = Color.White;
 
         private const string SCRAMBLE_GLYPHS_OPTION = "glyphs";
         private const string SCRAMBLE_SETTLE_OPTION = "settle";
@@ -64,7 +67,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER };
 
@@ -477,7 +480,7 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a rainbow takes only its period,
-        /// a gradient takes its colors, a pulse takes its color and then its period and a bold takes its strength. A color keeps any spaces of its own.
+        /// a gradient takes its colors, a pulse takes its color and then its period, a shimmer takes its color, its period and then its width and a bold takes its strength. A color keeps any spaces of its own.
         /// A part that is left off or won't parse keeps its default.
         /// </summary>
         private static OpenedEffect ParseEffect(TextEffectType effectType, string? value, string source)
@@ -491,6 +494,8 @@ namespace Parchment.Framework.Utilities.Helpers
                     return new OpenedEffect(effectType, 0f, 0f, ParseGradientColors(parts, tag, source));
                 case TextEffectType.Pulse:
                     return ParsePulse(parts, tag, source);
+                case TextEffectType.Shimmer:
+                    return ParseShimmer(parts, tag, source);
                 case TextEffectType.Typewriter:
                     return new OpenedEffect(effectType, 0f, 0f, Array.Empty<Color>(), ParseTypewriter(parts, tag, source));
                 case TextEffectType.Underline:
@@ -750,6 +755,39 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return new OpenedEffect(TextEffectType.Pulse, 0f, period, new Color[] { color });
+        }
+
+        /// <summary>Reads a shimmer's color, its period and then its width in characters, all optional. The width is kept in the effect's amplitude, as a shimmer has nothing else to put there.</summary>
+        private static OpenedEffect ParseShimmer(string[] parts, string tag, string source)
+        {
+            Color color = DEFAULT_SHIMMER_COLOR;
+            float period = ParsePeriod(parts, 1, DEFAULT_SHIMMER_PERIOD, allowZero: false, tag, source);
+            float width = DEFAULT_SHIMMER_WIDTH;
+
+            if (parts.Length > 0 && ColorParser.TryParse(parts[0], out Color parsedColor))
+            {
+                color = parsedColor;
+            }
+            else if (parts.Length > 0)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{parts[0]}', which isn't a color Parchment can read, so it shimmers in white.", LogLevel.Warn);
+            }
+
+            if (parts.Length > 2 && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedWidth) && parsedWidth > 0f)
+            {
+                width = parsedWidth;
+            }
+            else if (parts.Length > 2)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] width of '{parts[2]}', which isn't a positive number of characters, so the default of {DEFAULT_SHIMMER_WIDTH} is used.{GetSeparatorHint(parts[2], tag)}", LogLevel.Warn);
+            }
+
+            if (parts.Length > 3)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than three parts, so everything after its width was ignored. Its parts are its color, its period and its width.", LogLevel.Warn);
+            }
+
+            return new OpenedEffect(TextEffectType.Shimmer, width, period, new Color[] { color });
         }
 
         private static float ParseAmplitude(string[] parts, float defaultAmplitude, string tag, string source)

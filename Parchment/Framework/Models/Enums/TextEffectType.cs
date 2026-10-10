@@ -15,6 +15,7 @@
         Highlight,
         Redact,
         Scramble,
-        Bold
+        Bold,
+        Shimmer
     }
 }

@@ -21,6 +21,9 @@ namespace Parchment.Framework.Utilities.Helpers
         // The hash axis scramble picks its glyphs on, apart from the two a shake moves along, so a shaking scramble doesn't change glyph in step with its jumps
         private const int SCRAMBLE_HASH_AXIS = 2;
 
+        // How much of each period a shimmer's band spends crossing the text, with the text resting for the remainder so it reads as a glint rather than a constant scroll
+        public const float SHIMMER_SWEEP_FRACTION = 0.5f;
+
         // The game's own rainbow from SparklingText, which hands each character the next color along
         private static readonly Color[] _rainbowColors = new Color[] { Color.Red, Color.Orange, Color.Yellow, Color.Chartreuse, Color.Green, Color.Cyan, Color.Blue, Color.Violet };
 
@@ -56,7 +59,7 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>The color the effects give a character (null when none of the effects over it sets one).
-        /// Applied from the outermost effect in, each starting from the color the one around it left. A rainbow or gradient replaces that color while a pulse fades it towards its own,
+        /// Applied from the outermost effect in, each starting from the color the one around it left. A rainbow or gradient replaces that color while a pulse or a shimmer fades it towards its own,
         /// so a pulse inside a rainbow pulses the rainbow and a rainbow inside another rainbow keeps its own pace.
         /// </summary>
         /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
@@ -83,6 +86,11 @@ namespace Parchment.Framework.Utilities.Helpers
                         break;
                     case TextEffectType.Pulse when effect.Colors.Count >= 1:
                         currentColor = Color.Lerp(currentColor, effect.Colors[0], GetPulseBlend(effect, time));
+                        isColored = true;
+                        break;
+                    case TextEffectType.Shimmer when effect.Colors.Count >= 1:
+                        // The band's color takes on the alpha around it, so a glint across translucent text doesn't flash it opaque
+                        currentColor = Color.Lerp(currentColor, effect.Colors[0] * (currentColor.A / 255f), GetShimmerBlend(effect, index, time));
                         isColored = true;
                         break;
                 }
@@ -236,7 +244,7 @@ namespace Parchment.Framework.Utilities.Helpers
         {
             foreach (TextEffect effect in effects)
             {
-                if (effect.Type is TextEffectType.Rainbow or TextEffectType.Gradient or TextEffectType.Pulse)
+                if (effect.Type is TextEffectType.Rainbow or TextEffectType.Gradient or TextEffectType.Pulse or TextEffectType.Shimmer)
                 {
                     return true;
                 }
@@ -261,6 +269,32 @@ namespace Parchment.Framework.Utilities.Helpers
         private static float GetPulseBlend(TextEffect effect, double time)
         {
             return (float)((1d - Math.Cos(Math.PI * 2d * time / effect.Period)) / 2d);
+        }
+
+        /// <summary>How strongly a shimmer's band covers one of its characters, being all of it at the band's center and easing to none at its edges.
+        /// The band starts just before the first character and finishes just past the last within <see cref="SHIMMER_SWEEP_FRACTION"/> of each period, so it enters and leaves rather than appearing on the text.
+        /// The whole stretch is measured, not each line, so a band that reaches the end of one line carries on at the start of the next.
+        /// </summary>
+        private static float GetShimmerBlend(TextEffect effect, int index, double time)
+        {
+            float width = effect.Amplitude;
+            float sweepProgress = (float)((time - Math.Floor(time / effect.Period) * effect.Period) / (effect.Period * SHIMMER_SWEEP_FRACTION));
+
+            if (sweepProgress >= 1f)
+            {
+                return 0f;
+            }
+
+            float center = -width + sweepProgress * (effect.Length - 1 + width * 2f);
+            float coverage = 1f - Math.Abs(index - center) / width;
+
+            if (coverage <= 0f)
+            {
+                return 0f;
+            }
+
+            // Smoothed so the band's edges fade in and out rather than stepping from one character to the next
+            return coverage * coverage * (3f - 2f * coverage);
         }
 
         /// <summary>How high a bouncing character is lifted, rising from where it was laid out and landing back on it once per period rather than dipping below.
