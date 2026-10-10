@@ -82,7 +82,7 @@ namespace Parchment.Framework.Utilities.Helpers
         /// An effect that colors, such as a rainbow or a pulse, starts from the segment's own color but leaves a hovered link's alone, so the link still shows the cursor is on it.
         /// A hovered link's own hover effects apply last, timed from the cursor's arrival and eased in, with any color they set starting from the link's hover color.
         /// A bold draws the segment's text twice, the second copy shifted right, which works the same whether the segment is drawn whole or a character at a time.
-        /// A character a typewriter hasn't reached yet is left out. One it is fading in is drawn at the strength it has reached.
+        /// A character a typewriter hasn't reached yet is left out. One it is fading in is drawn at the strength it has reached, which a flicker dims further.
         /// </summary>
         /// <param name="keepsOwnColor">Whether the font ignores the colors it's handed, as SpriteText does, in which case every segment takes the element's own.</param>
         /// <param name="lineHeight">How tall the line is, which decorations such as an underline are placed against.</param>
@@ -150,6 +150,14 @@ namespace Parchment.Framework.Utilities.Helpers
                         continue;
                     }
 
+                    float characterAlpha = revealAlpha * (segment.Effects is null ? 1f : TextEffectHelper.GetAlpha(segment.Effects, position, effectTime));
+
+                    // Eased in with the rest of the hover effects, so a flicker on hover starts from full strength rather than dropping the moment the cursor arrives
+                    if (hoverEffects is not null)
+                    {
+                        characterAlpha *= MathHelper.Lerp(1f, TextEffectHelper.GetAlpha(hoverEffects, position, hoverTime), hoverStrength);
+                    }
+
                     Vector2 effectOffset = segment.Effects is null ? Vector2.Zero : TextEffectHelper.GetOffset(segment.Effects, position, effectTime, scale);
 
                     if (hoverEffects is not null)
@@ -181,8 +189,8 @@ namespace Parchment.Framework.Utilities.Helpers
                         characterShadowColor = element.GetShadowColor(characterColor);
                     }
 
-                    // Faded together with its shadow, so a character fading in doesn't leave its shadow standing at full strength behind it
-                    element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * revealAlpha, characterShadowColor * revealAlpha, scale, boldness);
+                    // Faded together with its shadow, so a character fading in (or flickering) doesn't leave its shadow standing at full strength behind it
+                    element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * characterAlpha, characterShadowColor * characterAlpha, scale, boldness);
                 }
 
                 DrawDecorations(spriteBatch, decoration, segment.Effects, 1f, isBehindText: false);

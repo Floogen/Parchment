@@ -16,6 +16,7 @@
         Redact,
         Scramble,
         Bold,
-        Shimmer
+        Shimmer,
+        Flicker
     }
 }

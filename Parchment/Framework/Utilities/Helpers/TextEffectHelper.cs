@@ -21,6 +21,9 @@ namespace Parchment.Framework.Utilities.Helpers
         // The hash axis scramble picks its glyphs on, apart from the two a shake moves along, so a shaking scramble doesn't change glyph in step with its jumps
         private const int SCRAMBLE_HASH_AXIS = 2;
 
+        // The hash axis flicker picks its strengths on, apart from shake's and scramble's, so a flickering shake doesn't dim in step with its jumps
+        private const int FLICKER_HASH_AXIS = 3;
+
         // How much of each period a shimmer's band spends crossing the text, with the text resting for the remainder so it reads as a glint rather than a constant scroll
         public const float SHIMMER_SWEEP_FRACTION = 0.5f;
 
@@ -56,6 +59,24 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return offset;
+        }
+
+        /// <summary>How strongly a character is drawn, from 0 for not at all to 1 for in full, multiplying together every flicker over it so a flicker inside another dims further.</summary>
+        /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
+        /// <param name="time">The animation clock, in milliseconds.</param>
+        public static float GetAlpha(IReadOnlyList<TextEffect> effects, int position, double time)
+        {
+            float alpha = 1f;
+
+            foreach (TextEffect effect in effects)
+            {
+                if (effect.Type is TextEffectType.Flicker)
+                {
+                    alpha *= GetFlickerAlpha(effect, position, time);
+                }
+            }
+
+            return alpha;
         }
 
         /// <summary>The color the effects give a character (null when none of the effects over it sets one).
@@ -269,6 +290,26 @@ namespace Parchment.Framework.Utilities.Helpers
         private static float GetPulseBlend(TextEffect effect, double time)
         {
             return (float)((1d - Math.Cos(Math.PI * 2d * time / effect.Period)) / 2d);
+        }
+
+        /// <summary>How strongly a flickering character is drawn right now, drifting between the flicker's lowest strength and full.
+        /// Each character picks a new strength every period and blends towards it rather than snapping, so it wavers like a candle instead of blinking.
+        /// Every character is picked on its own, so neighbours never dim in step.
+        /// </summary>
+        private static float GetFlickerAlpha(TextEffect effect, int position, double time)
+        {
+            double step = time / effect.Period;
+            long slot = (long)Math.Floor(step);
+            float progress = (float)(step - slot);
+
+            float fromStrength = GetHash(position, slot, FLICKER_HASH_AXIS) / (float)uint.MaxValue;
+            float toStrength = GetHash(position, slot + 1, FLICKER_HASH_AXIS) / (float)uint.MaxValue;
+
+            // Smoothed so each blend starts and ends at rest, which keeps the change between picks from showing as a kink
+            float blend = progress * progress * (3f - 2f * progress);
+            float strength = fromStrength + (toStrength - fromStrength) * blend;
+
+            return effect.Amplitude + (1f - effect.Amplitude) * strength;
         }
 
         /// <summary>How strongly a shimmer's band covers one of its characters, being all of it at the band's center and easing to none at its edges.
