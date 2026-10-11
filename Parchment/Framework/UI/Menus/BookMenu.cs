@@ -432,6 +432,9 @@ namespace Parchment.Framework.UI.Menus
                 element.TypingStates = previousElement.TypingStates;
                 element.HasRunTypedActions = previousElement.HasRunTypedActions;
 
+                // Carried for the same reason, so an effect that has played its duration doesn't play again
+                element.TimedEffectStarts = previousElement.TimedEffectStarts;
+
                 CarryElementState(previousElement.Children, element.Children);
                 CarryElementState(previousElement.Background, element.Background);
                 CarryElementState(previousElement.Foreground, element.Foreground);

@@ -71,28 +71,39 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>Whether it starts as soon as its text is on screen, rather than waiting for the typewriters before it on the spread to finish.</summary>
         public bool IsImmediate { get; }
 
-        /// <summary>How long each character takes to fade in once it appears, in milliseconds. Zero pops it in at once, the way the game's dialogue does.</summary>
+        /// <summary>How long each character takes to fade in once it appears, in milliseconds. Zero shows it at once, the way the game's dialogue does.</summary>
         public float FadeDuration { get; }
 
         /// <summary>The sound cue played as characters appear (null for none).</summary>
         public string? Sound { get; }
 
+        /// <summary>How long each character takes to fall into place once it appears, in milliseconds. Zero has it appear where it rests.</summary>
+        public float DropDuration { get; }
+
+        /// <summary>How long each character takes to shrink to its size from oversized once it appears, in milliseconds. Zero has it appear at its size.</summary>
+        public float PopDuration { get; }
+
         /// <summary>A game state query checked once when the typewriter would start. When it fails the text shows in full straight away, as though it had typed out. Null when it always types.</summary>
         public string? Condition { get; private init; }
 
-        public TypingOptions(float speed, float delay, bool isImmediate, float fadeDuration, string? sound)
+        public TypingOptions(float speed, float delay, bool isImmediate, float fadeDuration, string? sound, float dropDuration = 0f, float popDuration = 0f)
         {
             Speed = speed;
             Delay = delay;
             IsImmediate = isImmediate;
             FadeDuration = fadeDuration;
             Sound = sound;
+            DropDuration = dropDuration;
+            PopDuration = popDuration;
         }
+
+        /// <summary>How long a character takes to settle once it appears, being the longest of its fade, its drop and its pop.</summary>
+        public float SettleDuration => Math.Max(FadeDuration, Math.Max(DropDuration, PopDuration));
 
         /// <summary>A copy gated on the given condition, which comes from the tag's own "condition=" part rather than from the rest of its value.</summary>
         public TypingOptions WithCondition(string? condition)
         {
-            return new TypingOptions(Speed, Delay, IsImmediate, FadeDuration, Sound) { Condition = condition };
+            return new TypingOptions(Speed, Delay, IsImmediate, FadeDuration, Sound, DropDuration, PopDuration) { Condition = condition };
         }
     }
 
@@ -101,7 +112,7 @@ namespace Parchment.Framework.UI.Layouts
     {
         public TextEffectType Type { get; }
 
-        /// <summary>How far the effect moves a character, in unscaled pixels multiplied by the text's scale.</summary>
+        /// <summary>How far the effect moves a character (or how far a bold shifts its second copy of the text), in unscaled pixels multiplied by the text's scale. A wobble keeps how far it rocks either way here, in degrees, and a pop keeps how much it swells, as a share of the character's size. A shimmer keeps how many characters wide its band is here instead a flicker or a fade keeps the lowest strength it dims to, a sparkle keeps its chance of showing, an outline keeps its thickness and a glow keeps its radius.</summary>
         public float Amplitude { get; }
 
         /// <summary>How long one cycle of the effect takes, in milliseconds.</summary>
@@ -113,7 +124,7 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>How many characters of <see cref="StyledText.Text"/> the effect covers. Set once its closing tag is reached (or the text ends), which is what lets a gradient spread its colors across the whole of it.</summary>
         public int Length { get; set; }
 
-        /// <summary>The colors an effect blends between, being a gradient's stops in order or the one color a pulse fades towards. Empty for an effect that only moves its characters.</summary>
+        /// <summary>The colors an effect blends between, being a gradient's stops in order, the one color a pulse or a shimmer fades towards or the one a sparkle, an outline or a glow is drawn in. Empty for an effect that only moves its characters.</summary>
         public IReadOnlyList<Color> Colors { get; }
 
         /// <summary>How a typewriter reveals its text. Null for every other effect.</summary>
@@ -127,6 +138,18 @@ namespace Parchment.Framework.UI.Layouts
 
         /// <summary>The pauses inside a typewriter, in the order they appear. Empty for every other effect and for a typewriter without any.</summary>
         public List<TypingPause> Pauses { get; } = new List<TypingPause>();
+
+        /// <summary>How long the effect plays once its text appears before easing to rest, in milliseconds. Zero for an effect that plays for as long as its text shows.</summary>
+        public float Duration { get; init; }
+
+        /// <summary>Which timed effect in the element's text this is, counting from zero in the order they open, being -1 for one without a <see cref="Duration"/>. It is how the effect finds when it started on the element, since the effect itself is rebuilt each time the text is laid out.</summary>
+        public int TimedOrdinal { get; init; } = -1;
+
+        /// <summary>When the effect's own clock reads zero, on the animation clock. Zero for an effect running on the shared clock. A timed effect counts from when it started, so it always begins at the start of its cycle.</summary>
+        public double ClockStart { get; set; }
+
+        /// <summary>How strongly the effect applies right now, from 0 for not at all to 1 for in full. Always 1 for an effect without a <see cref="Duration"/>. A timed one rises as it starts and falls to 0 as it ends, refreshed every frame before its text draws.</summary>
+        public float Strength { get; set; } = 1f;
 
         /// <summary>Which typewriter in the element's text this is, counting from zero in the order they open. It is how the typewriter finds its progress again on the element, since the effect itself is rebuilt each time the text is laid out.</summary>
         public int TypingOrdinal { get; init; } = -1;

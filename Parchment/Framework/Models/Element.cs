@@ -48,6 +48,12 @@ namespace Parchment.Framework.Models
         /// <summary>How far along each of this element's typewriters is, by <see cref="TextEffect.TypingOrdinal"/>. Carried across a refresh, so rebuilding the book doesn't type the text out again.</summary>
         public Dictionary<int, TypingState> TypingStates { get; set; } = new Dictionary<int, TypingState>();
 
+        /// <summary>The effects in this element's text that play for a set duration, as it was last laid out, in the order they open. Empty for an element with none.</summary>
+        public IReadOnlyList<TextEffect> TimedEffects { get; set; } = Array.Empty<TextEffect>();
+
+        /// <summary>When each of this element's timed effects started, on the animation clock, by <see cref="TextEffect.TimedOrdinal"/>. Carried across a refresh, so rebuilding the book doesn't play them again.</summary>
+        public Dictionary<int, double> TimedEffectStarts { get; set; } = new Dictionary<int, double>();
+
         /// <summary>Where a link's text ends in its host's text, used to tell whether a typewriter has revealed all of it yet. -1 for anything that isn't a link.</summary>
         public int LinkTextEnd { get; set; } = -1;
 

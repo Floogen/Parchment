@@ -44,7 +44,7 @@ namespace Parchment.Framework.Models
         /// <summary>Every element on the book's own layers whose text carries a token.</summary>
         public List<Element> TokenTextElements { get; }
 
-        /// <summary>Every element on the book's own layers whose text holds a [typewriter], in the order they are drawn. These type out once the book first settles, whatever page is open.</summary>
+        /// <summary>Every element on the book's own layers whose text holds a [typewriter] or an effect with a duration, in the order they are drawn. These type out (and their timed effects play) once the book first settles, whatever page is open.</summary>
         public List<Element> TypewriterElements { get; } = new List<Element>();
 
         /// <summary>Every Grid on the book's own layers whose cells come from a Source block.</summary>
@@ -88,8 +88,8 @@ namespace Parchment.Framework.Models
             Page.CollectElements(Underlay, TokenHelper.HasTokenText, TokenTextElements);
             Page.CollectElements(Overlay, TokenHelper.HasTokenText, TokenTextElements);
 
-            Page.CollectElements(Underlay, TypewriterHelper.HasTypewriterText, TypewriterElements);
-            Page.CollectElements(Overlay, TypewriterHelper.HasTypewriterText, TypewriterElements);
+            Page.CollectElements(Underlay, TypewriterHelper.HasScheduledText, TypewriterElements);
+            Page.CollectElements(Overlay, TypewriterHelper.HasScheduledText, TypewriterElements);
         }
 
         private static void InvalidateResults(IReadOnlyList<Element> resultElements)

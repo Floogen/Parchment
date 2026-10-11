@@ -36,13 +36,35 @@ namespace Parchment.Framework.Utilities.Helpers
         public const float DEFAULT_RAINBOW_PERIOD = 2000f;
         public const float DEFAULT_BOUNCE_AMPLITUDE = 2f;
         public const float DEFAULT_BOUNCE_PERIOD = 800f;
+        public const float DEFAULT_WOBBLE_ANGLE = 8f;
+        public const float DEFAULT_WOBBLE_PERIOD = 1200f;
+        public const float DEFAULT_POP_SIZE = 0.25f;
+        public const float DEFAULT_POP_PERIOD = 800f;
         public const float DEFAULT_PULSE_PERIOD = 1500f;
         public const float DEFAULT_TYPEWRITER_SPEED = 30f;
         public const float DEFAULT_TYPEWRITER_FADE = 100f;
+        public const float DEFAULT_TYPEWRITER_DROP = 200f;
+        public const float DEFAULT_TYPEWRITER_POP = 200f;
         public const float DEFAULT_PAUSE_DURATION = 500f;
         public const float DEFAULT_SCRAMBLE_PERIOD = 80f;
         public const float DEFAULT_SCRAMBLE_SETTLE = 40f;
         public const string DEFAULT_SCRAMBLE_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        public const int DEFAULT_BOLD_STRENGTH = 1;
+        public const int DEFAULT_OUTLINE_THICKNESS = 2;
+        public static readonly Color DEFAULT_OUTLINE_COLOR = Color.Black;
+        public const int DEFAULT_GLOW_RADIUS = 3;
+        public const float DEFAULT_GLOW_PERIOD = 0f;
+        public static readonly Color DEFAULT_GLOW_COLOR = new Color(255, 200, 80);
+        public const float DEFAULT_SHIMMER_PERIOD = 2500f;
+        public const float DEFAULT_SHIMMER_WIDTH = 3f;
+        public static readonly Color DEFAULT_SHIMMER_COLOR = Color.White;
+        public const float DEFAULT_FLICKER_MINIMUM = 0.3f;
+        public const float DEFAULT_FLICKER_PERIOD = 120f;
+        public const float DEFAULT_FADE_MINIMUM = 0.25f;
+        public const float DEFAULT_FADE_PERIOD = 2000f;
+        public const float DEFAULT_SPARKLE_PERIOD = 400f;
+        public const float DEFAULT_SPARKLE_CHANCE = 0.2f;
+        public static readonly Color DEFAULT_SPARKLE_COLOR = Color.White;
 
         private const string SCRAMBLE_GLYPHS_OPTION = "glyphs";
         private const string SCRAMBLE_SETTLE_OPTION = "settle";
@@ -50,10 +72,15 @@ namespace Parchment.Framework.Utilities.Helpers
         private const string TYPEWRITER_IMMEDIATE_OPTION = "immediate";
         private const string TYPEWRITER_FADE_OPTION = "fade";
         private const string TYPEWRITER_SOUND_OPTION = "sound";
+        private const string TYPEWRITER_DROP_OPTION = "drop";
+        private const string TYPEWRITER_POP_OPTION = "pop";
         private const string TYPEWRITER_TAG = "[typewriter";
 
         // The part of any tag's value that gates it on a game state query, such as [wave=4|condition=WEATHER Here Rain]
         private const string CONDITION_PART = "condition";
+
+        // The part of an effect's value that has it play for a set time once its text appears, such as [bounce=4|duration=1000]
+        private const string DURATION_PART = "duration";
 
         // What separates the parts of an effect's value, the same for every effect. Not a space, since a color can hold spaces of its own such as "255 215 0"
         private const char VALUE_SEPARATOR = '|';
@@ -63,7 +90,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow|wobble|pop)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow|wobble|pop)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER };
 
@@ -81,6 +108,9 @@ namespace Parchment.Framework.Utilities.Helpers
 
             /// <summary>Whether the effect applies, being false when its tag's condition failed. A failed effect still pairs with its closing tag so the tags around it stay matched.</summary>
             public bool IsActive { get; init; } = true;
+
+            /// <summary>How long the effect plays before easing to rest, in milliseconds, from its tag's "duration=" part. Zero for one that plays for as long as its text shows.</summary>
+            public float Duration { get; init; }
         }
 
         private enum TagKind
@@ -145,6 +175,51 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>Takes a "condition=" part out of a tag's value, handing back what remains for the tag to read as it always has. Null when the value was only a condition.
         /// Everything after the first = is the query, which is why a query can hold an = of its own but not a |, as that would start the tag's next part.
         /// </summary>
+        /// <summary>Takes an effect's "duration=milliseconds" part out of its value, leaving the rest to be read as usual. Zero when there is none.
+        /// A typewriter, a redaction or a scramble already decides how long it shows for, so a duration on one is ignored with a warning, as is one that isn't a positive number.
+        /// </summary>
+        private static string? ExtractDuration(string? value, TextEffectType effectType, string source, out float duration)
+        {
+            duration = 0f;
+
+            if (string.IsNullOrEmpty(value) || value.Contains(DURATION_PART, StringComparison.OrdinalIgnoreCase) is false)
+            {
+                return value;
+            }
+
+            List<string> remainingParts = new List<string>();
+            string tag = effectType.ToString().ToLowerInvariant();
+
+            foreach (string part in value.Split(VALUE_SEPARATOR))
+            {
+                string trimmedPart = part.Trim();
+                int separatorIndex = trimmedPart.IndexOf('=');
+
+                if (separatorIndex <= 0 || string.Equals(trimmedPart.Substring(0, separatorIndex).Trim(), DURATION_PART, StringComparison.OrdinalIgnoreCase) is false)
+                {
+                    remainingParts.Add(part);
+                    continue;
+                }
+
+                string durationValue = trimmedPart.Substring(separatorIndex + 1).Trim();
+
+                if (effectType is TextEffectType.Typewriter or TextEffectType.Redact or TextEffectType.Scramble)
+                {
+                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with a duration, which it doesn't take as it already decides how long it shows for, so the duration was ignored.", LogLevel.Warn);
+                }
+                else if (float.TryParse(durationValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedDuration) && parsedDuration > 0f)
+                {
+                    duration = parsedDuration;
+                }
+                else
+                {
+                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] duration of '{durationValue}', which isn't a positive number of milliseconds, so the effect plays for as long as its text shows.", LogLevel.Warn);
+                }
+            }
+
+            return remainingParts.Count is 0 ? null : string.Join(VALUE_SEPARATOR, remainingParts);
+        }
+
         private static string? ExtractCondition(string? value, out string? condition)
         {
             condition = null;
@@ -210,6 +285,42 @@ namespace Parchment.Framework.Utilities.Helpers
         public static bool HasTypewriter(string? text)
         {
             return string.IsNullOrEmpty(text) is false && text.Contains(TYPEWRITER_TAG, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Whether authored text holds an effect tag with a "duration=" part, which needs a start time from when its text comes into view.</summary>
+        public static bool HasTimedEffect(string? text)
+        {
+            if (string.IsNullOrEmpty(text) || text.Contains(DURATION_PART, StringComparison.OrdinalIgnoreCase) is false)
+            {
+                return false;
+            }
+
+            foreach (Match match in _markupPattern.Matches(text))
+            {
+                if (match.Groups["effectValue"].Success && HasValuePart(match.Groups["effectValue"].Value, DURATION_PART))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether one of a tag value's parts is the named "name=..." part.</summary>
+        private static bool HasValuePart(string value, string partName)
+        {
+            foreach (string part in value.Split(VALUE_SEPARATOR))
+            {
+                string trimmedPart = part.Trim();
+                int separatorIndex = trimmedPart.IndexOf('=');
+
+                if (separatorIndex > 0 && string.Equals(trimmedPart.Substring(0, separatorIndex).Trim(), partName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>The text with its markup taken out, for somewhere that draws plain text such as a tooltip.</summary>
@@ -381,7 +492,8 @@ namespace Parchment.Framework.Utilities.Helpers
                     effectDepths[openedType] = effectDepths.GetValueOrDefault(openedType) + 1;
 
                     string? effectValue = ExtractCondition(match.Groups["effectValue"].Success ? match.Groups["effectValue"].Value : null, out string? effectCondition);
-                    OpenedEffect openedEffect = ParseEffect(openedType, effectValue, text);
+                    effectValue = ExtractDuration(effectValue, openedType, text, out float effectDuration);
+                    OpenedEffect openedEffect = ParseEffect(openedType, effectValue, text) with { Duration = effectDuration };
 
                     // A typewriter checks its condition once, when it would start, rather than coming and going with it
                     if (openedType is TextEffectType.Typewriter)
@@ -475,8 +587,8 @@ namespace Parchment.Framework.Utilities.Helpers
             return Enum.TryParse(tag, ignoreCase: true, out effectType);
         }
 
-        /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a rainbow takes only its period,
-        /// a gradient takes its colors and a pulse takes its color and then its period. A color keeps any spaces of its own.
+        /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a wobble takes its angle in degrees and then its period, a pop takes how much it swells and then its period, a rainbow takes only its period,
+        /// a gradient takes its colors, a pulse takes its color and then its period, a shimmer takes its color, its period and then its width, a flicker or a fade takes its lowest strength and then its period, a sparkle takes its color, its period and then its chance, an outline takes its color and then its thickness, a glow takes its color, its radius and then its period and a bold takes its strength. A color keeps any spaces of its own.
         /// A part that is left off or won't parse keeps its default.
         /// </summary>
         private static OpenedEffect ParseEffect(TextEffectType effectType, string? value, string source)
@@ -490,6 +602,18 @@ namespace Parchment.Framework.Utilities.Helpers
                     return new OpenedEffect(effectType, 0f, 0f, ParseGradientColors(parts, tag, source));
                 case TextEffectType.Pulse:
                     return ParsePulse(parts, tag, source);
+                case TextEffectType.Shimmer:
+                    return ParseShimmer(parts, tag, source);
+                case TextEffectType.Flicker:
+                    return ParseDimming(effectType, parts, DEFAULT_FLICKER_MINIMUM, DEFAULT_FLICKER_PERIOD, tag, source);
+                case TextEffectType.Fade:
+                    return ParseDimming(effectType, parts, DEFAULT_FADE_MINIMUM, DEFAULT_FADE_PERIOD, tag, source);
+                case TextEffectType.Sparkle:
+                    return ParseSparkle(parts, tag, source);
+                case TextEffectType.Outline:
+                    return ParseOutline(parts, tag, source);
+                case TextEffectType.Glow:
+                    return ParseGlow(parts, tag, source);
                 case TextEffectType.Typewriter:
                     return new OpenedEffect(effectType, 0f, 0f, Array.Empty<Color>(), ParseTypewriter(parts, tag, source));
                 case TextEffectType.Underline:
@@ -499,10 +623,19 @@ namespace Parchment.Framework.Utilities.Helpers
                     return new OpenedEffect(effectType, 0f, 0f, ParseDecorationColor(parts, tag, source));
                 case TextEffectType.Scramble:
                     return new OpenedEffect(effectType, 0f, 0f, Array.Empty<Color>()) { Scramble = ParseScramble(parts, tag, source) };
+                case TextEffectType.Bold:
+                    // Kept in the amplitude, being how far the second copy of the text is shifted
+                    return new OpenedEffect(effectType, ParseBoldStrength(parts, tag, source), 0f, Array.Empty<Color>());
                 case TextEffectType.Shake:
                     return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_SHAKE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_SHAKE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
                 case TextEffectType.Bounce:
                     return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_BOUNCE_AMPLITUDE, tag, source), ParsePeriod(parts, 1, DEFAULT_BOUNCE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
+                case TextEffectType.Pop:
+                    // Its amplitude is how much larger a character grows at the peak of its swell, as a share of its own size
+                    return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_POP_SIZE, tag, source), ParsePeriod(parts, 1, DEFAULT_POP_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
+                case TextEffectType.Wobble:
+                    // Its amplitude is how far it rocks either way, in degrees rather than pixels
+                    return new OpenedEffect(effectType, ParseAmplitude(parts, DEFAULT_WOBBLE_ANGLE, tag, source), ParsePeriod(parts, 1, DEFAULT_WOBBLE_PERIOD, allowZero: false, tag, source), Array.Empty<Color>());
                 case TextEffectType.Rainbow:
                     // Zero holds the colors still, which is how the game draws its own rainbow text
                     return new OpenedEffect(effectType, 0f, ParsePeriod(parts, 0, DEFAULT_RAINBOW_PERIOD, allowZero: true, tag, source), Array.Empty<Color>());
@@ -584,6 +717,95 @@ namespace Parchment.Framework.Utilities.Helpers
             return new ScrambleOptions(period, glyphs, settle);
         }
 
+        /// <summary>Reads an outline's color and then its thickness, both optional. The thickness is a whole number of unscaled pixels, kept in the effect's amplitude as an outline has nothing else to put there.</summary>
+        private static OpenedEffect ParseOutline(string[] parts, string tag, string source)
+        {
+            Color color = DEFAULT_OUTLINE_COLOR;
+            int thickness = DEFAULT_OUTLINE_THICKNESS;
+
+            if (parts.Length > 0 && ColorParser.TryParse(parts[0], out Color parsedColor))
+            {
+                color = parsedColor;
+            }
+            else if (parts.Length > 0)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{parts[0]}', which isn't a color Parchment can read, so the outline is black.", LogLevel.Warn);
+            }
+
+            if (parts.Length > 1 && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedThickness) && parsedThickness > 0)
+            {
+                thickness = parsedThickness;
+            }
+            else if (parts.Length > 1)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] thickness of '{parts[1]}', which isn't a positive whole number of pixels, so the default of {DEFAULT_OUTLINE_THICKNESS} is used.{GetSeparatorHint(parts[1], tag)}", LogLevel.Warn);
+            }
+
+            if (parts.Length > 2)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than two parts, so everything after its thickness was ignored. Its parts are its color and its thickness.", LogLevel.Warn);
+            }
+
+            return new OpenedEffect(TextEffectType.Outline, thickness, 0f, new Color[] { color });
+        }
+
+        /// <summary>Reads a glow's color, its radius and then its period, all optional. The radius is a whole number of unscaled pixels, kept in the effect's amplitude as a glow has nothing else to put there.
+        /// A period of zero (the default) holds the glow steady rather than breathing.
+        /// </summary>
+        private static OpenedEffect ParseGlow(string[] parts, string tag, string source)
+        {
+            Color color = DEFAULT_GLOW_COLOR;
+            int radius = DEFAULT_GLOW_RADIUS;
+            float period = ParsePeriod(parts, 2, DEFAULT_GLOW_PERIOD, allowZero: true, tag, source);
+
+            if (parts.Length > 0 && ColorParser.TryParse(parts[0], out Color parsedColor))
+            {
+                color = parsedColor;
+            }
+            else if (parts.Length > 0)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{parts[0]}', which isn't a color Parchment can read, so its default gold is used.", LogLevel.Warn);
+            }
+
+            if (parts.Length > 1 && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedRadius) && parsedRadius > 0)
+            {
+                radius = parsedRadius;
+            }
+            else if (parts.Length > 1)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] radius of '{parts[1]}', which isn't a positive whole number of pixels, so the default of {DEFAULT_GLOW_RADIUS} is used.{GetSeparatorHint(parts[1], tag)}", LogLevel.Warn);
+            }
+
+            if (parts.Length > 3)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than three parts, so everything after its period was ignored. Its parts are its color, its radius and its period.", LogLevel.Warn);
+            }
+
+            return new OpenedEffect(TextEffectType.Glow, radius, period, new Color[] { color });
+        }
+
+        /// <summary>Reads a bold's optional strength, being how far its second copy of the text is shifted in unscaled pixels. Left off (or one that isn't a positive whole number), it is <see cref="DEFAULT_BOLD_STRENGTH"/>.</summary>
+        private static float ParseBoldStrength(string[] parts, string tag, string source)
+        {
+            if (parts.Length is 0)
+            {
+                return DEFAULT_BOLD_STRENGTH;
+            }
+
+            if (parts.Length > 1)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than one part, so everything after its strength was ignored.", LogLevel.Warn);
+            }
+
+            if (int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int strength) && strength > 0)
+            {
+                return strength;
+            }
+
+            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] strength of '{parts[0]}', which isn't a positive whole number of pixels, so the default of {DEFAULT_BOLD_STRENGTH} is used.{GetSeparatorHint(parts[0], tag)}", LogLevel.Warn);
+            return DEFAULT_BOLD_STRENGTH;
+        }
+
         /// <summary>Reads a pause's optional length in milliseconds. Left off (or one that won't parse), it holds for <see cref="DEFAULT_PAUSE_DURATION"/>.</summary>
         private static float ParsePauseDuration(string? value, string source)
         {
@@ -624,7 +846,8 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <summary>Reads a typewriter's value. Its numbers are its speed and then its delay, both in milliseconds. Any other part is an option: "immediate" to start without waiting for the typewriters before it,
-        /// "fade" (or "fade=milliseconds") to fade each character in rather than pop it in. "sound=cue" plays a sound as characters appear. Every part is optional and the options can come in any order after the numbers.
+        /// "fade" (or "fade=milliseconds") to fade each character in rather than show it at once, "drop" (or "drop=milliseconds") to have it fall into place and "pop" (or "pop=milliseconds") to have it shrink in from oversized.
+        /// "sound=cue" plays a sound as characters appear. Every part is optional and the options can come in any order after the numbers, so fade, drop and pop can all be used together.
         /// </summary>
         private static TypingOptions ParseTypewriter(string[] parts, string tag, string source)
         {
@@ -633,6 +856,8 @@ namespace Parchment.Framework.Utilities.Helpers
             int numberCount = 0;
             bool isImmediate = false;
             float fadeDuration = 0f;
+            float dropDuration = 0f;
+            float popDuration = 0f;
             string? sound = null;
 
             foreach (string part in parts)
@@ -666,19 +891,15 @@ namespace Parchment.Framework.Utilities.Helpers
                 }
                 else if (string.Equals(option, TYPEWRITER_FADE_OPTION, StringComparison.OrdinalIgnoreCase))
                 {
-                    fadeDuration = DEFAULT_TYPEWRITER_FADE;
-
-                    if (optionValue is not null)
-                    {
-                        if (float.TryParse(optionValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedFade) && parsedFade >= 0f)
-                        {
-                            fadeDuration = parsedFade;
-                        }
-                        else
-                        {
-                            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] fade of '{optionValue}', which isn't a number of milliseconds that isn't negative, so the default of {DEFAULT_TYPEWRITER_FADE} is used.", LogLevel.Warn);
-                        }
-                    }
+                    fadeDuration = ReadTypewriterDuration(optionValue, DEFAULT_TYPEWRITER_FADE, TYPEWRITER_FADE_OPTION, tag, source);
+                }
+                else if (string.Equals(option, TYPEWRITER_DROP_OPTION, StringComparison.OrdinalIgnoreCase))
+                {
+                    dropDuration = ReadTypewriterDuration(optionValue, DEFAULT_TYPEWRITER_DROP, TYPEWRITER_DROP_OPTION, tag, source);
+                }
+                else if (string.Equals(option, TYPEWRITER_POP_OPTION, StringComparison.OrdinalIgnoreCase))
+                {
+                    popDuration = ReadTypewriterDuration(optionValue, DEFAULT_TYPEWRITER_POP, TYPEWRITER_POP_OPTION, tag, source);
                 }
                 else if (string.Equals(option, TYPEWRITER_SOUND_OPTION, StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(optionValue) is false)
                 {
@@ -686,11 +907,28 @@ namespace Parchment.Framework.Utilities.Helpers
                 }
                 else
                 {
-                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] option of '{part}', which isn't one Parchment knows, so it was ignored. Try \"{TYPEWRITER_IMMEDIATE_OPTION}\", \"{TYPEWRITER_FADE_OPTION}\" or \"{TYPEWRITER_SOUND_OPTION}=cue\".{GetSeparatorHint(part, tag)}", LogLevel.Warn);
+                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] option of '{part}', which isn't one Parchment knows, so it was ignored. Try \"{TYPEWRITER_IMMEDIATE_OPTION}\", \"{TYPEWRITER_FADE_OPTION}\", \"{TYPEWRITER_DROP_OPTION}\", \"{TYPEWRITER_POP_OPTION}\" or \"{TYPEWRITER_SOUND_OPTION}=cue\".{GetSeparatorHint(part, tag)}", LogLevel.Warn);
                 }
             }
 
-            return new TypingOptions(speed, delay, isImmediate, fadeDuration, sound);
+            return new TypingOptions(speed, delay, isImmediate, fadeDuration, sound, dropDuration, popDuration);
+        }
+
+        /// <summary>Reads how long a typewriter's fade, drop or pop takes. Bare, it takes its default. One that isn't a number of milliseconds that isn't negative also takes its default, with a warning.</summary>
+        private static float ReadTypewriterDuration(string? optionValue, float defaultDuration, string option, string tag, string source)
+        {
+            if (optionValue is null)
+            {
+                return defaultDuration;
+            }
+
+            if (float.TryParse(optionValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float duration) && duration >= 0f)
+            {
+                return duration;
+            }
+
+            Parchment.monitor.LogOnce($"'{source}' has a [{tag}] {option} of '{optionValue}', which isn't a number of milliseconds that isn't negative, so the default of {defaultDuration} is used.", LogLevel.Warn);
+            return defaultDuration;
         }
 
         private static float ReadTypewriterNumber(float number, string part, string label, float defaultValue, bool allowZero, string tag, string source)
@@ -724,6 +962,95 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return new OpenedEffect(TextEffectType.Pulse, 0f, period, new Color[] { color });
+        }
+
+        /// <summary>Reads a shimmer's color, its period and then its width in characters, all optional. The width is kept in the effect's amplitude, as a shimmer has nothing else to put there.</summary>
+        private static OpenedEffect ParseShimmer(string[] parts, string tag, string source)
+        {
+            Color color = DEFAULT_SHIMMER_COLOR;
+            float period = ParsePeriod(parts, 1, DEFAULT_SHIMMER_PERIOD, allowZero: false, tag, source);
+            float width = DEFAULT_SHIMMER_WIDTH;
+
+            if (parts.Length > 0 && ColorParser.TryParse(parts[0], out Color parsedColor))
+            {
+                color = parsedColor;
+            }
+            else if (parts.Length > 0)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{parts[0]}', which isn't a color Parchment can read, so it shimmers in white.", LogLevel.Warn);
+            }
+
+            if (parts.Length > 2 && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedWidth) && parsedWidth > 0f)
+            {
+                width = parsedWidth;
+            }
+            else if (parts.Length > 2)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] width of '{parts[2]}', which isn't a positive number of characters, so the default of {DEFAULT_SHIMMER_WIDTH} is used.{GetSeparatorHint(parts[2], tag)}", LogLevel.Warn);
+            }
+
+            if (parts.Length > 3)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than three parts, so everything after its width was ignored. Its parts are its color, its period and its width.", LogLevel.Warn);
+            }
+
+            return new OpenedEffect(TextEffectType.Shimmer, width, period, new Color[] { color });
+        }
+
+        /// <summary>Reads a flicker's or a fade's lowest strength (from 0 to 1) and then its period, both optional. The lowest strength is kept in the effect's amplitude, as neither has anything else to put there.</summary>
+        private static OpenedEffect ParseDimming(TextEffectType effectType, string[] parts, float defaultMinimum, float defaultPeriod, string tag, string source)
+        {
+            float minimum = defaultMinimum;
+            float period = ParsePeriod(parts, 1, defaultPeriod, allowZero: false, tag, source);
+
+            if (parts.Length > 0 && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedMinimum) && parsedMinimum >= 0f && parsedMinimum <= 1f)
+            {
+                minimum = parsedMinimum;
+            }
+            else if (parts.Length > 0)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] lowest strength of '{parts[0]}', which isn't a number from 0 to 1, so the default of {defaultMinimum} is used.{GetSeparatorHint(parts[0], tag)}", LogLevel.Warn);
+            }
+
+            if (parts.Length > 2)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than two parts, so everything after its period was ignored. Its parts are its lowest strength and its period.", LogLevel.Warn);
+            }
+
+            return new OpenedEffect(effectType, minimum, period, Array.Empty<Color>());
+        }
+
+        /// <summary>Reads a sparkle's color, its period and then its chance (from 0 to 1) of showing over each character in a period, all optional. The chance is kept in the effect's amplitude, as a sparkle has nothing else to put there.</summary>
+        private static OpenedEffect ParseSparkle(string[] parts, string tag, string source)
+        {
+            Color color = DEFAULT_SPARKLE_COLOR;
+            float period = ParsePeriod(parts, 1, DEFAULT_SPARKLE_PERIOD, allowZero: false, tag, source);
+            float chance = DEFAULT_SPARKLE_CHANCE;
+
+            if (parts.Length > 0 && ColorParser.TryParse(parts[0], out Color parsedColor))
+            {
+                color = parsedColor;
+            }
+            else if (parts.Length > 0)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] color of '{parts[0]}', which isn't a color Parchment can read, so it keeps the sparkle's own colors.", LogLevel.Warn);
+            }
+
+            if (parts.Length > 2 && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedChance) && parsedChance >= 0f && parsedChance <= 1f)
+            {
+                chance = parsedChance;
+            }
+            else if (parts.Length > 2)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] chance of '{parts[2]}', which isn't a number from 0 to 1, so the default of {DEFAULT_SPARKLE_CHANCE} is used.{GetSeparatorHint(parts[2], tag)}", LogLevel.Warn);
+            }
+
+            if (parts.Length > 3)
+            {
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with more than three parts, so everything after its chance was ignored. Its parts are its color, its period and its chance.", LogLevel.Warn);
+            }
+
+            return new OpenedEffect(TextEffectType.Sparkle, chance, period, new Color[] { color });
         }
 
         private static float ParseAmplitude(string[] parts, float defaultAmplitude, string tag, string source)
@@ -821,7 +1148,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 foreach (OpenedEffect hoverEffect in span.Value.Link.HoverEffects)
                 {
-                    effects.Add(new TextEffect(hoverEffect.Type, hoverEffect.Amplitude, hoverEffect.Period, span.Value.Start, hoverEffect.Colors) { Length = end - span.Value.Start });
+                    effects.Add(new TextEffect(hoverEffect.Type, hoverEffect.Amplitude, hoverEffect.Period, span.Value.Start, hoverEffect.Colors) { Length = end - span.Value.Start, Duration = hoverEffect.Duration });
                 }
 
                 linkHoverEffects[span.Key] = effects;
@@ -853,6 +1180,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 // A hover effect lasts only as long as the cursor does, which the link's own Condition already governs, so a condition of its own is left out rather than half supported
                 value = ExtractCondition(value, out string? hoverCondition);
+                value = ExtractDuration(value, effectType, $"{source}' link '{id}", out float hoverDuration);
 
                 if (hoverCondition is not null)
                 {
@@ -861,7 +1189,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 // Named in a way that reads naturally inside the quotes ParseEffect puts around its source, so a warning says which link the bad value came from
                 hoverEffects ??= new List<OpenedEffect>();
-                hoverEffects.Add(ParseEffect(effectType, value, $"{source}' link '{id}"));
+                hoverEffects.Add(ParseEffect(effectType, value, $"{source}' link '{id}") with { Duration = hoverDuration });
             }
 
             return hoverEffects is null ? Array.Empty<OpenedEffect>() : hoverEffects;
@@ -898,6 +1226,7 @@ namespace Parchment.Framework.Utilities.Helpers
             int nextEffectIndex = 0;
             int nextClosedEffectIndex = 0;
             int nextTypingOrdinal = 0;
+            int nextTimedOrdinal = 0;
             int nextPauseIndex = 0;
 
             Color? currentColor = null;
@@ -933,8 +1262,9 @@ namespace Parchment.Framework.Utilities.Helpers
                         {
                             OpenedEffect openedEffect = record.OpenedEffects[nextEffectIndex];
                             int typingOrdinal = openedEffect.Typing is null ? -1 : nextTypingOrdinal++;
+                            int timedOrdinal = openedEffect.Duration > 0f ? nextTimedOrdinal++ : -1;
 
-                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors) { Typing = openedEffect.Typing, TypingOrdinal = typingOrdinal, Scramble = openedEffect.Scramble }, IsSuppressed: openedEffect.IsActive is false));
+                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors) { Typing = openedEffect.Typing, TypingOrdinal = typingOrdinal, Scramble = openedEffect.Scramble, Duration = openedEffect.Duration, TimedOrdinal = timedOrdinal }, IsSuppressed: openedEffect.IsActive is false));
                         }
 
                         nextEffectIndex++;

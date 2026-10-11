@@ -12,6 +12,12 @@ namespace Parchment.Framework.Utilities.Helpers
     /// </summary>
     public static class TypewriterHelper
     {
+        // How far above its resting place a dropping character starts, in unscaled pixels multiplied by the text's scale
+        public const float TYPEWRITER_DROP_HEIGHT = 6f;
+
+        // How large a popping character starts, as a multiple of its own size
+        public const float TYPEWRITER_POP_SCALE = 1.8f;
+
         /// <summary>Whether an element's authored text holds a typewriter, which is what puts it on its page's or book's list to be scheduled.</summary>
         public static bool HasTypewriterText(Element element)
         {
@@ -29,6 +35,28 @@ namespace Parchment.Framework.Utilities.Helpers
             return data is ITextContent textContent && TextMarkupHelper.HasTypewriter(textContent.Text);
         }
 
+        /// <summary>Whether an element's authored text holds a typewriter or an effect with a duration, either of which needs a start time from when its text comes into view.</summary>
+        public static bool HasScheduledText(Element element)
+        {
+            return HasScheduledText(element.Data);
+        }
+
+        /// <summary>Whether authored element data holds a typewriter or an effect with a duration in its text, being its Text or, for a PageNumber, its Format.</summary>
+        public static bool HasScheduledText(ElementData data)
+        {
+            if (HasTypewriterText(data))
+            {
+                return true;
+            }
+
+            if (data is ILinkHost linkHost && TextMarkupHelper.HasTimedEffect(linkHost.GetLinkedText()))
+            {
+                return true;
+            }
+
+            return data is ITextContent textContent && TextMarkupHelper.HasTimedEffect(textContent.Text);
+        }
+
         /// <summary>Gives every typewriter that has come into view a start time, in order. A typewriter waits for the ones before it to finish unless it was marked immediate.
         /// A hidden element is passed over without holding the others up. It is scheduled from whenever it appears. A start time is never moved once given, so text that has typed out stays typed out.
         /// </summary>
@@ -41,7 +69,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (Element element in elements)
             {
-                if (element.TypewriterEffects.Count is 0)
+                if (element.TypewriterEffects.Count is 0 && element.TimedEffects.Count is 0)
                 {
                     continue;
                 }
@@ -91,7 +119,70 @@ namespace Parchment.Framework.Utilities.Helpers
                         chainEnd = Math.Max(chainEnd, state.IsComplete ? state.CompletedAt : end);
                     }
                 }
+
+                // After the typewriters, as a timed effect inside one starts when the typewriter reaches it
+                ScheduleTimedEffects(element, readyTime, visibleSince);
             }
+        }
+
+        /// <summary>Gives each of an element's timed effects a start time once its text is showing. One inside a typewriter starts as its first character appears (or straight away once the reader clicks to finish the typing).
+        /// Any other starts when its element came into view, the same moment a typewriter in it would. A start time is never moved later, so an effect that has played stays played.
+        /// </summary>
+        private static void ScheduleTimedEffects(Element element, double readyTime, double? visibleSince)
+        {
+            foreach (TextEffect effect in element.TimedEffects)
+            {
+                bool hasStart = element.TimedEffectStarts.TryGetValue(effect.TimedOrdinal, out double start);
+
+                if (GetCoveringTypewriter(element, effect) is TextEffect typewriter)
+                {
+                    if (element.TypingStates.TryGetValue(typewriter.TypingOrdinal, out TypingState? state) is false || state.StartTime is not double typingStart)
+                    {
+                        continue;
+                    }
+
+                    double appearsAt = state.IsInstant ? typingStart : GetAppearTime(typewriter, typewriter.Typing!, state, effect.Start - typewriter.Start);
+
+                    // A click shows the text at once, so an effect still waiting on the typing starts then rather than where the typing would have reached
+                    if (state.IsComplete)
+                    {
+                        appearsAt = Math.Min(appearsAt, state.CompletedAt);
+                    }
+
+                    if (hasStart is false || appearsAt < start)
+                    {
+                        element.TimedEffectStarts[effect.TimedOrdinal] = appearsAt;
+                    }
+
+                    continue;
+                }
+
+                if (hasStart is false && visibleSince is double since)
+                {
+                    element.TimedEffectStarts[effect.TimedOrdinal] = Math.Max(readyTime, since);
+                }
+            }
+        }
+
+        /// <summary>The innermost typewriter whose text holds the start of an effect. Null when the effect isn't inside one.</summary>
+        private static TextEffect? GetCoveringTypewriter(Element element, TextEffect effect)
+        {
+            TextEffect? covering = null;
+
+            foreach (TextEffect typewriter in element.TypewriterEffects)
+            {
+                if (typewriter.Typing is null || effect.Start < typewriter.Start || effect.Start >= typewriter.Start + Math.Max(1, typewriter.Length))
+                {
+                    continue;
+                }
+
+                if (covering is null || typewriter.Start >= covering.Start)
+                {
+                    covering = typewriter;
+                }
+            }
+
+            return covering;
         }
 
         /// <summary>Whether every typewriter in an element's text has finished. False for an element with none, as there is nothing to have finished.</summary>
@@ -237,6 +328,51 @@ namespace Parchment.Framework.Utilities.Helpers
             return (float)Math.Clamp((time - appearsAt) / typing.FadeDuration, 0d, 1d);
         }
 
+        /// <summary>How a character is still moving into place after its typewriter revealed it, taken from whichever typewriter over it has the most of its drop or pop left.
+        /// Both ease out, quick at first and slowing as they land, so a character settles rather than stopping with a jolt. A character that has settled (or was finished with a click) is at rest.
+        /// </summary>
+        /// <param name="dropHeight">How far above its resting place to draw the character, in unscaled pixels multiplied by the text's scale.</param>
+        /// <param name="popScale">How much larger than its size to draw the character, being 1 once it has settled.</param>
+        public static void GetRevealMotion(Element element, IReadOnlyList<TextEffect> effects, int position, double time, out float dropHeight, out float popScale)
+        {
+            float dropRemaining = 0f;
+            float popRemaining = 0f;
+
+            foreach (TextEffect effect in effects)
+            {
+                if (effect.Typing is not TypingOptions typing)
+                {
+                    continue;
+                }
+
+                dropRemaining = Math.Max(dropRemaining, GetRemainingMotion(element, effect, typing, position, time, typing.DropDuration));
+                popRemaining = Math.Max(popRemaining, GetRemainingMotion(element, effect, typing, position, time, typing.PopDuration));
+            }
+
+            dropHeight = TYPEWRITER_DROP_HEIGHT * dropRemaining;
+            popScale = 1f + (TYPEWRITER_POP_SCALE - 1f) * popRemaining;
+        }
+
+        /// <summary>How much of a character's reveal motion is left, from 1 as it appears to 0 once it has settled, already eased out. 0 for a motion the typewriter doesn't use.</summary>
+        private static float GetRemainingMotion(Element element, TextEffect effect, TypingOptions typing, int position, double time, float duration)
+        {
+            if (duration <= 0f || element.TypingStates.TryGetValue(effect.TypingOrdinal, out TypingState? state) is false || state.StartTime is not double start)
+            {
+                return 0f;
+            }
+
+            if (state.IsComplete || state.IsInstant)
+            {
+                return 0f;
+            }
+
+            double appearsAt = GetAppearTime(effect, typing, state, position - effect.Start);
+            float progress = (float)Math.Clamp((time - appearsAt) / duration, 0d, 1d);
+
+            // Squared, which eases the motion out so it slows as it lands
+            return (1f - progress) * (1f - progress);
+        }
+
         private static bool IsRevealed(Element element, int position, double time)
         {
             foreach (TextEffect effect in element.TypewriterEffects)
@@ -250,10 +386,10 @@ namespace Parchment.Framework.Utilities.Helpers
             return true;
         }
 
-        /// <summary>When a typewriter's last character has fully appeared, counting every pause that holds. A pause after the last character still counts, so whatever waits on the typewriter waits for it too.</summary>
+        /// <summary>When a typewriter's last character has fully appeared and settled, counting every pause that holds. A pause after the last character still counts, so whatever waits on the typewriter waits for it too.</summary>
         private static double GetEndTime(TextEffect effect, TypingOptions typing, TypingState state)
         {
-            return state.StartTime!.Value + Math.Max(0, effect.Length - 1) * typing.Speed + GetPauseDelay(effect, state, int.MaxValue) + typing.FadeDuration;
+            return state.StartTime!.Value + Math.Max(0, effect.Length - 1) * typing.Speed + GetPauseDelay(effect, state, int.MaxValue) + typing.SettleDuration;
         }
 
         /// <summary>When one of a typewriter's characters appears, held back by every pause before it that holds.</summary>

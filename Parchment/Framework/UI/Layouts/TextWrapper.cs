@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
+using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
 using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.Utilities.Helpers;
@@ -168,10 +169,16 @@ namespace Parchment.Framework.UI.Layouts
 
             if (font is SpriteTextAdapter && (styledText.ColorRuns.Count is not 0 || styledText.EffectRuns.Any(run => TextEffectHelper.HasColor(run.Effects))))
             {
-                Parchment.monitor.LogOnce($"'{text}' has [color], [rainbow], [gradient] or [pulse] markup but draws in SpriteText, which keeps its own color, so the coloring is ignored.", LogLevel.Warn);
+                Parchment.monitor.LogOnce($"'{text}' has [color], [rainbow], [gradient], [pulse], [shimmer], [outline] or [glow] markup but draws in SpriteText, which keeps its own color, so the coloring is ignored.", LogLevel.Warn);
+            }
+
+            if (font is SpriteTextAdapter && (styledText.EffectRuns.Any(run => TextEffectHelper.HasEffect(run.Effects, TextEffectType.Wobble)) || styledText.LinkHoverEffects.Values.Any(effects => TextEffectHelper.HasEffect(effects, TextEffectType.Wobble))))
+            {
+                Parchment.monitor.LogOnce($"'{text}' has [wobble] markup but draws in SpriteText, which can't turn its letters, so they stay upright.", LogLevel.Warn);
             }
 
             element.TypewriterEffects = CollectTypewriters(styledText);
+            element.TimedEffects = CollectTimedEffects(styledText);
             ResolveScrambleGlyphs(styledText, font, text);
             RecordLinkTextEnds(element, styledText);
 
@@ -179,6 +186,28 @@ namespace Parchment.Framework.UI.Layouts
         }
 
         /// <summary>The text's typewriters in the order they open, each once. One wrapped around nothing appears in no run and is left out, as there is nothing for it to type.</summary>
+        /// <summary>The effects in the text with a duration, each once however many runs it spans, in the order they open.</summary>
+        private static IReadOnlyList<TextEffect> CollectTimedEffects(StyledText styledText)
+        {
+            SortedDictionary<int, TextEffect>? timedEffects = null;
+
+            foreach (EffectRun run in styledText.EffectRuns)
+            {
+                foreach (TextEffect effect in run.Effects)
+                {
+                    if (effect.TimedOrdinal < 0)
+                    {
+                        continue;
+                    }
+
+                    timedEffects ??= new SortedDictionary<int, TextEffect>();
+                    timedEffects[effect.TimedOrdinal] = effect;
+                }
+            }
+
+            return timedEffects is null ? Array.Empty<TextEffect>() : timedEffects.Values.ToList();
+        }
+
         private static IReadOnlyList<TextEffect> CollectTypewriters(StyledText styledText)
         {
             SortedDictionary<int, TextEffect>? typewriters = null;

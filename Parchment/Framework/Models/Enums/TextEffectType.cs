@@ -14,6 +14,15 @@
         Strike,
         Highlight,
         Redact,
-        Scramble
+        Scramble,
+        Bold,
+        Shimmer,
+        Flicker,
+        Fade,
+        Sparkle,
+        Outline,
+        Glow,
+        Wobble,
+        Pop
     }
 }

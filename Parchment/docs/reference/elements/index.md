@@ -170,7 +170,7 @@ The value takes any of the [color forms](#colors) above. Everything outside a ta
 Markup is read on every text element except `Input`, whatever `ParseTokenizableStrings` is set to.
 
 !!! note "Where markup isn't drawn"
-    `SpriteText` keeps its own color, so `[color]` and the coloring effects (`[rainbow]`, `[gradient]` and `[pulse]`) on an element drawn in it are ignored with a warning. A tooltip's `DisplayName` and `Description` draw plain text, so any markup in them is taken out rather than shown.
+    `SpriteText` keeps its own color, so `[color]` and the coloring effects (`[rainbow]`, `[gradient]`, `[pulse]` and `[shimmer]`) on an element drawn in it are ignored with a warning. A tooltip's `DisplayName` and `Description` draw plain text, so any markup in them is taken out rather than shown.
 
 ## Links
 
@@ -257,15 +257,24 @@ These tags move or recolor each character of the text they wrap, without changin
 | `[wave]` | Bobs each character up and down a beat behind the one before it. | amplitude and period | `2` and `1000` |
 | `[bounce]` | Hops each character up off the line and back down, a beat behind the one before it. | amplitude and period | `2` and `800` |
 | `[shake]` | Jitters each character to a new spot every period. | amplitude and period | `1` and `80` |
+| `[wobble]` | Rocks each character back and forth about its center, a beat behind the one before it. | angle and period | `8` and `1200` |
+| `[pop]` | Swells each character about its center and settles it back, a beat behind the one before it. | size and period | `0.25` and `800` |
+| `[flicker]` | Dims and brightens each character on its own like a candle, wavering between a lowest strength and full. | lowest strength and period | `0.3` and `120` |
 | `[rainbow]` | Colors each character one step further along the game's rainbow, cycling through every color once per period. | period | `2000` |
 | `[gradient]` | Blends the text from one color to the next across its whole length, without moving. | two or more colors | *required* |
 | `[pulse]` | Fades the whole stretch towards a color and back once per period. | color and period | *a color is required*, then `1500` |
+| `[fade]` | Dims the whole stretch towards a lowest strength and back once per period, as though it were breathing. | lowest strength and period | `0.25` and `2000` |
+| `[shimmer]` | Sweeps a band of color across the text like a glint of light, then rests until the next period. | color, period and width | `White`, `2500` and `3` |
+| `[sparkle]` | Twinkles the game's own sparkles over random characters, each playing out over one period. See [Sparkle](#sparkle). | color, period and chance | `White`, `400` and `0.2` |
 | `[typewriter]` | Reveals the text one character at a time, the way the game's dialogue box does. See [Typewriter](#typewriter). | speed, delay and options | `30` and `0` |
 | `[underline]` | Draws a line under the text. See [Decorations](#decorations). | color | the text's color |
 | `[strike]` | Draws a line through the text. | color | the text's color |
 | `[highlight]` | Draws a marker box behind the text. | color | a soft yellow |
 | `[redact]` | Covers the text with a solid bar, hiding it while keeping its width. | color | the text's color |
 | `[scramble]` | Shows random glyphs in place of the text until its condition stops passing, then locks the real characters into place. See [Scramble](#scramble). | period and options | `80` |
+| `[bold]` | Thickens the text by drawing it a second time, shifted to the right. See [Bold](#bold). | strength | `1` |
+| `[outline]` | Draws a solid outline around each letter, in place of the text's shadow. See [Outline](#outline). | color and thickness | `Black` and `2` |
+| `[glow]` | Draws a soft, fading halo behind the text that can breathe in and out. See [Glow](#glow). | color, radius and period | `255 200 80`, `3` and `0` |
 
 ```json
 {
@@ -281,16 +290,23 @@ These tags move or recolor each character of the text they wrap, without changin
 }
 ```
 
-- **Values.** A tag's value is split into parts by `|`, the same for every effect. Every part except a color is optional. `[wave=4]` sets only the amplitude and `[wave=4|500]` sets both. `[bounce]` and `[shake]` read their values the same way. `[rainbow]` takes only a period, so `[rainbow=1000]` cycles twice as fast and `[rainbow=0]` holds still, the way the game draws its own rainbow text.
-- **Colors.** A color keeps any spaces of its own, such as `255 215 0`, which is why parts aren't split on spaces. `[gradient]` takes two or more colors, spread evenly from the first character to the last. `[pulse]` takes one color and then an optional period, such as `[pulse=Gold]` or `[pulse=Gold|800]`. Both take any of the [color forms](#colors).
-- **Units.** An amplitude is in unscaled pixels multiplied by the text's scale (its `Scale`, which is `TextScale` on an element with a sprite). A period is in milliseconds: how long one bob or hop takes for a wave or a bounce, how long each spot is held for a shake, how long a full trip through the colors takes for a rainbow and how long one fade out and back takes for a pulse.
-- **Layout.** An effect only changes the drawing. Lines keep the room they were laid out with, so a large amplitude overlaps the lines around it rather than pushing them apart. A moving link is still reached where its text rests.
-- **Combining.** Effects stack, so `[shake][rainbow]...[/rainbow][/shake]` both jitters and recolors. They also work inside and around `[color]` and `[link]`.
-- **Color order.** Coloring effects apply from the outside in. A rainbow or a gradient replaces the color around it (any `[color]` included), while a pulse fades from whatever color is around it, so `[rainbow][pulse=White]...[/pulse][/rainbow]` pulses the rainbow. A hovered link's `HoverTextColor` covers the coloring effects in its text so the link still shows it's under the cursor, though its own [hover effects](#hover-effects) start from it.
-- **Continuity.** An effect carries on unbroken across a color change or a line break. A gradient spreads over its whole stretch rather than restarting on each line.
-- **Fonts.** `[wave]`, `[bounce]` and `[shake]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]` and `[pulse]` are colors, which `SpriteText` ignores with a warning.
-- **Cost.** Each character under an effect is drawn on its own, so keep effects to a word or a phrase rather than a whole page.
-- **Mistakes.** An amplitude or period that won't parse keeps its default with a warning. When it was written with a space rather than `|`, such as `[wave=4 500]`, the warning shows the corrected tag. A color that won't parse is left out of a gradient. A gradient left with fewer than two colors keeps the color around it with a warning. So does a pulse without a color. Unclosed and stray tags behave as they do for [inline color](#inline-color).
+```json
+{
+  "Type": "Heading",
+  "Text": "[color=Gold][shimmer]Legendary[/shimmer][/color] Catches"
+}
+```
+
+- **Values.** A tag's value is split into parts by `|`, the same for every effect. Every part except a color is optional. `[wave=4]` sets only the amplitude and `[wave=4|500]` sets both. `[bounce]` and `[shake]` read their values the same way. So does `[wobble]`, whose amplitude is how far it rocks either way in degrees, so `[wobble=15|800]` tips further and faster. `[pop]` reads them the same way too, its amplitude being how much larger a letter grows as a share of its size, so `[pop=0.5]` swells letters to half again their size and `[pop=-0.3]` shrinks them instead. `[flicker]` takes how faint it can get from `0` (vanishing entirely) to `1` (not at all) and then its period, so `[flicker=0]` gutters out and `[flicker=0.7|300]` is a slow, gentle waver. `[fade]` reads its values the same way, so `[fade=0|4000]` slowly vanishes and returns. A fade dims any decoration on its text along with it, while a flicker leaves them steady. `[rainbow]` takes only a period, so `[rainbow=1000]` cycles twice as fast and `[rainbow=0]` holds still, the way the game draws its own rainbow text.
+- **Colors.** A color keeps any spaces of its own, such as `255 215 0`, which is why parts aren't split on spaces. `[gradient]` takes two or more colors, spread evenly from the first character to the last. `[pulse]` takes one color and then an optional period, such as `[pulse=Gold]` or `[pulse=Gold|800]`. `[shimmer]` takes an optional color, period and width in that order, so changing its period means writing its color first, such as `[shimmer=White|1500]`. All three take any of the [color forms](#colors).
+- **Units.** An amplitude is in unscaled pixels multiplied by the text's scale (its `Scale`, which is `TextScale` on an element with a sprite). A period is in milliseconds: how long one bob or hop takes for a wave or a bounce (or one rock back and forth for a wobble, or one swell and settle for a pop), how long each spot is held for a shake, how long each character takes to drift to its next strength for a flicker, how long a full trip through the colors takes for a rainbow, how long one fade out and back takes for a pulse or a fade and how long from one glint to the next for a shimmer. A shimmer's band crosses in the first half of its period and the text rests for the second. Its width is how many characters the band reaches either side of its center, so `[shimmer=White|2500|1]` is a thin glint and `[shimmer=White|2500|6]` a broad sheen.
+- **Layout.** An effect only changes the drawing. Lines keep the room they were laid out with, so a large amplitude overlaps the lines around it rather than pushing them apart. A popping letter grows over its neighbours in the same way rather than nudging them aside. A moving link is still reached where its text rests.
+- **Combining.** Effects stack, so `[shake][rainbow]...[/rainbow][/shake]` both jitters and recolors. Any of them can also play for a set time with a [duration](#effect-durations). They also work inside and around `[color]` and `[link]`.
+- **Color order.** Coloring effects apply from the outside in. A rainbow or a gradient replaces the color around it (any `[color]` included), while a pulse or a shimmer fades from whatever color is around it, so `[rainbow][pulse=White]...[/pulse][/rainbow]` pulses the rainbow and `[color=Gold][shimmer]...[/shimmer][/color]` glints across gold text. A hovered link's `HoverTextColor` covers the coloring effects in its text so the link still shows it's under the cursor, though its own [hover effects](#hover-effects) start from it.
+- **Continuity.** An effect carries on unbroken across a color change or a line break. A gradient spreads over its whole stretch rather than restarting on each line. A shimmer's band also carries on from the end of one line to the start of the next.
+- **Fonts.** `[wave]`, `[bounce]`, `[shake]`, `[pop]`, `[flicker]`, `[fade]` and `[sparkle]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]`, `[pulse]` and `[shimmer]` are colors, which `SpriteText` ignores with a warning. So are `[outline]` and `[glow]`, as `SpriteText` outlines its own letters in its own color. `SpriteText` can't turn its letters either, so `[wobble]` leaves them upright with a warning.
+- **Cost.** Each character under an effect is drawn on its own, so keep effects to a word or a phrase rather than a whole page. `[bold]`, `[fade]` and the decorations are the exception, as they can draw their text whole.
+- **Mistakes.** An amplitude or period that won't parse keeps its default with a warning, as does a flicker or fade strength outside `0` to `1`. When it was written with a space rather than `|`, such as `[wave=4 500]`, the warning shows the corrected tag. A color that won't parse is left out of a gradient. A gradient left with fewer than two colors keeps the color around it with a warning. So does a pulse without a color. A shimmer whose color won't parse shimmers in white with a warning. Unclosed and stray tags behave as they do for [inline color](#inline-color).
 
 ### Decorations
 
@@ -311,6 +327,86 @@ Each takes one optional color, such as `[highlight=255 200 200 128]` or `[underl
 - **Typewriters.** Under a typewriter, a decoration grows along with the text it covers rather than appearing ahead of it.
 - **Hover effects.** `[underline]`, `[strike]` and `[highlight]` work as a link's [hover effects](#hover-effects), so `"HoverEffect": "underline"` underlines a link while the cursor is on it. `[redact]` doesn't, as it would hide the very text the cursor is on (and neither does `[scramble]`).
 - **Fonts.** Decorations are drawn by Parchment rather than the font, so they work in `SpriteText` too. Give them a color there, as `SpriteText` draws its letters in its own color rather than the element's.
+
+### Bold
+
+`[bold]` thickens the text it wraps.
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "Only [bold]one[/bold] legendary fish lives in each spot."
+}
+```
+
+- **Strength.** It takes one optional whole number, being how far the second copy is shifted in unscaled pixels multiplied by the text's scale. `[bold=2]` is heavier than the default of `1`. A strength that isn't a positive whole number keeps the default with a warning.
+- **Layout.** Bold only changes the drawing. The text keeps the width it was laid out with, so its last letter reaches a pixel or two past it.
+- **Translucent text.** The two copies overlap, so text that isn't fully opaque looks more solid than it would on its own. That shows on a translucent color such as `255 0 0 128`, on an element fading in or out, on a typewriter that fades its characters in and on a flicker or a fade as it dims. Text at full strength looks as it should.
+- **Combining.** Bold works inside and around every other effect. Bolds nested inside one another don't add up, so the strongest applies.
+- **Hover effects.** Bold works as a link's [hover effect](#hover-effects), so `"HoverEffect": "bold"` thickens a link while the cursor is on it.
+- **Fonts.** Bold works in every font, `SpriteText` included. A `SpriteText` letter is built from pixels a few screen pixels wide, so it may take a higher strength such as `[bold=3]` to show.
+
+### Outline
+
+`[outline]` draws a solid outline around each letter of the text it wraps, which keeps light text readable over a busy or dark background.
+
+```json
+{
+  "Type": "Heading",
+  "Text": "[color=White][outline]Night Market[/outline][/color] opens at [color=Gold][outline=95 40 10|1]5pm[/outline][/color]"
+}
+```
+
+- **Values.** It takes an optional color and then a thickness, such as `[outline=Navy]` or `[outline=Navy|3]`. The color takes any of the [color forms](#colors). The thickness is a whole number of unscaled pixels multiplied by the text's scale, so `[outline=Black|1]` is a fine line and `[outline=Black|3]` a heavy one.
+- **Shadow.** An outline takes the place of the text's shadow, so outlined text is drawn without one.
+- **Layout.** An outline only changes the drawing. The text keeps the room it was laid out with, so a thick outline reaches past it into the lines and letters around it.
+- **Combining.** An outline follows its letters through every other effect, so it waves, shakes, fades and flickers with them, wraps `[bold]` text and takes no color from a rainbow or gradient inside it. Outlines nested inside one another don't add up, so the innermost applies.
+- **Hover effects.** Outline works as a link's [hover effect](#hover-effects), so `"HoverEffect": "outline=Gold"` outlines a link while the cursor is on it.
+- **Fonts.** `SpriteText` already outlines its own letters and keeps its own color, so `[outline]` is ignored there with a warning.
+- **Cost.** Every letter is drawn eight extra times, so an outline suits a heading or a phrase rather than a whole page.
+- **Mistakes.** A color that won't parse gives a black outline, while a thickness that isn't a positive whole number keeps the default. Both log a warning.
+
+### Glow
+
+`[glow]` draws a soft halo behind the text it wraps, strongest beside the letters and fading out to its radius.
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "The [glow]Golden Walnut[/glow] hums with power. A [glow=Cyan|4|2000]spirit[/glow] drifts by while a [glow=40 20 10|2][color=White]shadowy figure[/color][/glow] watches."
+}
+```
+
+- **Values.** It takes an optional color, radius and period in that order, so changing its radius means writing its color first, such as `[glow=Gold|5]`. The color takes any of the [color forms](#colors). The radius is a whole number of unscaled pixels multiplied by the text's scale. The period is how long one breath out and back takes, in milliseconds, with the default of `0` holding the glow steady.
+- **Breathing.** A glow with a period dims to less than half its strength and back, so it never quite goes out.
+- **Background.** A glow is translucent, so a light glow shows faintly on a light page. It stands out most on a dark panel or as a dark glow behind light text, where it reads as a soft shadow.
+- **Shadow.** A glow sits behind the text's shadow rather than replacing it. Inside an `[outline]`, the glow goes down first, the outline over it and the text over both without its shadow.
+- **Layout.** A glow only changes the drawing. The text keeps the room it was laid out with, so a wide glow spills into the lines and letters around it.
+- **Combining.** A glow follows its letters through every other effect, so it waves, shakes, fades and flickers with them and wraps `[bold]` text. Glows nested inside one another don't add up, so the innermost applies.
+- **Hover effects.** Glow works as a link's [hover effect](#hover-effects), so `"HoverEffect": "glow=White|3"` lights a link up while the cursor is on it.
+- **Fonts.** `SpriteText` keeps its own color, so `[glow]` is ignored there with a warning.
+- **Cost.** A glow is drawn in up to four rings of eight copies each, so it costs more than an outline. Keep it to a word or a short phrase.
+- **Mistakes.** A color that won't parse uses the default gold, while a radius or period that won't parse keeps its default. Both log a warning.
+
+### Sparkle
+
+`[sparkle]` twinkles sparkles over the text it wraps, using the same sprite as the game's own sparkling text.
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "A [sparkle]Prismatic Shard[/sparkle] glints in the [sparkle=LightBlue|800|0.4]moonlight[/sparkle]."
+}
+```
+
+- **Values.** It takes an optional color, period and chance in that order, so changing its period means writing its color first, such as `[sparkle=Gold|800]`. The color tints the sparkle and takes any of the [color forms](#colors), while `White` leaves it as the game draws it. The period is how long one sparkle takes to play out. The chance, from `0` to `1`, is how likely each character is to sparkle in any one period, so `0.05` is a rare twinkle and `1` keeps every letter sparkling.
+- **Placement.** Each sparkle lands somewhere new over its letter and follows it, so a waving or shaking word carries its sparkles along. Sparkles come and go at scattered moments rather than all at once. Spaces never sparkle.
+- **Size.** A sparkle is drawn at the text's scale, so at a `Scale` of `1` it's the size the game draws its own.
+- **Combining.** A sparkle fades with its letter, so it shows only once a typewriter reaches the letter and dims under a flicker or a fade. Sparkles inside one another don't add up, so the innermost applies.
+- **Hover effects.** Sparkle works as a link's [hover effect](#hover-effects), so `"HoverEffect": "sparkle"` twinkles a link while the cursor is on it.
+- **Fonts.** The sparkle is drawn by Parchment rather than the font, so it works and takes its color in `SpriteText` too.
+- **Art.** The sparkle is the game's own, the six frames from `0, 704` in `TileSheets/animations`, so a mod that retextures the game's sparkles changes these too.
+- **Mistakes.** A color that won't parse keeps the sparkle's own colors, while a period or chance that won't parse keeps its default. Both log a warning.
 
 ### Scramble
 
@@ -360,11 +456,15 @@ Its value takes two numbers and then any options, all separated by `|` and all o
 | first number | Milliseconds each character takes to appear. | `30` |
 | second number | Milliseconds to wait before the first character. | `0` |
 | `immediate` | Start as soon as the text is on screen instead of waiting for the typewriters before it. | waits its turn |
-| `fade` or `fade=milliseconds` | Fade each character in instead of popping it in. A bare `fade` takes 100 milliseconds. | pops in |
+| `fade` or `fade=milliseconds` | Fade each character in instead of showing it at once. A bare `fade` takes 100 milliseconds. | shows at once |
+| `drop` or `drop=milliseconds` | Have each character fall a short way into place as it appears. A bare `drop` takes 200 milliseconds. | appears in place |
+| `pop` or `pop=milliseconds` | Have each character shrink into place from oversized as it appears. A bare `pop` takes 200 milliseconds. | appears at its size |
 | `sound=cue` | Play a sound cue as characters appear, such as `sound=dialogueCharacter` for the game's own typing sound. | no sound |
 | `condition=query` | Type only when a [game state query](../../concepts/conditions.md) passes, checked once when the typewriter would start. When it fails the text shows in full at once. See [Tag conditions](#tag-conditions). | always types |
 
 So `[typewriter=20|500|fade|sound=dialogueCharacter]` waits half a second, then types quickly with each character fading in to the game's typing sound.
+
+`fade`, `drop` and `pop` can be used together, so `[typewriter=40|fade=300|drop=300]` has each character fade in as it falls. A typewriter counts as finished once its last character has settled, so whatever waits on it (the typewriters after it and its [typed actions](#typed-actions)) waits for the longest of the three.
 
 - **When it starts.** A typewriter on a page starts once its spread has settled into view, after any page turn. One in an element that's hidden until a `Condition` passes or a `ShowElement` names it starts when that element appears instead. One on the book's own `Underlay` or `Overlay` starts when the book first settles, open or on its cover.
 - **Order.** Typewriters on a spread type one after another in the order they're drawn, left page then right, so the spread reads like it's being written. Each waits for the one before it to finish, plus its own delay. `immediate` starts one alongside the others instead, without holding up the ones after it. A hidden element doesn't hold the others up either.
@@ -372,7 +472,7 @@ So `[typewriter=20|500|fade|sound=dialogueCharacter]` waits half a second, then 
 - **Skipping.** While anything on screen is still typing, a click (or a controller's confirm button) finishes all of it at once and does nothing else, the same as the game's dialogue. It doesn't also press the button it landed on or turn the page. Keybinds are unaffected.
 - **Links.** A link in text that hasn't been typed out yet can't be reached by the cursor or a controller until all of its text is showing.
 - **Sound.** Only one cue plays at a time however many typewriters are revealing at once. It follows the player's own typing sound option, the same as the game's dialogue.
-- **Layout.** The text takes its full space from the start, so lines never reflow as they fill in.
+- **Layout.** The text takes its full space from the start, so lines never reflow as they fill in. A dropping or popping character moves within that space, overlapping its neighbours for a moment rather than nudging them.
 - **Combining.** Other effects work inside and around a typewriter, so `[typewriter][wave]...[/wave][/typewriter]` waves each character as it appears. A typewriter can't be a link's [hover effect](#hover-effects), as it reveals text once rather than coming and going with the cursor.
 
 #### Pauses
@@ -427,7 +527,7 @@ A link's `HoverEffect` and `HoverEffects` apply [text effects](#text-effects) to
 }
 ```
 
-- **Easing in.** The effects start from rest when the cursor arrives and grow to full size over a moment, so a wave never appears mid-cycle. They stop as soon as the cursor leaves.
+- **Easing in.** The effects start from rest when the cursor arrives and grow to full size over a moment, so a wave never appears mid-cycle. A bold has no size to grow through, so it applies in full straight away. They all stop as soon as the cursor leaves.
 - **Order.** Hover effects apply after any effects written in the text itself, so they stack on top. A coloring hover effect starts from the link's `HoverTextColor` when one is set, so `HoverTextColor: White` with `pulse=Gold` fades between white and gold.
 - **Whole link.** Each effect covers the whole of the link's text, so a gradient spreads across all of it, even when a link nested inside cuts it in two.
 - **Interactivity.** A link with hover effects is reachable by the cursor even when it has no tooltip or action.
@@ -456,6 +556,27 @@ It goes alongside the tag's other parts, separated by `|` the same way, in any p
 - **Tokens.** Parchment's `%Token%` forms resolve against the element, the same as in its `Condition`. `!` negation and comma-separated queries work as usual.
 - **Limits.** A tag's value can't hold square brackets, so the game's `[Token]` forms can't go in an inline condition. Nor can a `|`, which would start the tag's next part. Set a [flag](../../concepts/actions.md#session-flags) or [variable](../variables.md) elsewhere and check that instead. The element's own `Condition` can also hold the query.
 - **Hover effects.** A link's [hover effects](#hover-effects) don't take a condition, since the link's own `Condition` already governs them. One given is ignored with a warning.
+
+## Effect durations
+
+Any [text effect](#text-effects) can take a `duration=` part, in milliseconds, to play for a while once its text appears and then settle to rest:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "You caught a [bounce=4|400|duration=800]Legend[/bounce]! [shimmer=White|1600|duration=800][color=Gold]Perfect catch[/color][/shimmer] [typewriter=40][rainbow=1000|duration=2000]New record![/rainbow][/typewriter]"
+}
+```
+
+It goes alongside the effect's other parts, separated by `|` the same way and in any position, the same as a [condition](#tag-conditions). On an effect with nothing else to set, the duration is its whole value: `[shake=duration=500]`.
+
+- **When it starts.** An effect inside a [typewriter](#typewriter) starts as the typewriter reaches its first character, so a word can bounce as it's written. Any other starts when its text comes into view, at the same moment a typewriter in it would: once the spread has settled after a page turn, or when a hidden element appears.
+- **From the top.** A timed effect runs on its own clock from the moment it starts, so it always begins at the start of its cycle. `[bounce=4|400|duration=800]` gives two hops that die down, while `[shimmer=White|1600|duration=800]` glints across once, since a shimmer crosses in the first half of its period.
+- **Settling.** It grows in over its first moment and settles over its last, rather than starting or stopping with a jolt. A moving effect comes to rest where its text was laid out, a coloring effect blends back to the color around it, a fade or flicker returns to full strength and an outline, glow, sparkle or decoration fades away. A `[bold]` can only be on or off, so it switches off partway through settling.
+- **Once per reading.** A timed effect plays once each reading, the same as a typewriter types. Turning back to the page shows its text at rest, while closing the book and opening it again plays it afresh.
+- **Hover effects.** A link's [hover effects](#hover-effects) take a duration too, playing it each time the cursor arrives, so `"HoverEffect": "pop=0.3|300|duration=300"` swells the link once on each hover.
+- **Not every effect.** A `[typewriter]`, `[redact]` or `[scramble]` already decides how long it shows for, so a duration on one is ignored with a warning, as is one that isn't a positive number.
+- **Where it plays.** A timed effect plays in a book's pages and on its own layers. Text drawn anywhere else has nothing to start it, so its timed effects stay at rest.
 
 ## Rectangles and points
 
