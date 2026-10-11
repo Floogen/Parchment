@@ -1602,13 +1602,13 @@
                 },
                 {
                   "Type": "Heading",
-                  "Text": "[color=White][outline]Outline[/outline][/color] [wave][color=Cyan][outline=Navy|3]this![/outline][/color][/wave]",
+                  "Text": "[color=White][outline]Outline[/outline][/color] [wave][color=Cyan][outline=Navy|3]everything![/outline][/color][/wave]",
                   "Alignment": "Center",
                   "SpacingAfter": 18
                 },
                 {
                   "Type": "Heading",
-                  "Text": "Look! A [pop=0.5|500][wobble=10|500][outline=Black|1][color=Gold]C O I N[/color][/outline][/wobble][/pop]",
+                  "Text": "\n\n[pop=0.5|500][wobble=10|500][outline=Black|1][color=Gold]W o A H[/color][/outline][/wobble][/pop]",
                   "Alignment": "Center",
                   "SpacingAfter": 18
                 }
@@ -1620,7 +1620,7 @@
               "Elements": [
                 {
                   "Type": "Paragraph",
-                  "Text": "[glow]Glow[/glow] warmly, [glow=Cyan|4|2000]breathe[/glow] softly or [glow=40 20 10|2][color=White]lurk[/color][/glow] in the shadows.",
+                  "Text": "[glow]Glow[/glow] warmly, [glow=Cyan|4|2000]softly[/glow] or [glow=40 20 10|2][color=White]brightly[/color][/glow].",
                   "Alignment": "Center",
                   "SpacingAfter": 18
                 },
@@ -1638,7 +1638,7 @@
                 },
                 {
                   "Type": "Paragraph",
-                  "Text": "[pop]Pop[/pop] it, [pop=-0.3|1500]shrink[/pop] it or let it [pop=0.15|1200][color=Red]beat[/color][/pop] like a heart!",
+                  "Text": "[pop]Pop[/pop] it, [pop=-0.3|1500]shrink[/pop] it or let it [pop=0.15|1200][color=Red]beat[/color][/pop]!",
                   "Alignment": "Center",
                   "SpacingAfter": 18
                 },
@@ -1651,7 +1651,7 @@
                 },
                 {
                   "Type": "Paragraph",
-                  "Text": "[bounce=4|800|duration=800]Bounce[/bounce] once, [color=Gold][shimmer=White|1600|duration=1500]glint[/shimmer][/color] once, then [rainbow=1000|duration=2000]settle down[/rainbow].",
+                  "Text": "[bounce=4|800|duration=800]Bounce[/bounce] once, [color=Gold][shimmer=White|800|duration=1500]glint[/shimmer][/color] once, then [rainbow=1000|duration=2000]fade to normal text[/rainbow].",
                   "Alignment": "Center",
                   "SpacingAfter": 18,
                   "Condition": "PeacefulEnd.Parchment_HasFlag revealTypewriterFinished"
