@@ -35,6 +35,28 @@ namespace Parchment.Framework.Utilities.Helpers
             return data is ITextContent textContent && TextMarkupHelper.HasTypewriter(textContent.Text);
         }
 
+        /// <summary>Whether an element's authored text holds a typewriter or an effect with a duration, either of which needs a start time from when its text comes into view.</summary>
+        public static bool HasScheduledText(Element element)
+        {
+            return HasScheduledText(element.Data);
+        }
+
+        /// <summary>Whether authored element data holds a typewriter or an effect with a duration in its text, being its Text or, for a PageNumber, its Format.</summary>
+        public static bool HasScheduledText(ElementData data)
+        {
+            if (HasTypewriterText(data))
+            {
+                return true;
+            }
+
+            if (data is ILinkHost linkHost && TextMarkupHelper.HasTimedEffect(linkHost.GetLinkedText()))
+            {
+                return true;
+            }
+
+            return data is ITextContent textContent && TextMarkupHelper.HasTimedEffect(textContent.Text);
+        }
+
         /// <summary>Gives every typewriter that has come into view a start time, in order. A typewriter waits for the ones before it to finish unless it was marked immediate.
         /// A hidden element is passed over without holding the others up. It is scheduled from whenever it appears. A start time is never moved once given, so text that has typed out stays typed out.
         /// </summary>
@@ -47,7 +69,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (Element element in elements)
             {
-                if (element.TypewriterEffects.Count is 0)
+                if (element.TypewriterEffects.Count is 0 && element.TimedEffects.Count is 0)
                 {
                     continue;
                 }
@@ -97,7 +119,70 @@ namespace Parchment.Framework.Utilities.Helpers
                         chainEnd = Math.Max(chainEnd, state.IsComplete ? state.CompletedAt : end);
                     }
                 }
+
+                // After the typewriters, as a timed effect inside one starts when the typewriter reaches it
+                ScheduleTimedEffects(element, readyTime, visibleSince);
             }
+        }
+
+        /// <summary>Gives each of an element's timed effects a start time once its text is showing. One inside a typewriter starts as its first character appears (or straight away once the reader clicks to finish the typing).
+        /// Any other starts when its element came into view, the same moment a typewriter in it would. A start time is never moved later, so an effect that has played stays played.
+        /// </summary>
+        private static void ScheduleTimedEffects(Element element, double readyTime, double? visibleSince)
+        {
+            foreach (TextEffect effect in element.TimedEffects)
+            {
+                bool hasStart = element.TimedEffectStarts.TryGetValue(effect.TimedOrdinal, out double start);
+
+                if (GetCoveringTypewriter(element, effect) is TextEffect typewriter)
+                {
+                    if (element.TypingStates.TryGetValue(typewriter.TypingOrdinal, out TypingState? state) is false || state.StartTime is not double typingStart)
+                    {
+                        continue;
+                    }
+
+                    double appearsAt = state.IsInstant ? typingStart : GetAppearTime(typewriter, typewriter.Typing!, state, effect.Start - typewriter.Start);
+
+                    // A click shows the text at once, so an effect still waiting on the typing starts then rather than where the typing would have reached
+                    if (state.IsComplete)
+                    {
+                        appearsAt = Math.Min(appearsAt, state.CompletedAt);
+                    }
+
+                    if (hasStart is false || appearsAt < start)
+                    {
+                        element.TimedEffectStarts[effect.TimedOrdinal] = appearsAt;
+                    }
+
+                    continue;
+                }
+
+                if (hasStart is false && visibleSince is double since)
+                {
+                    element.TimedEffectStarts[effect.TimedOrdinal] = Math.Max(readyTime, since);
+                }
+            }
+        }
+
+        /// <summary>The innermost typewriter whose text holds the start of an effect. Null when the effect isn't inside one.</summary>
+        private static TextEffect? GetCoveringTypewriter(Element element, TextEffect effect)
+        {
+            TextEffect? covering = null;
+
+            foreach (TextEffect typewriter in element.TypewriterEffects)
+            {
+                if (typewriter.Typing is null || effect.Start < typewriter.Start || effect.Start >= typewriter.Start + Math.Max(1, typewriter.Length))
+                {
+                    continue;
+                }
+
+                if (covering is null || typewriter.Start >= covering.Start)
+                {
+                    covering = typewriter;
+                }
+            }
+
+            return covering;
         }
 
         /// <summary>Whether every typewriter in an element's text has finished. False for an element with none, as there is nothing to have finished.</summary>

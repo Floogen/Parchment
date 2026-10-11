@@ -79,6 +79,9 @@ namespace Parchment.Framework.Utilities.Helpers
         // The part of any tag's value that gates it on a game state query, such as [wave=4|condition=WEATHER Here Rain]
         private const string CONDITION_PART = "condition";
 
+        // The part of an effect's value that has it play for a set time once its text appears, such as [bounce=4|duration=1000]
+        private const string DURATION_PART = "duration";
+
         // What separates the parts of an effect's value, the same for every effect. Not a space, since a color can hold spaces of its own such as "255 215 0"
         private const char VALUE_SEPARATOR = '|';
 
@@ -105,6 +108,9 @@ namespace Parchment.Framework.Utilities.Helpers
 
             /// <summary>Whether the effect applies, being false when its tag's condition failed. A failed effect still pairs with its closing tag so the tags around it stay matched.</summary>
             public bool IsActive { get; init; } = true;
+
+            /// <summary>How long the effect plays before easing to rest, in milliseconds, from its tag's "duration=" part. Zero for one that plays for as long as its text shows.</summary>
+            public float Duration { get; init; }
         }
 
         private enum TagKind
@@ -169,6 +175,51 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>Takes a "condition=" part out of a tag's value, handing back what remains for the tag to read as it always has. Null when the value was only a condition.
         /// Everything after the first = is the query, which is why a query can hold an = of its own but not a |, as that would start the tag's next part.
         /// </summary>
+        /// <summary>Takes an effect's "duration=milliseconds" part out of its value, leaving the rest to be read as usual. Zero when there is none.
+        /// A typewriter, a redaction or a scramble already decides how long it shows for, so a duration on one is ignored with a warning, as is one that isn't a positive number.
+        /// </summary>
+        private static string? ExtractDuration(string? value, TextEffectType effectType, string source, out float duration)
+        {
+            duration = 0f;
+
+            if (string.IsNullOrEmpty(value) || value.Contains(DURATION_PART, StringComparison.OrdinalIgnoreCase) is false)
+            {
+                return value;
+            }
+
+            List<string> remainingParts = new List<string>();
+            string tag = effectType.ToString().ToLowerInvariant();
+
+            foreach (string part in value.Split(VALUE_SEPARATOR))
+            {
+                string trimmedPart = part.Trim();
+                int separatorIndex = trimmedPart.IndexOf('=');
+
+                if (separatorIndex <= 0 || string.Equals(trimmedPart.Substring(0, separatorIndex).Trim(), DURATION_PART, StringComparison.OrdinalIgnoreCase) is false)
+                {
+                    remainingParts.Add(part);
+                    continue;
+                }
+
+                string durationValue = trimmedPart.Substring(separatorIndex + 1).Trim();
+
+                if (effectType is TextEffectType.Typewriter or TextEffectType.Redact or TextEffectType.Scramble)
+                {
+                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] with a duration, which it doesn't take as it already decides how long it shows for, so the duration was ignored.", LogLevel.Warn);
+                }
+                else if (float.TryParse(durationValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedDuration) && parsedDuration > 0f)
+                {
+                    duration = parsedDuration;
+                }
+                else
+                {
+                    Parchment.monitor.LogOnce($"'{source}' has a [{tag}] duration of '{durationValue}', which isn't a positive number of milliseconds, so the effect plays for as long as its text shows.", LogLevel.Warn);
+                }
+            }
+
+            return remainingParts.Count is 0 ? null : string.Join(VALUE_SEPARATOR, remainingParts);
+        }
+
         private static string? ExtractCondition(string? value, out string? condition)
         {
             condition = null;
@@ -234,6 +285,42 @@ namespace Parchment.Framework.Utilities.Helpers
         public static bool HasTypewriter(string? text)
         {
             return string.IsNullOrEmpty(text) is false && text.Contains(TYPEWRITER_TAG, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Whether authored text holds an effect tag with a "duration=" part, which needs a start time from when its text comes into view.</summary>
+        public static bool HasTimedEffect(string? text)
+        {
+            if (string.IsNullOrEmpty(text) || text.Contains(DURATION_PART, StringComparison.OrdinalIgnoreCase) is false)
+            {
+                return false;
+            }
+
+            foreach (Match match in _markupPattern.Matches(text))
+            {
+                if (match.Groups["effectValue"].Success && HasValuePart(match.Groups["effectValue"].Value, DURATION_PART))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether one of a tag value's parts is the named "name=..." part.</summary>
+        private static bool HasValuePart(string value, string partName)
+        {
+            foreach (string part in value.Split(VALUE_SEPARATOR))
+            {
+                string trimmedPart = part.Trim();
+                int separatorIndex = trimmedPart.IndexOf('=');
+
+                if (separatorIndex > 0 && string.Equals(trimmedPart.Substring(0, separatorIndex).Trim(), partName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>The text with its markup taken out, for somewhere that draws plain text such as a tooltip.</summary>
@@ -405,7 +492,8 @@ namespace Parchment.Framework.Utilities.Helpers
                     effectDepths[openedType] = effectDepths.GetValueOrDefault(openedType) + 1;
 
                     string? effectValue = ExtractCondition(match.Groups["effectValue"].Success ? match.Groups["effectValue"].Value : null, out string? effectCondition);
-                    OpenedEffect openedEffect = ParseEffect(openedType, effectValue, text);
+                    effectValue = ExtractDuration(effectValue, openedType, text, out float effectDuration);
+                    OpenedEffect openedEffect = ParseEffect(openedType, effectValue, text) with { Duration = effectDuration };
 
                     // A typewriter checks its condition once, when it would start, rather than coming and going with it
                     if (openedType is TextEffectType.Typewriter)
@@ -1060,7 +1148,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 foreach (OpenedEffect hoverEffect in span.Value.Link.HoverEffects)
                 {
-                    effects.Add(new TextEffect(hoverEffect.Type, hoverEffect.Amplitude, hoverEffect.Period, span.Value.Start, hoverEffect.Colors) { Length = end - span.Value.Start });
+                    effects.Add(new TextEffect(hoverEffect.Type, hoverEffect.Amplitude, hoverEffect.Period, span.Value.Start, hoverEffect.Colors) { Length = end - span.Value.Start, Duration = hoverEffect.Duration });
                 }
 
                 linkHoverEffects[span.Key] = effects;
@@ -1092,6 +1180,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 // A hover effect lasts only as long as the cursor does, which the link's own Condition already governs, so a condition of its own is left out rather than half supported
                 value = ExtractCondition(value, out string? hoverCondition);
+                value = ExtractDuration(value, effectType, $"{source}' link '{id}", out float hoverDuration);
 
                 if (hoverCondition is not null)
                 {
@@ -1100,7 +1189,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 // Named in a way that reads naturally inside the quotes ParseEffect puts around its source, so a warning says which link the bad value came from
                 hoverEffects ??= new List<OpenedEffect>();
-                hoverEffects.Add(ParseEffect(effectType, value, $"{source}' link '{id}"));
+                hoverEffects.Add(ParseEffect(effectType, value, $"{source}' link '{id}") with { Duration = hoverDuration });
             }
 
             return hoverEffects is null ? Array.Empty<OpenedEffect>() : hoverEffects;
@@ -1137,6 +1226,7 @@ namespace Parchment.Framework.Utilities.Helpers
             int nextEffectIndex = 0;
             int nextClosedEffectIndex = 0;
             int nextTypingOrdinal = 0;
+            int nextTimedOrdinal = 0;
             int nextPauseIndex = 0;
 
             Color? currentColor = null;
@@ -1172,8 +1262,9 @@ namespace Parchment.Framework.Utilities.Helpers
                         {
                             OpenedEffect openedEffect = record.OpenedEffects[nextEffectIndex];
                             int typingOrdinal = openedEffect.Typing is null ? -1 : nextTypingOrdinal++;
+                            int timedOrdinal = openedEffect.Duration > 0f ? nextTimedOrdinal++ : -1;
 
-                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors) { Typing = openedEffect.Typing, TypingOrdinal = typingOrdinal, Scramble = openedEffect.Scramble }, IsSuppressed: openedEffect.IsActive is false));
+                            openTags.Add(new OpenTag(TagKind.Effect, null, -1, new TextEffect(openedEffect.Type, openedEffect.Amplitude, openedEffect.Period, plainText.Length, openedEffect.Colors) { Typing = openedEffect.Typing, TypingOrdinal = typingOrdinal, Scramble = openedEffect.Scramble, Duration = openedEffect.Duration, TimedOrdinal = timedOrdinal }, IsSuppressed: openedEffect.IsActive is false));
                         }
 
                         nextEffectIndex++;

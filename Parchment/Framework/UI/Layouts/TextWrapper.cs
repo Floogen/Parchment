@@ -178,6 +178,7 @@ namespace Parchment.Framework.UI.Layouts
             }
 
             element.TypewriterEffects = CollectTypewriters(styledText);
+            element.TimedEffects = CollectTimedEffects(styledText);
             ResolveScrambleGlyphs(styledText, font, text);
             RecordLinkTextEnds(element, styledText);
 
@@ -185,6 +186,28 @@ namespace Parchment.Framework.UI.Layouts
         }
 
         /// <summary>The text's typewriters in the order they open, each once. One wrapped around nothing appears in no run and is left out, as there is nothing for it to type.</summary>
+        /// <summary>The effects in the text with a duration, each once however many runs it spans, in the order they open.</summary>
+        private static IReadOnlyList<TextEffect> CollectTimedEffects(StyledText styledText)
+        {
+            SortedDictionary<int, TextEffect>? timedEffects = null;
+
+            foreach (EffectRun run in styledText.EffectRuns)
+            {
+                foreach (TextEffect effect in run.Effects)
+                {
+                    if (effect.TimedOrdinal < 0)
+                    {
+                        continue;
+                    }
+
+                    timedEffects ??= new SortedDictionary<int, TextEffect>();
+                    timedEffects[effect.TimedOrdinal] = effect;
+                }
+            }
+
+            return timedEffects is null ? Array.Empty<TextEffect>() : timedEffects.Values.ToList();
+        }
+
         private static IReadOnlyList<TextEffect> CollectTypewriters(StyledText styledText)
         {
             SortedDictionary<int, TextEffect>? typewriters = null;

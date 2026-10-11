@@ -53,7 +53,7 @@ namespace Parchment.Framework.Models
         /// <summary>Every Input element on this page carrying a text changed action, gathered once for the same reason as <see cref="FrameActionElements"/>: they are polled every tick.</summary>
         public List<Element> TextChangedActionElements { get; }
 
-        /// <summary>Every element on this page whose text holds a [typewriter], in the order they are drawn, which is the order they type out in. Gathered once so a page with none has nothing to schedule.</summary>
+        /// <summary>Every element on this page whose text holds a [typewriter] or an effect with a duration, in the order they are drawn, which is the order they type out in. Gathered once so a page with none has nothing to schedule.</summary>
         public List<Element> TypewriterElements { get; } = new List<Element>();
 
         /// <summary>Every element on this page carrying a frame action, gathered once at construction. Frame actions are dispatched every tick, so this is what keeps a page with none from walking its whole element tree sixty times a second.</summary>
@@ -88,9 +88,9 @@ namespace Parchment.Framework.Models
             CollectElements(Background, TokenHelper.HasTokenText, TokenTextElements);
             CollectElements(Foreground, TokenHelper.HasTokenText, TokenTextElements);
 
-            CollectElements(Background, TypewriterHelper.HasTypewriterText, TypewriterElements);
-            CollectElements(Elements, TypewriterHelper.HasTypewriterText, TypewriterElements);
-            CollectElements(Foreground, TypewriterHelper.HasTypewriterText, TypewriterElements);
+            CollectElements(Background, TypewriterHelper.HasScheduledText, TypewriterElements);
+            CollectElements(Elements, TypewriterHelper.HasScheduledText, TypewriterElements);
+            CollectElements(Foreground, TypewriterHelper.HasScheduledText, TypewriterElements);
         }
 
         /// <summary>Whether an element is a Grid filling its cells from a Source block.</summary>

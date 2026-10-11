@@ -72,6 +72,8 @@ namespace Parchment.Framework.Utilities.Helpers
             // Read once for the whole element, so every moving character on it is drawn at the same moment
             double effectTime = AnimationHelper.GetAnimationTime();
 
+            TextEffectHelper.RefreshTimedEffects(element, effectTime);
+
             // Noted so a condition that changes while the reader is looking can be told apart from one that changed off screen
             element.LastDrawnAt = effectTime;
 
@@ -142,6 +144,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 IReadOnlyList<TextEffect>? hoverEffects = isLinkHovered ? segment.HoverEffects : null;
 
                 double hoverTime = hoverEffects is null ? 0d : effectTime - link!.HoverAnimationStartedAt;
+                TextEffectHelper.RefreshHoverEffects(hoverEffects, hoverTime);
                 float hoverStrength = hoverEffects is null ? 0f : TextEffectHelper.GetHoverStrength(hoverTime);
                 int boldness = TextEffectHelper.GetBoldness(segment.Effects, hoverEffects, scale);
 
@@ -478,7 +481,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 if (area is Rectangle drawnArea)
                 {
-                    spriteBatch.Draw(Game1.staminaRect, drawnArea, color * strength);
+                    spriteBatch.Draw(Game1.staminaRect, drawnArea, color * strength * effect.Strength);
                 }
             }
         }

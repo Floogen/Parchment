@@ -139,6 +139,18 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>The pauses inside a typewriter, in the order they appear. Empty for every other effect and for a typewriter without any.</summary>
         public List<TypingPause> Pauses { get; } = new List<TypingPause>();
 
+        /// <summary>How long the effect plays once its text appears before easing to rest, in milliseconds. Zero for an effect that plays for as long as its text shows.</summary>
+        public float Duration { get; init; }
+
+        /// <summary>Which timed effect in the element's text this is, counting from zero in the order they open, being -1 for one without a <see cref="Duration"/>. It is how the effect finds when it started on the element, since the effect itself is rebuilt each time the text is laid out.</summary>
+        public int TimedOrdinal { get; init; } = -1;
+
+        /// <summary>When the effect's own clock reads zero, on the animation clock. Zero for an effect running on the shared clock. A timed effect counts from when it started, so it always begins at the start of its cycle.</summary>
+        public double ClockStart { get; set; }
+
+        /// <summary>How strongly the effect applies right now, from 0 for not at all to 1 for in full. Always 1 for an effect without a <see cref="Duration"/>. A timed one rises as it starts and falls to 0 as it ends, refreshed every frame before its text draws.</summary>
+        public float Strength { get; set; } = 1f;
+
         /// <summary>Which typewriter in the element's text this is, counting from zero in the order they open. It is how the typewriter finds its progress again on the element, since the effect itself is rebuilt each time the text is laid out.</summary>
         public int TypingOrdinal { get; init; } = -1;
 

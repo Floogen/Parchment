@@ -301,7 +301,7 @@ These tags move or recolor each character of the text they wrap, without changin
 - **Colors.** A color keeps any spaces of its own, such as `255 215 0`, which is why parts aren't split on spaces. `[gradient]` takes two or more colors, spread evenly from the first character to the last. `[pulse]` takes one color and then an optional period, such as `[pulse=Gold]` or `[pulse=Gold|800]`. `[shimmer]` takes an optional color, period and width in that order, so changing its period means writing its color first, such as `[shimmer=White|1500]`. All three take any of the [color forms](#colors).
 - **Units.** An amplitude is in unscaled pixels multiplied by the text's scale (its `Scale`, which is `TextScale` on an element with a sprite). A period is in milliseconds: how long one bob or hop takes for a wave or a bounce (or one rock back and forth for a wobble, or one swell and settle for a pop), how long each spot is held for a shake, how long each character takes to drift to its next strength for a flicker, how long a full trip through the colors takes for a rainbow, how long one fade out and back takes for a pulse or a fade and how long from one glint to the next for a shimmer. A shimmer's band crosses in the first half of its period and the text rests for the second. Its width is how many characters the band reaches either side of its center, so `[shimmer=White|2500|1]` is a thin glint and `[shimmer=White|2500|6]` a broad sheen.
 - **Layout.** An effect only changes the drawing. Lines keep the room they were laid out with, so a large amplitude overlaps the lines around it rather than pushing them apart. A popping letter grows over its neighbours in the same way rather than nudging them aside. A moving link is still reached where its text rests.
-- **Combining.** Effects stack, so `[shake][rainbow]...[/rainbow][/shake]` both jitters and recolors. They also work inside and around `[color]` and `[link]`.
+- **Combining.** Effects stack, so `[shake][rainbow]...[/rainbow][/shake]` both jitters and recolors. Any of them can also play for a set time with a [duration](#effect-durations). They also work inside and around `[color]` and `[link]`.
 - **Color order.** Coloring effects apply from the outside in. A rainbow or a gradient replaces the color around it (any `[color]` included), while a pulse or a shimmer fades from whatever color is around it, so `[rainbow][pulse=White]...[/pulse][/rainbow]` pulses the rainbow and `[color=Gold][shimmer]...[/shimmer][/color]` glints across gold text. A hovered link's `HoverTextColor` covers the coloring effects in its text so the link still shows it's under the cursor, though its own [hover effects](#hover-effects) start from it.
 - **Continuity.** An effect carries on unbroken across a color change or a line break. A gradient spreads over its whole stretch rather than restarting on each line. A shimmer's band also carries on from the end of one line to the start of the next.
 - **Fonts.** `[wave]`, `[bounce]`, `[shake]`, `[pop]`, `[flicker]`, `[fade]` and `[sparkle]` work in every font, `SpriteText` included. `[rainbow]`, `[gradient]`, `[pulse]` and `[shimmer]` are colors, which `SpriteText` ignores with a warning. So are `[outline]` and `[glow]`, as `SpriteText` outlines its own letters in its own color. `SpriteText` can't turn its letters either, so `[wobble]` leaves them upright with a warning.
@@ -556,6 +556,27 @@ It goes alongside the tag's other parts, separated by `|` the same way, in any p
 - **Tokens.** Parchment's `%Token%` forms resolve against the element, the same as in its `Condition`. `!` negation and comma-separated queries work as usual.
 - **Limits.** A tag's value can't hold square brackets, so the game's `[Token]` forms can't go in an inline condition. Nor can a `|`, which would start the tag's next part. Set a [flag](../../concepts/actions.md#session-flags) or [variable](../variables.md) elsewhere and check that instead. The element's own `Condition` can also hold the query.
 - **Hover effects.** A link's [hover effects](#hover-effects) don't take a condition, since the link's own `Condition` already governs them. One given is ignored with a warning.
+
+## Effect durations
+
+Any [text effect](#text-effects) can take a `duration=` part, in milliseconds, to play for a while once its text appears and then settle to rest:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "You caught a [bounce=4|400|duration=800]Legend[/bounce]! [shimmer=White|1600|duration=800][color=Gold]Perfect catch[/color][/shimmer] [typewriter=40][rainbow=1000|duration=2000]New record![/rainbow][/typewriter]"
+}
+```
+
+It goes alongside the effect's other parts, separated by `|` the same way and in any position, the same as a [condition](#tag-conditions). On an effect with nothing else to set, the duration is its whole value: `[shake=duration=500]`.
+
+- **When it starts.** An effect inside a [typewriter](#typewriter) starts as the typewriter reaches its first character, so a word can bounce as it's written. Any other starts when its text comes into view, at the same moment a typewriter in it would: once the spread has settled after a page turn, or when a hidden element appears.
+- **From the top.** A timed effect runs on its own clock from the moment it starts, so it always begins at the start of its cycle. `[bounce=4|400|duration=800]` gives two hops that die down, while `[shimmer=White|1600|duration=800]` glints across once, since a shimmer crosses in the first half of its period.
+- **Settling.** It grows in over its first moment and settles over its last, rather than starting or stopping with a jolt. A moving effect comes to rest where its text was laid out, a coloring effect blends back to the color around it, a fade or flicker returns to full strength and an outline, glow, sparkle or decoration fades away. A `[bold]` can only be on or off, so it switches off partway through settling.
+- **Once per reading.** A timed effect plays once each reading, the same as a typewriter types. Turning back to the page shows its text at rest, while closing the book and opening it again plays it afresh.
+- **Hover effects.** A link's [hover effects](#hover-effects) take a duration too, playing it each time the cursor arrives, so `"HoverEffect": "pop=0.3|300|duration=300"` swells the link once on each hover.
+- **Not every effect.** A `[typewriter]`, `[redact]` or `[scramble]` already decides how long it shows for, so a duration on one is ignored with a warning, as is one that isn't a positive number.
+- **Where it plays.** A timed effect plays in a book's pages and on its own layers. Text drawn anywhere else has nothing to start it, so its timed effects stay at rest.
 
 ## Rectangles and points
 

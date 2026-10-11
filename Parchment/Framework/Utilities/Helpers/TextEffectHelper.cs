@@ -33,6 +33,10 @@ namespace Parchment.Framework.Utilities.Helpers
         // How far a pulsing glow dims at the low point of each period, as a share of its full strength
         public const float GLOW_PULSE_DEPTH = 0.6f;
 
+        // How long a timed effect takes to grow in as it starts and to settle as it ends, at most half its duration each so a short one still reaches full strength
+        public const float DURATION_EASE_IN = 150f;
+        public const float DURATION_EASE_OUT = 300f;
+
         // The smallest a popping character is drawn, as a share of its own size, which keeps a shrinking pop from making it vanish
         public const float POP_MINIMUM_SCALE = 0.1f;
 
@@ -48,6 +52,69 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <param name="Color">The sparkle's tint, before any fade.</param>
         public readonly record struct Sparkle(int Frame, Vector2 Spread, Color Color);
 
+        /// <summary>How strongly a timed effect applies at a moment in its duration, easing in over its start and out over its end, and 0 before it starts or once it has ended.</summary>
+        /// <param name="elapsed">How long since the effect started, in milliseconds.</param>
+        /// <param name="easesIn">Whether to ease in, which a hover effect leaves to the link's own easing.</param>
+        public static float GetDurationStrength(float duration, double elapsed, bool easesIn)
+        {
+            if (elapsed < 0d || elapsed >= duration)
+            {
+                return 0f;
+            }
+
+            float strength = 1f;
+            float easeIn = easesIn ? Math.Min(DURATION_EASE_IN, duration / 2f) : 0f;
+            float easeOut = Math.Min(DURATION_EASE_OUT, duration / 2f);
+
+            if (easeIn > 0f && elapsed < easeIn)
+            {
+                strength = EaseOut((float)(elapsed / easeIn));
+            }
+
+            float remaining = (float)(duration - elapsed);
+
+            if (easeOut > 0f && remaining < easeOut)
+            {
+                strength = Math.Min(strength, EaseOut(remaining / easeOut));
+            }
+
+            return strength;
+        }
+
+        /// <summary>Brings an element's timed effects up to date for this frame, giving each its own clock and its strength. One that hasn't started yet doesn't apply at all, so its text rests until it does.</summary>
+        public static void RefreshTimedEffects(Element element, double time)
+        {
+            foreach (TextEffect effect in element.TimedEffects)
+            {
+                if (element.TimedEffectStarts.TryGetValue(effect.TimedOrdinal, out double start) is false)
+                {
+                    effect.Strength = 0f;
+                    continue;
+                }
+
+                effect.ClockStart = start;
+                effect.Strength = GetDurationStrength(effect.Duration, time - start, easesIn: true);
+            }
+        }
+
+        /// <summary>Brings a hovered link's timed hover effects up to date, each playing for its duration from the moment the cursor arrived. They grow in with the link's own hover easing rather than easing in themselves.</summary>
+        /// <param name="hoverTime">How long the cursor has been over the link, in milliseconds.</param>
+        public static void RefreshHoverEffects(IReadOnlyList<TextEffect>? effects, double hoverTime)
+        {
+            if (effects is null)
+            {
+                return;
+            }
+
+            foreach (TextEffect effect in effects)
+            {
+                if (effect.Duration > 0f)
+                {
+                    effect.Strength = GetDurationStrength(effect.Duration, hoverTime, easesIn: false);
+                }
+            }
+        }
+
         /// <summary>How far a character is moved from where it was laid out, adding up every effect over it.</summary>
         /// <param name="position">The character's position in <see cref="StyledText.Text"/>.</param>
         /// <param name="time">The animation clock, in milliseconds.</param>
@@ -58,20 +125,26 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
+                if (effect.Strength <= 0f)
+                {
+                    continue;
+                }
+
                 int index = position - effect.Start;
+                double effectTime = GetEffectTime(effect, time);
 
                 switch (effect.Type)
                 {
                     case TextEffectType.Wave:
-                        offset.Y += GetWaveOffset(effect, index, time) * scale;
+                        offset.Y += GetWaveOffset(effect, index, effectTime) * scale * effect.Strength;
                         break;
                     case TextEffectType.Shake:
                         // Kept to whole pixels, as a jitter that lands between them blurs rather than shakes
-                        offset.X += MathF.Round(GetNoise(position, GetShakeSlot(effect, time), 0) * effect.Amplitude * scale);
-                        offset.Y += MathF.Round(GetNoise(position, GetShakeSlot(effect, time), 1) * effect.Amplitude * scale);
+                        offset.X += MathF.Round(GetNoise(position, GetShakeSlot(effect, effectTime), 0) * effect.Amplitude * scale * effect.Strength);
+                        offset.Y += MathF.Round(GetNoise(position, GetShakeSlot(effect, effectTime), 1) * effect.Amplitude * scale * effect.Strength);
                         break;
                     case TextEffectType.Bounce:
-                        offset.Y -= GetBounceHeight(effect, index, time) * scale;
+                        offset.Y -= GetBounceHeight(effect, index, effectTime) * scale * effect.Strength;
                         break;
                 }
             }
@@ -90,11 +163,11 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
-                if (effect.Type is TextEffectType.Wobble)
+                if (effect.Type is TextEffectType.Wobble && effect.Strength > 0f)
                 {
-                    double phase = Math.PI * 2d / effect.Period * -(time + (position - effect.Start) * WAVE_CHARACTER_DELAY);
+                    double phase = Math.PI * 2d / effect.Period * -(GetEffectTime(effect, time) + (position - effect.Start) * WAVE_CHARACTER_DELAY);
 
-                    rotation += MathHelper.ToRadians(effect.Amplitude) * (float)Math.Sin(phase);
+                    rotation += MathHelper.ToRadians(effect.Amplitude) * (float)Math.Sin(phase) * effect.Strength;
                 }
             }
 
@@ -112,13 +185,14 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
-                if (effect.Type is TextEffectType.Pop)
+                if (effect.Type is TextEffectType.Pop && effect.Strength > 0f)
                 {
-                    double phase = Math.PI * 2d / effect.Period * (time + (position - effect.Start) * WAVE_CHARACTER_DELAY);
+                    double phase = Math.PI * 2d / effect.Period * (GetEffectTime(effect, time) + (position - effect.Start) * WAVE_CHARACTER_DELAY);
                     float swell = (float)((1d - Math.Cos(phase)) / 2d);
 
                     // Never shrunk away to nothing, so a negative size that dips below its own size still leaves the letter readable
-                    characterScale *= Math.Max(POP_MINIMUM_SCALE, 1f + effect.Amplitude * swell);
+                    float popScale = Math.Max(POP_MINIMUM_SCALE, 1f + effect.Amplitude * swell);
+                    characterScale *= 1f + (popScale - 1f) * effect.Strength;
                 }
             }
 
@@ -136,9 +210,9 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
-                if (effect.Type is TextEffectType.Flicker)
+                if (effect.Type is TextEffectType.Flicker && effect.Strength > 0f)
                 {
-                    alpha *= GetFlickerAlpha(effect, position, time);
+                    alpha *= 1f + (GetFlickerAlpha(effect, position, GetEffectTime(effect, time)) - 1f) * effect.Strength;
                 }
             }
 
@@ -160,10 +234,10 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
-                if (effect.Type is TextEffectType.Fade)
+                if (effect.Type is TextEffectType.Fade && effect.Strength > 0f)
                 {
                     // Starts from full strength, so the text is readable the moment it appears and only then begins to dim
-                    alpha *= 1f - (1f - effect.Amplitude) * GetPulseBlend(effect, time);
+                    alpha *= 1f - (1f - effect.Amplitude) * GetPulseBlend(effect, GetEffectTime(effect, time)) * effect.Strength;
                 }
             }
 
@@ -184,25 +258,32 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
-                int index = position - effect.Start;
+                if (effect.Strength <= 0f)
+                {
+                    continue;
+                }
 
+                int index = position - effect.Start;
+                double effectTime = GetEffectTime(effect, time);
+
+                // A timed rainbow or gradient blends in and out from the color around it rather than replacing it outright
                 switch (effect.Type)
                 {
                     case TextEffectType.Rainbow:
-                        currentColor = GetRainbowColor(effect, index, time) * (currentColor.A / 255f);
+                        currentColor = Color.Lerp(currentColor, GetRainbowColor(effect, index, effectTime) * (currentColor.A / 255f), effect.Strength);
                         isColored = true;
                         break;
                     case TextEffectType.Gradient when effect.Colors.Count >= 2:
-                        currentColor = GetGradientColor(effect, index) * (currentColor.A / 255f);
+                        currentColor = Color.Lerp(currentColor, GetGradientColor(effect, index) * (currentColor.A / 255f), effect.Strength);
                         isColored = true;
                         break;
                     case TextEffectType.Pulse when effect.Colors.Count >= 1:
-                        currentColor = Color.Lerp(currentColor, effect.Colors[0], GetPulseBlend(effect, time));
+                        currentColor = Color.Lerp(currentColor, effect.Colors[0], GetPulseBlend(effect, effectTime) * effect.Strength);
                         isColored = true;
                         break;
                     case TextEffectType.Shimmer when effect.Colors.Count >= 1:
                         // The band's color takes on the alpha around it, so a glint across translucent text doesn't flash it opaque
-                        currentColor = Color.Lerp(currentColor, effect.Colors[0] * (currentColor.A / 255f), GetShimmerBlend(effect, index, time));
+                        currentColor = Color.Lerp(currentColor, effect.Colors[0] * (currentColor.A / 255f), GetShimmerBlend(effect, index, effectTime) * effect.Strength);
                         isColored = true;
                         break;
                 }
@@ -257,7 +338,8 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (TextEffect effect in effects)
             {
-                if (effect.Type is TextEffectType.Bold)
+                // A bold is whole pixels or nothing, so a timed one switches off halfway through settling rather than easing
+                if (effect.Type is TextEffectType.Bold && effect.Strength >= 0.5f)
                 {
                     // Whole pixels and never less than one, so a small scale still shows the bold rather than rounding it away
                     boldness = Math.Max(boldness, Math.Max(1, (int)Math.Round(effect.Amplitude * scale)));
@@ -279,9 +361,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 {
                     TextEffect effect = effects[index];
 
-                    if (effect.Type is TextEffectType.Outline && effect.Colors.Count > 0)
+                    if (effect.Type is TextEffectType.Outline && effect.Colors.Count > 0 && effect.Strength > 0f)
                     {
-                        color = effect.Colors[0];
+                        color = effect.Colors[0] * effect.Strength;
 
                         // Whole pixels and never less than one, so a small scale still shows the outline rather than rounding it away
                         thickness = Math.Max(1, (int)Math.Round(effect.Amplitude * scale));
@@ -308,14 +390,14 @@ namespace Parchment.Framework.Utilities.Helpers
                 {
                     TextEffect effect = effects[index];
 
-                    if (effect.Type is not TextEffectType.Glow || effect.Colors.Count is 0)
+                    if (effect.Type is not TextEffectType.Glow || effect.Colors.Count is 0 || effect.Strength <= 0f)
                     {
                         continue;
                     }
 
-                    float strength = effect.Period > 0f ? 1f - GLOW_PULSE_DEPTH * GetPulseBlend(effect, time) : 1f;
+                    float strength = effect.Period > 0f ? 1f - GLOW_PULSE_DEPTH * GetPulseBlend(effect, GetEffectTime(effect, time)) : 1f;
 
-                    color = effect.Colors[0] * strength;
+                    color = effect.Colors[0] * strength * effect.Strength;
                     radius = Math.Max(1, (int)Math.Round(effect.Amplitude * scale));
                     return true;
                 }
@@ -359,16 +441,17 @@ namespace Parchment.Framework.Utilities.Helpers
                 {
                     TextEffect effect = effects[index];
 
-                    if (effect.Type is not TextEffectType.Sparkle || effect.Colors.Count is 0)
+                    if (effect.Type is not TextEffectType.Sparkle || effect.Colors.Count is 0 || effect.Strength <= 0f)
                     {
                         continue;
                     }
 
                     double phase = GetHash(position, 0, SPARKLE_PHASE_HASH_AXIS) / (double)uint.MaxValue * effect.Period;
-                    double step = (time + phase) / effect.Period;
+                    double step = (GetEffectTime(effect, time) + phase) / effect.Period;
                     long slot = (long)Math.Floor(step);
 
-                    if (GetHash(position, slot, SPARKLE_CHANCE_HASH_AXIS) / (float)uint.MaxValue >= effect.Amplitude)
+                    // A timed sparkle thins out as it settles, so its sparkles stop coming rather than vanishing mid twinkle
+                    if (GetHash(position, slot, SPARKLE_CHANCE_HASH_AXIS) / (float)uint.MaxValue >= effect.Amplitude * effect.Strength)
                     {
                         continue;
                     }
@@ -377,7 +460,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                     Vector2 spread = new Vector2(GetNoise(position, slot, SPARKLE_SPREAD_X_HASH_AXIS), GetHash(position, slot, SPARKLE_SPREAD_Y_HASH_AXIS) / (float)uint.MaxValue);
 
-                    sparkle = new Sparkle(frame, spread, effect.Colors[0]);
+                    sparkle = new Sparkle(frame, spread, effect.Colors[0] * effect.Strength);
                     return true;
                 }
             }
@@ -463,6 +546,20 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return false;
+        }
+
+        /// <summary>The clock an effect runs on, being the shared clock for most and the time since it started for a timed one, so a timed effect always begins from the start of its cycle.</summary>
+        private static double GetEffectTime(TextEffect effect, double time)
+        {
+            return time - effect.ClockStart;
+        }
+
+        /// <summary>Eases a progress from 0 to 1 so it moves quickly at first and slows as it arrives.</summary>
+        private static float EaseOut(float progress)
+        {
+            float clampedProgress = Math.Clamp(progress, 0f, 1f);
+
+            return 1f - (1f - clampedProgress) * (1f - clampedProgress);
         }
 
         /// <summary>A gradient's color for one of its characters, spread evenly from its first stop at the first character to its last stop at the last.
