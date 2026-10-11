@@ -1573,6 +1573,92 @@
               ]
             },
             {
+              "Id": "inline-text-3",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Paragraph",
+                  "Text": "[color=Gold][shimmer]Shimmer[/shimmer][/color] like gold or [shimmer=Cyan|1500|1]glint[/shimmer] like ice!",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[flicker]Flicker[/flicker] like a candle or [flicker=0|60]sputter out[/flicker]...",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[fade]Fade[/fade] in and out or [fade=0|4000][underline]vanish[/underline][/fade] completely...",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[sparkle]Sparkle[/sparkle] like a gem or [sparkle=Pink|250|0.6][wave]dazzle![/wave][/sparkle]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "[color=White][outline]Outline[/outline][/color] [wave][color=Cyan][outline=Navy|3]this![/outline][/color][/wave]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Heading",
+                  "Text": "Look! A [pop=0.5|500][wobble=10|500][outline=Black|1][color=Gold]C O I N[/color][/outline][/wobble][/pop]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                }
+              ]
+            },
+            {
+              "Id": "inline-text-4",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Paragraph",
+                  "Text": "[glow]Glow[/glow] warmly, [glow=Cyan|4|2000]breathe[/glow] softly or [glow=40 20 10|2][color=White]lurk[/color][/glow] in the shadows.",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "Make it [bold]bold[/bold] or even [bold=2]bolder[/bold]!",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[wobble]Wobble[/wobble] like jelly or sound the [wobble=20|400][color=Red][outline=White|1]alarm![/outline][/color][/wobble]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[pop]Pop[/pop] it, [pop=-0.3|1500]shrink[/pop] it or let it [pop=0.15|1200][color=Red]beat[/color][/pop] like a heart!",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[typewriter=40|drop]Drop in...[/typewriter] [typewriter=60|pop=300]pop in...[/typewriter] [typewriter=50|fade=300|drop=300|pop=300]or both at once![/typewriter]",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "TypedAction": "PeacefulEnd.Parchment_SetFlag revealTypewriterFinished"
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[bounce=4|800|duration=800]Bounce[/bounce] once, [color=Gold][shimmer=White|1600|duration=1500]glint[/shimmer][/color] once, then [rainbow=1000|duration=2000]settle down[/rainbow].",
+                  "Alignment": "Center",
+                  "SpacingAfter": 18,
+                  "Condition": "PeacefulEnd.Parchment_HasFlag revealTypewriterFinished"
+                }
+              ]
+            },
+            {
               "Id": "conditional-last",
               "ChapterId": "chapter-1", // This is purposely added out of order, to show Parchment handling of chapter sorting (chapter pages added out of order will still link together)
               "Elements": [
