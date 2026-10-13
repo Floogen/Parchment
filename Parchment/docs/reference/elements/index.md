@@ -557,7 +557,8 @@ These tags write the text they wrap in one of the game's own languages until the
 ```
 
 - **Learning it.** Whether the player knows the language is checked whenever the text is laid out. Text already on screen when the player learns it switches over the next time it's laid out.
-- **Conditions.** A [condition](#tag-conditions) has to pass as well, so `[dwarvish=condition=!PLAYER_HAS_SEEN_EVENT Current 123]` also shows its text as written once the event has been seen. A condition is the tag's only part, so any other value is ignored with a warning.
+- **Conditions.** A [condition](#tag-conditions) has to pass as well, so `[dwarvish=condition=!PLAYER_HAS_SEEN_EVENT Current 123]` also shows its text as written once the event has been seen.
+- **Forcing it.** A `force` part keeps the text unreadable whether or not the player knows the language. On its own, `[junimo=force]` never becomes readable, which suits a cipher or a note the player is never meant to read. With a condition, the condition alone decides, so `[dwarvish=force|condition=!PLAYER_HAS_SEEN_EVENT Current 123]` becomes readable once the event has been seen, Translation Guide or not. `force` and a condition are the tag's only parts, so anything else is ignored with a warning.
 - **Tokens.** A token inside one resolves first, then its value is written in the language along with the rest.
 - **Combining.** Effects and links inside or around one apply to the text as the language writes it, so `[dwarvish][shake]Go away![/shake][/dwarvish]` shakes the converted letters. One inside another of the same language changes nothing more. The two can also go together, as `[junimo][dwarvish]...[/dwarvish][/junimo]` writes the converted dwarvish in the Junimo script.
 - **Tooltips.** A tooltip draws its text as written, as all markup is taken out of it.

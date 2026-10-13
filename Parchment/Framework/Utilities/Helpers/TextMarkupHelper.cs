@@ -101,6 +101,9 @@ namespace Parchment.Framework.Utilities.Helpers
         // The mail flag the game sets once the Wizard has taught the player to read the Junimos' notes
         private const string JUNIMO_READING_MAIL = "canReadJunimoText";
 
+        // The part of a language tag's value that forces its text to stay unreadable whether or not the player knows the language, leaving only its condition to decide, such as [junimo=force]
+        private const string LANGUAGE_FORCE_OPTION = "force";
+
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
         // An effect such as [wave] may go bare, since its value only adjusts it. So may a language such as [dwarvish] or [junimo], whose only part is a condition
         private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow|wobble|pop)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow|wobble|pop|dwarvish|junimo)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]|\[(?<language>dwarvish|junimo)(?:=(?<languageValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -558,11 +561,7 @@ namespace Parchment.Framework.Utilities.Helpers
                     string languageTag = isJunimo ? JUNIMO_TAG : DWARVISH_TAG;
 
                     string? languageValue = ExtractCondition(match.Groups["languageValue"].Success ? match.Groups["languageValue"].Value : null, out string? languageCondition);
-
-                    if (string.IsNullOrWhiteSpace(languageValue) is false)
-                    {
-                        Parchment.monitor.LogOnce($"'{text}' has a [{languageTag}] with a value of '{languageValue}', but it only takes a condition, so the value was ignored.", LogLevel.Warn);
-                    }
+                    bool isForced = ReadLanguageOptions(languageValue, languageTag, text);
 
                     // The condition is checked first and always, so it keeps its place among the element's conditions even when the player already knows the language
                     bool isConditionMet = IsConditionMet(languageCondition, element, ref nextConditionIndex);
@@ -570,13 +569,13 @@ namespace Parchment.Framework.Utilities.Helpers
                     if (isJunimo)
                     {
                         junimoDepth++;
-                        record.OpenedJunimo.Add(isConditionMet && CanReadJunimo() is false);
+                        record.OpenedJunimo.Add(isConditionMet && (isForced || CanReadJunimo() is false));
 
                         return JUNIMO_OPEN_MARKER.ToString();
                     }
 
                     dwarvishDepth++;
-                    record.OpenedDwarvish.Add(isConditionMet && CanUnderstandDwarves() is false);
+                    record.OpenedDwarvish.Add(isConditionMet && (isForced || CanUnderstandDwarves() is false));
 
                     return DWARVISH_OPEN_MARKER.ToString();
                 }
@@ -659,6 +658,30 @@ namespace Parchment.Framework.Utilities.Helpers
         private static bool TryGetEffectType(string tag, out TextEffectType effectType)
         {
             return Enum.TryParse(tag, ignoreCase: true, out effectType);
+        }
+
+        /// <summary>Reads a language tag's value once its condition is taken out, being whether it holds "force". Any other part is ignored with a warning, as a language tag takes nothing else.</summary>
+        private static bool ReadLanguageOptions(string? value, string tag, string source)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            bool isForced = false;
+
+            foreach (string part in value.Split(VALUE_SEPARATOR, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (string.Equals(part, LANGUAGE_FORCE_OPTION, StringComparison.OrdinalIgnoreCase))
+                {
+                    isForced = true;
+                    continue;
+                }
+
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] part of '{part}', which isn't one it takes, so it was ignored. Try \"{LANGUAGE_FORCE_OPTION}\" or \"{CONDITION_PART}=...\".{GetSeparatorHint(part, tag)}", LogLevel.Warn);
+            }
+
+            return isForced;
         }
 
         /// <summary>Whether the player can read the dwarves' language, which they learn from the Dwarvish Translation Guide. No player (as on the title screen) can't.</summary>
