@@ -17,6 +17,10 @@ namespace Parchment.Framework.UI.Fonts
         // Built on first use, as the font's own list is walked from the start for every lookup
         private HashSet<char>? _characters;
 
+        // Read from the font's glyphs on first use, being where its letters sit for [junimo] text to be sized to
+        private JunimoScript.LetterBounds? _letterBounds;
+        private bool _hasReadLetterBounds;
+
         internal SpriteFontAdapter(SpriteFont spriteFont)
         {
             _spriteFont = spriteFont;
@@ -24,17 +28,46 @@ namespace Parchment.Framework.UI.Fonts
 
         public Vector2 MeasureString(string text, float scale)
         {
+            // The font has no glyphs for a [junimo] tag's characters, so those stretches are measured in the script instead
+            if (JunimoScript.Contains(text))
+            {
+                return JunimoScript.Measure(text, scale, GetLetterBounds(), plainText => _spriteFont.MeasureString(plainText) * scale);
+            }
+
             return _spriteFont.MeasureString(text) * scale;
         }
 
         /// <summary>Draws the text with its shadow behind it, both exactly as given.
         /// How strongly the shadow comes through is settled by the element before it reaches here, since an authored shadow color and the game's own follow the text's alpha differently.
         /// The shadows mirror the game's Utility.drawTextWithColoredShadow, offsets and order included, so text drawn here matches text the game draws. A rotation turns the text and its shadows about the text's center.
+        /// Any of it a [junimo] tag swapped in is written in the Junimo script from SpriteText's sheet, whose glyphs carry their own drop shadow.
         /// </summary>
-        public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale, int boldness = 0, float rotation = 0f)
+        public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale, int boldness = 0, float rotation = 0f, bool isHalo = false, bool isColored = false)
         {
             text ??= string.Empty;
 
+            if (JunimoScript.Contains(text))
+            {
+                JunimoScript.Draw(spriteBatch, text, position, color, shadowColor, isColored, boldness, rotation, isHalo, scale, GetLetterBounds(), plainText => _spriteFont.MeasureString(plainText) * scale, (plainText, plainPosition) => DrawPlain(spriteBatch, plainText, plainPosition, color, shadowColor, scale, boldness, rotation));
+                return;
+            }
+
+            DrawPlain(spriteBatch, text, position, color, shadowColor, scale, boldness, rotation);
+        }
+
+        private JunimoScript.LetterBounds? GetLetterBounds()
+        {
+            if (_hasReadLetterBounds is false)
+            {
+                _hasReadLetterBounds = true;
+                _letterBounds = JunimoScript.ReadLetterBounds(_spriteFont);
+            }
+
+            return _letterBounds;
+        }
+
+        private void DrawPlain(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale, int boldness, float rotation)
+        {
             // Left at the corner for upright text, so it lands exactly where the game's helper would put it
             Vector2 origin = rotation == 0f ? Vector2.Zero : _spriteFont.MeasureString(text) / 2f;
             Vector2 pivot = position + origin * scale;
@@ -75,6 +108,11 @@ namespace Parchment.Framework.UI.Fonts
 
         public bool CanDraw(char character)
         {
+            if (JunimoScript.IsGlyph(character))
+            {
+                return true;
+            }
+
             _characters ??= new HashSet<char>(_spriteFont.Characters);
 
             return _characters.Contains(character);

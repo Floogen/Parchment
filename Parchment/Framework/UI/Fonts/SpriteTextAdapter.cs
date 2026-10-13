@@ -16,6 +16,17 @@ namespace Parchment.Framework.UI.Fonts
         // This mirrors how SpriteText uses 
         public Vector2 MeasureString(string text, float scale)
         {
+            // A [junimo] tag's characters are SpriteText's own in its Junimo script, measured a stretch at a time filling the same line
+            if (JunimoScript.Contains(text))
+            {
+                return JunimoScript.Measure(text, scale, null, plainText => MeasurePlain(plainText, scale));
+            }
+
+            return MeasurePlain(text, scale);
+        }
+
+        private static Vector2 MeasurePlain(string text, float scale)
+        {
             float previousFontPixelZoom = SpriteText.fontPixelZoom;
             SpriteText.fontPixelZoom = previousFontPixelZoom * scale;
 
@@ -39,23 +50,34 @@ namespace Parchment.Framework.UI.Fonts
         }
 
         /// <summary>Whether SpriteText has a sprite of its own for the character. Its sprites are laid out by character code over the printable ASCII range, so anything outside that is treated as one it can't draw.
-        /// A language that loads its own SpriteText font may draw more, which this doesn't try to read, so it errs on the side of a glyph set that stays drawable everywhere.
+        /// A language that loads its own SpriteText font may draw more, which this doesn't try to read, so it errs on the side of a glyph set that stays drawable everywhere. A character a [junimo] tag swapped in always counts.
         /// </summary>
         public bool CanDraw(char character)
         {
-            return character >= ' ' && character <= '~';
+            return (character >= ' ' && character <= '~') || JunimoScript.IsGlyph(character);
         }
 
         // TextColor and ShadowColor do nothing for SpriteText, which draws its own outline, though how strongly to draw it still comes from the color's alpha. It can't turn its letters either, so a rotation is ignored
-        public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale, int boldness = 0, float rotation = 0f)
+        public void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, Color shadowColor, float scale, int boldness = 0, float rotation = 0f, bool isHalo = false, bool isColored = false)
+        {
+            float alpha = color.A / 255f;
+
+            if (JunimoScript.Contains(text))
+            {
+                JunimoScript.Draw(spriteBatch, text, position, color, shadowColor, false, boldness, rotation, isHalo, scale, null, plainText => MeasurePlain(plainText, scale), (plainText, plainPosition) => DrawPlain(spriteBatch, plainText, plainPosition, alpha, scale, boldness));
+                return;
+            }
+
+            DrawPlain(spriteBatch, text, position, alpha, scale, boldness);
+        }
+
+        private static void DrawPlain(SpriteBatch spriteBatch, string text, Vector2 position, float alpha, float scale, int boldness)
         {
             float previousFontPixelZoom = SpriteText.fontPixelZoom;
             SpriteText.fontPixelZoom = previousFontPixelZoom * scale;
 
             try
             {
-                float alpha = color.A / 255f;
-
                 DrawLines(spriteBatch, text, position, alpha);
 
                 // SpriteText's outline is part of each letter, so the second copy simply goes over the first, its own outline landing on the side it was shifted towards

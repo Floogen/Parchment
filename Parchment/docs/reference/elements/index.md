@@ -535,7 +535,12 @@ A link's `HoverEffect` and `HoverEffects` apply [text effects](#text-effects) to
 
 ## Languages
 
-`[dwarvish]` writes the text it wraps in the dwarves' language, the same way the game writes a dwarf's speech before the player can understand them. Once the player has read the Dwarvish Translation Guide, the text shows as written:
+These tags write the text they wrap in one of the game's own languages until the player has learned it. From then on the text shows as written:
+
+| Tag | What it does | Learned from |
+| --- | --- | --- |
+| `[dwarvish]` | Writes the text the way the game writes a dwarf's speech before the player can understand them. | The Dwarvish Translation Guide |
+| `[junimo]` | Writes the text in the Junimo script the game uses for the Community Center's bundle notes. See [Junimo script](#junimo-script). | The Wizard, the same as the game's own notes |
 
 ```json
 {
@@ -544,12 +549,32 @@ A link's `HoverEffect` and `HoverEffects` apply [text effects](#text-effects) to
 }
 ```
 
-- **Conversion.** The game's own conversion does the work, so the text reads exactly like a dwarf's untranslated speech. Line breaks stay where they are. The conversion can change how long a word is, so the text is laid out as converted rather than as written.
-- **Learning it.** Whether the player understands the dwarves is checked whenever the text is laid out. Text already on screen when the player learns the language switches over the next time it's laid out.
+```json
+{
+  "Type": "Paragraph",
+  "Text": "A note tucked behind the bundle: [junimo]Thank you for the gifts[/junimo]"
+}
+```
+
+- **Learning it.** Whether the player knows the language is checked whenever the text is laid out. Text already on screen when the player learns it switches over the next time it's laid out.
 - **Conditions.** A [condition](#tag-conditions) has to pass as well, so `[dwarvish=condition=!PLAYER_HAS_SEEN_EVENT Current 123]` also shows its text as written once the event has been seen. A condition is the tag's only part, so any other value is ignored with a warning.
-- **Tokens.** A token inside it resolves first, then its value is converted along with the rest.
-- **Combining.** Colors, effects and links inside or around it apply to the converted text, so `[dwarvish][shake]Go away![/shake][/dwarvish]` shakes the converted letters. One inside another converts only once.
+- **Tokens.** A token inside one resolves first, then its value is written in the language along with the rest.
+- **Combining.** Effects and links inside or around one apply to the text as the language writes it, so `[dwarvish][shake]Go away![/shake][/dwarvish]` shakes the converted letters. One inside another of the same language changes nothing more. The two can also go together, as `[junimo][dwarvish]...[/dwarvish][/junimo]` writes the converted dwarvish in the Junimo script.
 - **Tooltips.** A tooltip draws its text as written, as all markup is taken out of it.
+
+### Dwarvish
+
+The game's own conversion does the work, so the text reads exactly like a dwarf's untranslated speech. Line breaks stay where they are. The conversion can change how long a word is, so the text is laid out as converted rather than as written. Colors work on it like any other text.
+
+### Junimo script
+
+`[junimo]` writes each letter with the Junimo glyphs SpriteText keeps alongside its own (in `LooseSprites/font_bold`). In a `SpriteText` element it is drawn at the font's own size, the same as the game's notes. In any other font it is sized to that font's capital letters and set on their baseline, so the script sits among the rest of the text. Both are read from the fonts themselves, so a mod that replaces a font is matched too.
+
+- **Characters.** Spaces stay spaces, so the text still wraps between words. Anything the script has no glyph for (a character outside the printable ASCII range, or `^`) stays in the element's font.
+- **Spacing.** Outside a `SpriteText` element, a narrow glyph such as a period, a comma or an apostrophe is pulled in to its own width rather than keeping the room a full letter gets, so it sits close to the letters around it. A glyph counts as narrow when its pixels fill less than half its cell, read from SpriteText's sheet.
+- **Color.** It keeps the game's own look unless markup colors it, so an element's `TextColor` doesn't reach it. A `[color]`, a coloring effect such as `[rainbow]` or `[gradient]` and a link's colors recolor its letters, while their drop shadow takes the text's shadow color, the same as the rest of the text. `[color=Gold][junimo]Thank you[/junimo][/color]` reads as gold Junimo script. It fades with the text either way. In a `SpriteText` element it keeps its own color, the same as SpriteText's own letters.
+- **Shadows and halos.** Each glyph carries its own drop shadow. Uncolored, that shadow keeps the game's orange. Colored, it follows `ShadowColor` (or the game's shadow color when that's left unset) and is left out under an `[outline]`, the same as plain text. An `[outline]` or `[glow]` wraps it like any other letter, except in a `SpriteText` element.
+- **Effects.** Moving effects move it and `[bold]` thickens it. `[wobble]` rocks it like any other letter, except in a `SpriteText` element, which can't turn its letters. A `[scramble]` over it scrambles through the script, so the random glyphs never give away the plain text.
 
 ## Tag conditions
 
@@ -567,7 +592,7 @@ Any tag can take a `condition=` part holding a [game state query](../../concepts
 
 It goes alongside the tag's other parts, separated by `|` the same way, in any position: `[wave=4|500|condition=SEASON spring]` or `[gradient=Red|Blue|condition=!IS_FESTIVAL_DAY]`. On a tag with nothing else to set, the condition is its whole value: `[underline=condition=SEASON spring]`.
 
-- **When it fails.** The tag steps aside and its text is drawn as though the tag weren't there. A failed `[color]` keeps the color around it, a failed effect leaves its characters still, a failed decoration isn't drawn, a failed `[dwarvish]` shows its text as written and a failed `[link]` is plain text that the cursor can't reach. The text itself always shows. A `[scramble]` settles into its real text rather than snapping, as described under [Scramble](#scramble).
+- **When it fails.** The tag steps aside and its text is drawn as though the tag weren't there. A failed `[color]` keeps the color around it, a failed effect leaves its characters still, a failed decoration isn't drawn, a failed `[dwarvish]` or `[junimo]` shows its text as written and a failed `[link]` is plain text that the cursor can't reach. The text itself always shows. A `[scramble]` settles into its real text rather than snapping, as described under [Scramble](#scramble).
 - **When it's checked.** Alongside element [conditions](../../concepts/conditions.md#when-conditions-are-checked), so the text follows the query while the book is open. The query isn't run every time the text is drawn.
 - **Typewriters.** A `[typewriter]`'s condition is checked once, when it would start, so its text can't appear and vanish as the query comes and goes. When it fails the text shows in full at once and the element's [typed actions](#typed-actions) still run.
 - **Links.** A link's own `Condition` switches it off everywhere it's used, while a `condition=` on a `[link]` tag switches off just that one use. Both have to pass.
