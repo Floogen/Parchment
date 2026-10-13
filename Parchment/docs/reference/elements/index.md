@@ -91,7 +91,7 @@ Every element understands these, whatever its type.
 
 Understood by [`Title`](title.md), [`Heading`](heading.md), [`Paragraph`](paragraph.md), [`Banner`](banner.md), [`Button`](button.md), [`Image`](image.md) and [`Input`](input.md).
 
-Any element's `Text` can carry [tokens](../../concepts/actions.md#tokens), placeholders replaced with something the book knows as the element is laid out. That covers Parchment's own `%Token%` forms and the game's `[Token]` [tokenizable strings](../../concepts/actions.md#game-tokens). Part of it can also be colored with [inline color](#inline-color) markup, given a [text effect](#text-effects) or turned into a [link](#links) on a `Title`, `Heading`, `Paragraph` or `PageNumber`.
+Any element's `Text` can carry [tokens](../../concepts/actions.md#tokens), placeholders replaced with something the book knows as the element is laid out. That covers Parchment's own `%Token%` forms and the game's `[Token]` [tokenizable strings](../../concepts/actions.md#game-tokens). Part of it can also be colored with [inline color](#inline-color) markup, given a [text effect](#text-effects), written in one of the game's [languages](#languages) or turned into a [link](#links) on a `Title`, `Heading`, `Paragraph` or `PageNumber`.
 
 --8<-- "text-content.md"
 
@@ -533,6 +533,24 @@ A link's `HoverEffect` and `HoverEffects` apply [text effects](#text-effects) to
 - **Interactivity.** A link with hover effects is reachable by the cursor even when it has no tooltip or action.
 - **Mistakes.** An entry naming no effect Parchment knows is skipped with a warning listing the ones it does. Values that won't parse behave as they do in the text.
 
+## Languages
+
+`[dwarvish]` writes the text it wraps in the dwarves' language, the same way the game writes a dwarf's speech before the player can understand them. Once the player has read the Dwarvish Translation Guide, the text shows as written:
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "Scratched into the cave wall: [dwarvish]Beware the lower levels.[/dwarvish]"
+}
+```
+
+- **Conversion.** The game's own conversion does the work, so the text reads exactly like a dwarf's untranslated speech. Line breaks stay where they are. The conversion can change how long a word is, so the text is laid out as converted rather than as written.
+- **Learning it.** Whether the player understands the dwarves is checked whenever the text is laid out. Text already on screen when the player learns the language switches over the next time it's laid out.
+- **Conditions.** A [condition](#tag-conditions) has to pass as well, so `[dwarvish=condition=!PLAYER_HAS_SEEN_EVENT Current 123]` also shows its text as written once the event has been seen. A condition is the tag's only part, so any other value is ignored with a warning.
+- **Tokens.** A token inside it resolves first, then its value is converted along with the rest.
+- **Combining.** Colors, effects and links inside or around it apply to the converted text, so `[dwarvish][shake]Go away![/shake][/dwarvish]` shakes the converted letters. One inside another converts only once.
+- **Tooltips.** A tooltip draws its text as written, as all markup is taken out of it.
+
 ## Tag conditions
 
 Any tag can take a `condition=` part holding a [game state query](../../concepts/conditions.md). The tag only applies while the query passes:
@@ -549,7 +567,7 @@ Any tag can take a `condition=` part holding a [game state query](../../concepts
 
 It goes alongside the tag's other parts, separated by `|` the same way, in any position: `[wave=4|500|condition=SEASON spring]` or `[gradient=Red|Blue|condition=!IS_FESTIVAL_DAY]`. On a tag with nothing else to set, the condition is its whole value: `[underline=condition=SEASON spring]`.
 
-- **When it fails.** The tag steps aside and its text is drawn as though the tag weren't there. A failed `[color]` keeps the color around it, a failed effect leaves its characters still, a failed decoration isn't drawn and a failed `[link]` is plain text that the cursor can't reach. The text itself always shows. A `[scramble]` settles into its real text rather than snapping, as described under [Scramble](#scramble).
+- **When it fails.** The tag steps aside and its text is drawn as though the tag weren't there. A failed `[color]` keeps the color around it, a failed effect leaves its characters still, a failed decoration isn't drawn, a failed `[dwarvish]` shows its text as written and a failed `[link]` is plain text that the cursor can't reach. The text itself always shows. A `[scramble]` settles into its real text rather than snapping, as described under [Scramble](#scramble).
 - **When it's checked.** Alongside element [conditions](../../concepts/conditions.md#when-conditions-are-checked), so the text follows the query while the book is open. The query isn't run every time the text is drawn.
 - **Typewriters.** A `[typewriter]`'s condition is checked once, when it would start, so its text can't appear and vanish as the query comes and goes. When it fails the text shows in full at once and the element's [typed actions](#typed-actions) still run.
 - **Links.** A link's own `Condition` switches it off everywhere it's used, while a `condition=` on a `[link]` tag switches off just that one use. Both have to pass.
