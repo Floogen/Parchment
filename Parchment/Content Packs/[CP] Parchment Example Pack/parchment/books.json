@@ -497,6 +497,11 @@
         "PeacefulEnd.Parchment.ExamplePack_GuideBook": {
           "Format": "1.12.0",
           "Id": "PeacefulEnd.Parchment.ExamplePack_GuideBook",
+          // Used by every scrolling paragraph in this book that doesn't give a ScrollBar of its own
+          "ScrollBar": {
+            "Color": "60 90 140 110",
+            "HoverColor": "60 90 140"
+          },
           "Variables": [
             {
               "Id": "showInlineTextEffects",
@@ -1655,6 +1660,82 @@
                   "Alignment": "Center",
                   "SpacingAfter": 18,
                   "Condition": "PeacefulEnd.Parchment_HasFlag revealTypewriterFinished"
+                }
+              ]
+            },
+            {
+              "Id": "scrolling",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Heading",
+                  "Text": "Scrolling Text Examples",
+                  "Alignment": "Center",
+                  "SpacingAfter": 12
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "[typewriter=40]This paragraph has the Height property set, so it shows text until it reaches the given limit. As the typewriter reaches the bottom, the paragraph scrolls down to follow it.\n\nYou can scroll with the mouse wheel, the right controller stick or the bar on the right.\n\nThe scroll bar only appears when there is more text than fits the given Height. This paragraph gives no ScrollBar of its own, so it uses the book's globally set one.\n\nLinks scroll with their text, like this [link=scroll_link]link to hover[/link] once it comes into view.[/typewriter]",
+                  "Height": 120,
+                  "SpacingAfter": 16,
+                  "Links": {
+                    "scroll_link": {
+                      "TextColor": "Gold",
+                      "HoverTextColor": "Orange",
+                      "DisplayName": "Scrolled into view",
+                      "Description": "A link on a scrolled line can be hovered once it is in view."
+                    }
+                  }
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "This one has a custom scroll bar and track. Hover the bar to see the scroll bar change, then drag it or click the track itself to move a section at a time. This scroll bar automatically hides itself, fading out after the cursor leaves the text for a duration. Giving its own ScrollBar replaces the book's default one.",
+                  "Height": 60,
+                  "SpacingAfter": 16,
+                  "ScrollBar": {
+                    "Width": 4,
+                    "Color": "139 90 43 120",
+                    "HoverColor": "139 90 43",
+                    "TrackColor": "0 0 0 30",
+                    "AutoHide": true
+                  }
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "This last one sets Overflow to Truncate, so only the lines that fit are shown and the rest are left with nothing to scroll.",
+                  "Height": 120,
+                  "Overflow": "Truncate"
+                }
+              ]
+            },
+            {
+              "Id": "language-text-tags",
+              "ChapterId": "chapter-1",
+              "Elements": [
+                {
+                  "Type": "Paragraph",
+                  "Text": "Dwarvish: [dwarvish]This is [color=Brown]dwarvish[/color]. It can be read once you can understand it![/dwarvish]",
+                  "Alignment": "Left",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "Dwarvish (forced): [dwarvish=force]This is [color=Brown]dwarvish[/color]. It can be read once you can understand it![/dwarvish]",
+                  "Alignment": "Left",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Paragraph",
+                  "FontType": "Small",
+                  "Text": "Junimo: [junimo]This is [color=ForestGreen][bounce]Junimo script[/bounce][/color]. It can be read once you can understand it![/junimo]",
+                  "Alignment": "Left",
+                  "SpacingAfter": 18
+                },
+                {
+                  "Type": "Paragraph",
+                  "Text": "Junimo (forced): [junimo=force]This is [color=ForestGreen][bounce]Junimo script[/bounce][/color]. It can be read once you can understand it![/junimo]",
+                  "Alignment": "Left",
+                  "SpacingAfter": 18
                 }
               ]
             },
