@@ -23,6 +23,14 @@ namespace Parchment.Framework.Models.Data
         /// <summary>The color of the channel the thumb runs along. Left unset, no channel is drawn and only the thumb shows.</summary>
         public string? TrackColor { get; set; }
 
+        /// <summary>Whether the bar fades out while the reader leaves the text alone. It comes back while the cursor is over the text and whenever the text scrolls, by the reader or by a typewriter.
+        /// Off by default, so a reader can always see that the text has more to it.
+        /// </summary>
+        public bool AutoHide { get; set; } = false;
+
+        /// <summary>How long the bar stays up after the cursor leaves the text or the text stops scrolling before it starts to fade, in seconds. Only used with <see cref="AutoHide"/>.</summary>
+        public float HideAfter { get; set; } = 1.5f;
+
         public override (bool Result, string Error) IsValid()
         {
             if (Width <= 0)
@@ -33,6 +41,11 @@ namespace Parchment.Framework.Models.Data
             if (Gap < 0)
             {
                 return (false, $"\"ScrollBar.Gap\" can't be negative.");
+            }
+
+            if (HideAfter < 0f)
+            {
+                return (false, $"\"ScrollBar.HideAfter\" can't be negative.");
             }
 
             return (true, string.Empty);

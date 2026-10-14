@@ -141,6 +141,9 @@ namespace Parchment.Framework.UI.Menus
         // The element whose scroll bar the cursor is over, so the bar it leaves can be told to stop showing it
         private Element? _hoveredScrollBarElement;
 
+        // The scrolling element the cursor is anywhere over, so the one it leaves can start counting down to hiding its bar
+        private Element? _hoveredScrollAreaElement;
+
         // Everywhere the cursor can be sent, rebuilt whenever it is asked for rather than held between passes, since a condition can take an element away between one step and the next
         private readonly List<SnapTarget> _snapTargets = new List<SnapTarget>();
 
@@ -464,6 +467,7 @@ namespace Parchment.Framework.UI.Menus
                 // Carried so a refresh leaves the reader where they were in a scrolling element's text, without handing it back to a typewriter they had taken it over from
                 element.ScrollLine = previousElement.ScrollLine;
                 element.HasScrolledByHand = previousElement.HasScrolledByHand;
+                element.ScrollBarShownAt = previousElement.ScrollBarShownAt;
 
                 CarryElementState(previousElement.Children, element.Children);
                 CarryElementState(previousElement.Background, element.Background);
@@ -1443,19 +1447,30 @@ namespace Parchment.Framework.UI.Menus
             }
 
             _draggedScrollElement.IsScrollBarDragging = false;
+
+            // Let go of, the bar waits from now before hiding rather than from when the drag last moved it
+            ScrollHelper.ShowScrollBar(_draggedScrollElement);
             _draggedScrollElement = null;
         }
 
-        /// <summary>Marks the scroll bar under the cursor as hovered and the one it left as not, so each bar draws its thumb in the right color.</summary>
+        /// <summary>Marks the scrolling element under the cursor and its scroll bar as hovered and the ones it left as not, so each bar draws its thumb in the right color and a bar that hides itself stays up while the cursor is on its text.</summary>
         private void UpdateScrollBarHover(int x, int y)
         {
             Point cursorPosition = new Point(x, y);
             Element? hoveredElement = null;
+            Element? hoveredAreaElement = null;
 
-            if (TryGetScrollableAt(cursorPosition, out Element? element, out Rectangle bounds) && element.ScrollLayout is ScrollLayout scrollLayout && ScrollHelper.GetScrollBarGeometry(element, scrollLayout, bounds).HitArea.Contains(cursorPosition))
+            if (TryGetScrollableAt(cursorPosition, out Element? element, out Rectangle bounds) && element.ScrollLayout is ScrollLayout scrollLayout)
             {
-                hoveredElement = element;
+                hoveredAreaElement = element;
+
+                if (ScrollHelper.GetScrollBarGeometry(element, scrollLayout, bounds).HitArea.Contains(cursorPosition))
+                {
+                    hoveredElement = element;
+                }
             }
+
+            UpdateScrollAreaHover(hoveredAreaElement);
 
             if (ReferenceEquals(_hoveredScrollBarElement, hoveredElement))
             {
@@ -1472,6 +1487,29 @@ namespace Parchment.Framework.UI.Menus
             if (_hoveredScrollBarElement is not null)
             {
                 _hoveredScrollBarElement.IsScrollBarHovered = true;
+            }
+        }
+
+        /// <summary>Moves the scroll area hover from one element to another. Both ends restart the bar's wait, so the one the cursor left holds a moment before hiding.</summary>
+        private void UpdateScrollAreaHover(Element? hoveredAreaElement)
+        {
+            if (ReferenceEquals(_hoveredScrollAreaElement, hoveredAreaElement))
+            {
+                return;
+            }
+
+            if (_hoveredScrollAreaElement is not null)
+            {
+                _hoveredScrollAreaElement.IsScrollAreaHovered = false;
+                ScrollHelper.ShowScrollBar(_hoveredScrollAreaElement);
+            }
+
+            _hoveredScrollAreaElement = hoveredAreaElement;
+
+            if (_hoveredScrollAreaElement is not null)
+            {
+                _hoveredScrollAreaElement.IsScrollAreaHovered = true;
+                ScrollHelper.ShowScrollBar(_hoveredScrollAreaElement);
             }
         }
 

@@ -39,8 +39,16 @@ namespace Parchment.Framework.UI.Layouts
         /// <summary>The color of the channel the thumb runs along (null when none is drawn).</summary>
         public Color? TrackColor { get; }
 
-        public ScrollLayout(WrappedText wrappedText, float viewportHeight, float textWidth, bool isScrollable, int barWidth, int hitWidth, Color barColor, Color hoverColor, Color activeColor, Color? trackColor)
+        /// <summary>Whether the bar fades out while the reader leaves the text alone.</summary>
+        public bool AutoHide { get; }
+
+        /// <summary>How long the bar stays up once left alone before it starts to fade, in milliseconds.</summary>
+        public float HideAfter { get; }
+
+        public ScrollLayout(WrappedText wrappedText, float viewportHeight, float textWidth, bool isScrollable, int barWidth, int hitWidth, Color barColor, Color hoverColor, Color activeColor, Color? trackColor, bool autoHide, float hideAfter)
         {
+            AutoHide = autoHide;
+            HideAfter = hideAfter;
             WrappedText = wrappedText;
             ViewportHeight = viewportHeight;
             TextWidth = textWidth;

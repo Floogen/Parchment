@@ -140,7 +140,9 @@ namespace Parchment.Framework.API
         /// <param name="hoverColor">The thumb's color while the cursor is over the bar.</param>
         /// <param name="activeColor">The thumb's color while it is being dragged.</param>
         /// <param name="trackColor">The color of the channel the thumb runs along. Without one, only the thumb is drawn.</param>
-        IElementBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null);
+        /// <param name="autoHide">Whether the bar fades out while the reader leaves the text alone, coming back while the cursor is over the text and whenever it scrolls.</param>
+        /// <param name="hideAfter">How long the bar stays up once left alone before it starts to fade, in seconds.</param>
+        IElementBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null, bool? autoHide = null, float? hideAfter = null);
         IElementBuilder Padding(int padding);
 
         /// <summary>How many cells sit side by side in a Grid before the next row starts.</summary>

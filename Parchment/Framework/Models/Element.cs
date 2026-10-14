@@ -220,6 +220,14 @@ namespace Parchment.Framework.Models
         /// <summary>Whether this element's scroll bar thumb is being dragged, which draws it in its active color.</summary>
         public bool IsScrollBarDragging { get; set; }
 
+        /// <summary>Whether the cursor is anywhere over this scrolling element, links in its text included, which keeps a bar that hides itself in view.</summary>
+        public bool IsScrollAreaHovered { get; set; }
+
+        /// <summary>When this element's scroll bar was last brought into view, on the animation clock, being the last time the text scrolled or the cursor left it.
+        /// A bar that hides itself starts counting down from here. Carried across a refresh so rebuilding the book doesn't bring every bar back up.
+        /// </summary>
+        public double ScrollBarShownAt { get; set; } = double.MinValue;
+
         /// <summary>Whether an element on a timer is still within it. Always true for one without a <see cref="ElementData.Lifetime"/>, which is every element that stays put.</summary>
         public bool IsWithinLifetime
         {

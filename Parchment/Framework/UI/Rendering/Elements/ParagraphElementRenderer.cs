@@ -84,7 +84,7 @@ namespace Parchment.Framework.UI.Rendering.Elements
             Color activeColor = ResolveBarColor(scrollBar.ActiveColor, "ActiveColor", hoverColor);
             Color? trackColor = string.IsNullOrWhiteSpace(scrollBar.TrackColor) ? null : ResolveBarColor(scrollBar.TrackColor, "TrackColor", Color.Transparent);
 
-            ScrollLayout scrollLayout = new ScrollLayout(wrappedText, viewportHeight, textWidth, isScrollable, barWidth, hitWidth, barColor, hoverColor, activeColor, trackColor);
+            ScrollLayout scrollLayout = new ScrollLayout(wrappedText, viewportHeight, textWidth, isScrollable, barWidth, hitWidth, barColor, hoverColor, activeColor, trackColor, scrollBar.AutoHide, scrollBar.HideAfter * 1000f);
             element.ScrollLayout = scrollLayout;
 
             // Placed here rather than at draw, the same as any other text element. ScrollHelper places them again whenever the window moves

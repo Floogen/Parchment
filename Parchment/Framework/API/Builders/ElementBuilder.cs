@@ -154,7 +154,7 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder Height(int height) { return Set("Height", height); }
         public IElementBuilder Overflow(string overflow) { return Set("Overflow", overflow); }
 
-        public IElementBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null)
+        public IElementBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null, bool? autoHide = null, float? hideAfter = null)
         {
             // Only what was given is set, so each field left out keeps the default the bar already holds
             if (width is int givenWidth)
@@ -185,6 +185,16 @@ namespace Parchment.Framework.API.Builders
             if (trackColor is not null)
             {
                 Set("ScrollBar.TrackColor", trackColor);
+            }
+
+            if (autoHide is bool givenAutoHide)
+            {
+                Set("ScrollBar.AutoHide", givenAutoHide);
+            }
+
+            if (hideAfter is float givenHideAfter)
+            {
+                Set("ScrollBar.HideAfter", givenHideAfter);
             }
 
             return this;

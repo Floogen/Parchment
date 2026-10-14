@@ -95,6 +95,8 @@ A flat bar in a single color. Every field is optional. The colors follow the par
 | `HoverColor` <span class="opt">optional</span> | [`color`](index.md#colors) | *see below* | The thumb's color while the cursor is over the bar. Defaults to `Color` when that is given. Without one it is a stronger take on the text color. |
 | `ActiveColor` <span class="opt">optional</span> | [`color`](index.md#colors) | *`HoverColor`* | The thumb's color while it is being dragged. |
 | `TrackColor` <span class="opt">optional</span> | [`color`](index.md#colors) | — | The color of the channel the thumb runs along. Left off, only the thumb is drawn. |
+| `AutoHide` <span class="opt">optional</span> | `bool` | `false` | Whether the bar fades out while the reader leaves the text alone. See [Hiding the bar](#hiding-the-bar). |
+| `HideAfter` <span class="opt">optional</span> | `number` | `1.5` | How long the bar stays up once left alone before it starts to fade, in seconds. Only used with `AutoHide`. |
 
 ```json
 {
@@ -114,6 +116,30 @@ The cursor reaches the bar through a strip at least 16 pixels wide down the para
 
 !!! note "Give `HoverColor` when you give `Color`"
     The default highlight is built from the text color, so once you choose the thumb's `Color` the bar no longer changes on hover until you choose a `HoverColor` too.
+
+#### Hiding the bar
+
+Set `AutoHide` to `true` and the bar fades out while the reader leaves the text alone, the way scroll bars do on a phone. It comes back:
+
+- while the cursor is anywhere over the paragraph, links included
+- whenever the text scrolls, whether by the wheel, the right stick, the bar or a [typewriter](#scrolling) following its newest line
+
+Once the cursor leaves and the text stops moving, the bar waits `HideAfter` seconds and then fades. It also shows for that long the first time the paragraph appears, so the reader can see there is more to the text before it goes.
+
+```json
+{
+  "Type": "Paragraph",
+  "Text": "...",
+  "Height": 160,
+  "ScrollBar": {
+    "AutoHide": true,
+    "HideAfter": 2
+  }
+}
+```
+
+!!! tip
+    Leave `AutoHide` off when the reader might not think to look for more text. A hidden bar is the only sign a paragraph scrolls until the cursor reaches it.
 
 ## Text fields
 

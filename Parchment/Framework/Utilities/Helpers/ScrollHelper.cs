@@ -14,6 +14,9 @@ namespace Parchment.Framework.Utilities.Helpers
         // The shortest the thumb is drawn, in screen pixels, so a very long text still leaves something to take hold of
         private const int MIN_THUMB_HEIGHT = 16;
 
+        // How long a bar that hides itself takes to fade out once its wait is over, in milliseconds
+        private const float SCROLL_BAR_FADE_DURATION = 300f;
+
         /// <summary>Where a scroll bar sits on screen, being the channel the thumb runs along, the thumb itself and the strip of the element that reaches the bar for the cursor.</summary>
         public readonly record struct ScrollBarGeometry(Rectangle Track, Rectangle Thumb, Rectangle HitArea);
 
@@ -58,6 +61,9 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             element.ScrollLine = clampedLine;
+
+            // Any scroll brings a bar that hides itself back up, whichever way it was asked for
+            ShowScrollBar(element);
 
             // The links follow the text they sit on, so the ones scrolled away stop answering to the cursor and the ones scrolled in start to
             ArrangeLinks(element, scrollLayout);
@@ -177,6 +183,32 @@ namespace Parchment.Framework.Utilities.Helpers
             return (int)Math.Round(scrollProgress * scrollLayout.MaxScrollLine);
         }
 
+        /// <summary>Brings the element's scroll bar back into view, restarting the wait before a bar that hides itself fades.</summary>
+        public static void ShowScrollBar(Element element)
+        {
+            element.ScrollBarShownAt = AnimationHelper.GetAnimationTime();
+        }
+
+        /// <summary>How strongly the element's scroll bar is drawn, being fully for a bar that doesn't hide itself.
+        /// One that does stays fully drawn while the cursor is over the text or dragging the thumb, then holds for its wait before fading out.
+        /// </summary>
+        public static float GetScrollBarAlpha(Element element, ScrollLayout scrollLayout)
+        {
+            if (scrollLayout.AutoHide is false || element.IsScrollAreaHovered || element.IsScrollBarDragging)
+            {
+                return 1f;
+            }
+
+            double fadeElapsed = AnimationHelper.GetAnimationTime() - element.ScrollBarShownAt - scrollLayout.HideAfter;
+
+            if (fadeElapsed <= 0d)
+            {
+                return 1f;
+            }
+
+            return Math.Clamp(1f - (float)(fadeElapsed / SCROLL_BAR_FADE_DURATION), 0f, 1f);
+        }
+
         /// <summary>Draws the element's scroll bar, the thumb taking its hover or active color while the cursor is on the bar or dragging it. Nothing is drawn while all of the text fits.</summary>
         public static void DrawScrollBar(SpriteBatch spriteBatch, Element element, ScrollLayout scrollLayout, Rectangle bounds)
         {
@@ -185,11 +217,24 @@ namespace Parchment.Framework.Utilities.Helpers
                 return;
             }
 
+            // A bar that hides itself shows for its wait the first time it is drawn, so the reader sees there is more to the text before it fades
+            if (element.ScrollBarShownAt == double.MinValue)
+            {
+                ShowScrollBar(element);
+            }
+
+            float barAlpha = GetScrollBarAlpha(element, scrollLayout) * element.DrawAlpha;
+
+            if (barAlpha <= 0f)
+            {
+                return;
+            }
+
             ScrollBarGeometry geometry = GetScrollBarGeometry(element, scrollLayout, bounds);
 
             if (scrollLayout.TrackColor is Color trackColor)
             {
-                spriteBatch.Draw(Game1.staminaRect, geometry.Track, trackColor * element.DrawAlpha);
+                spriteBatch.Draw(Game1.staminaRect, geometry.Track, trackColor * barAlpha);
             }
 
             Color thumbColor = scrollLayout.BarColor;
@@ -203,7 +248,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 thumbColor = scrollLayout.HoverColor;
             }
 
-            spriteBatch.Draw(Game1.staminaRect, geometry.Thumb, thumbColor * element.DrawAlpha);
+            spriteBatch.Draw(Game1.staminaRect, geometry.Thumb, thumbColor * barAlpha);
         }
     }
 }
