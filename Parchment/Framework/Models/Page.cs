@@ -408,6 +408,46 @@ namespace Parchment.Framework.Models
             return null;
         }
 
+        /// <summary>Finds the innermost element under a point whose text can be scrolled, walking the lists in the same order <see cref="HitTest"/> does.
+        /// Looked for separately from what the cursor is over, as the cursor usually rests on a link inside the text rather than on the element scrolling it.
+        /// An element with <see cref="ElementData.IgnoreCursor"/> is passed by, the same as it is for a click.
+        /// </summary>
+        /// <param name="scrollableBounds">Where the element found sits on screen (an empty rectangle when nothing was).</param>
+        public static Element? FindScrollableAt(IReadOnlyList<Element> elements, Rectangle containerBounds, Point screenPosition, out Rectangle scrollableBounds)
+        {
+            foreach (Element element in elements)
+            {
+                if (element.Bounds == Rectangle.Empty)
+                {
+                    continue;
+                }
+
+                Rectangle screenBounds = new Rectangle(element.Bounds.X + containerBounds.X, element.Bounds.Y + containerBounds.Y, element.Bounds.Width, element.Bounds.Height);
+                Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
+
+                if (GetHitBounds(element, screenBounds, contentBounds).Contains(screenPosition) is false)
+                {
+                    continue;
+                }
+
+                Element? nestedElement = FindScrollableAt(element.Foreground, contentBounds, screenPosition, out scrollableBounds) ?? FindScrollableAt(element.Children, contentBounds, screenPosition, out scrollableBounds) ?? FindScrollableAt(element.Background, contentBounds, screenPosition, out scrollableBounds);
+                if (nestedElement is not null)
+                {
+                    return nestedElement;
+                }
+
+                if (element.ScrollLayout is { CanScroll: true } && element.Data.IgnoreCursor is false && screenBounds.Contains(screenPosition))
+                {
+                    scrollableBounds = screenBounds;
+                    return element;
+                }
+            }
+
+            scrollableBounds = Rectangle.Empty;
+
+            return null;
+        }
+
         /// <summary>Gathers everywhere on screen a controller can send the cursor, being the collecting counterpart to <see cref="HitTest"/>.
         /// The same lists are walked in the same order and measured against the same rectangles, so a controller can only reach what a mouse could already have reached.
         /// Only <see cref="Element.IsInteractive"/> elements are taken, whatever list they came out of, since an element that does nothing on hover or click is not worth stopping at.

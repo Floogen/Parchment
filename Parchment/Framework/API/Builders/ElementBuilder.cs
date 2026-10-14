@@ -152,6 +152,43 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder Format(string format) { return Set("Format", format); }
         public IElementBuilder Width(int width) { return Set("Width", width); }
         public IElementBuilder Height(int height) { return Set("Height", height); }
+        public IElementBuilder Overflow(string overflow) { return Set("Overflow", overflow); }
+
+        public IElementBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null)
+        {
+            // Only what was given is set, so each field left out keeps the default the bar already holds
+            if (width is int givenWidth)
+            {
+                Set("ScrollBar.Width", givenWidth);
+            }
+
+            if (gap is int givenGap)
+            {
+                Set("ScrollBar.Gap", givenGap);
+            }
+
+            if (color is not null)
+            {
+                Set("ScrollBar.Color", color);
+            }
+
+            if (hoverColor is not null)
+            {
+                Set("ScrollBar.HoverColor", hoverColor);
+            }
+
+            if (activeColor is not null)
+            {
+                Set("ScrollBar.ActiveColor", activeColor);
+            }
+
+            if (trackColor is not null)
+            {
+                Set("ScrollBar.TrackColor", trackColor);
+            }
+
+            return this;
+        }
         public IElementBuilder Padding(int padding) { return Set("Padding", padding); }
         public IElementBuilder Columns(int columns) { return Set("Columns", columns); }
         public IElementBuilder Rows(int rows) { return Set("Rows", rows); }

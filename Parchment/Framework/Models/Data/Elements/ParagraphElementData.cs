@@ -43,6 +43,19 @@ namespace Parchment.Framework.Models.Data
         /// </summary>
         public int? Width { get; set; }
 
+        /// <summary>
+        /// Optional. The height the paragraph occupies, in unscaled pixels (multiplied by <see cref="ElementData.Scale"/>). The paragraph reserves it whether or not its text fills it,
+        /// and text that runs past the bottom is handled by <see cref="Overflow"/>. Clamped to the height left on the page, so a paragraph near the bottom shows fewer lines rather than running off it.
+        /// When null, the paragraph is as tall as all of its text.
+        /// </summary>
+        public int? Height { get; set; }
+
+        /// <summary>What happens to text that runs past <see cref="Height"/>: scrolled into view or left out. Ignored without a <see cref="Height"/>, as the paragraph then grows to fit everything.</summary>
+        public OverflowMode Overflow { get; set; } = OverflowMode.Scroll;
+
+        /// <summary>How the scroll bar looks, drawn beside the text whenever <see cref="Overflow"/> is Scroll and there is more text than fits. Always present, so a single field of it can be set on its own.</summary>
+        public ScrollBarData ScrollBar { get; set; } = new ScrollBarData();
+
         public override (bool Result, string Error) IsValid()
         {
             if (string.IsNullOrWhiteSpace(Text))
@@ -53,6 +66,22 @@ namespace Parchment.Framework.Models.Data
             if (Width is int width && width <= 0)
             {
                 return (false, $"\"Width\" must be positive.");
+            }
+
+            if (Height is int height && height <= 0)
+            {
+                return (false, $"\"Height\" must be positive.");
+            }
+
+            if (ScrollBar is null)
+            {
+                return (false, $"\"ScrollBar\" can't be null. Leave it out to keep the default bar.");
+            }
+
+            (bool isScrollBarValid, string scrollBarError) = ScrollBar.IsValid();
+            if (isScrollBarValid is false)
+            {
+                return (false, scrollBarError);
             }
 
             return base.IsValid();

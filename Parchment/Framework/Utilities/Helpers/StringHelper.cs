@@ -63,6 +63,14 @@ namespace Parchment.Framework.Utilities.Helpers
 
         public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale)
         {
+            DrawLines(spriteBatch, element, wrappedText, bounds, alignment, textColor, scale, 0, wrappedText.Lines.Count);
+        }
+
+        /// <summary>Draws a run of the wrapped lines, the first of them at the top of the bounds, which is how a scrolling element shows only what is in its window.</summary>
+        /// <param name="firstLine">The line drawn at the top.</param>
+        /// <param name="lineCount">How many lines to draw from there, cut short at the last line there is.</param>
+        public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale, int firstLine, int lineCount)
+        {
             // Every text element draws through here, so this is the only place text has to be told about a fade
             Color fadedColor = textColor * element.DrawAlpha;
 
@@ -77,9 +85,13 @@ namespace Parchment.Framework.Utilities.Helpers
             // Noted so a condition that changes while the reader is looking can be told apart from one that changed off screen
             element.LastDrawnAt = effectTime;
 
+            int endLine = Math.Min(wrappedText.Lines.Count, Math.Max(0, firstLine) + Math.Max(0, lineCount));
+
             float currentY = bounds.Y;
-            foreach (WrappedLine line in wrappedText.Lines)
+            for (int lineIndex = Math.Max(0, firstLine); lineIndex < endLine; lineIndex++)
             {
+                WrappedLine line = wrappedText.Lines[lineIndex];
+
                 if (element.Font is null)
                 {
                     continue;

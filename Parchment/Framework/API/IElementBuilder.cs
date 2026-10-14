@@ -125,7 +125,22 @@ namespace Parchment.Framework.API
         /// <summary>Sets the element's width, in unscaled pixels multiplied by its scale. On a Panel, Divider or Banner this is only used when Sizing is "Fixed".
         /// On a Paragraph it applies on its own, wrapping the text at that width and reserving it.</summary>
         IElementBuilder Width(int width);
+
+        /// <summary>Sets the element's height, in unscaled pixels multiplied by its scale. Taken by a Panel and an Input.
+        /// On a Paragraph it shows the text through a window that tall, with whatever runs past the bottom handled by Overflow.</summary>
         IElementBuilder Height(int height);
+
+        /// <summary>What a Paragraph with a Height does with text that runs past the bottom: "Scroll" (the default) to let the reader scroll it into view or "Truncate" to leave it out.</summary>
+        IElementBuilder Overflow(string overflow);
+
+        /// <summary>How a scrolling Paragraph's scroll bar looks. Every argument is optional and one left out keeps its default.</summary>
+        /// <param name="width">How wide the bar is drawn, in unscaled pixels multiplied by the element's scale.</param>
+        /// <param name="gap">The room left between the text and the bar, in unscaled pixels multiplied by the element's scale.</param>
+        /// <param name="color">The thumb's color. Defaults to the text color at a low strength.</param>
+        /// <param name="hoverColor">The thumb's color while the cursor is over the bar.</param>
+        /// <param name="activeColor">The thumb's color while it is being dragged.</param>
+        /// <param name="trackColor">The color of the channel the thumb runs along. Without one, only the thumb is drawn.</param>
+        IElementBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null);
         IElementBuilder Padding(int padding);
 
         /// <summary>How many cells sit side by side in a Grid before the next row starts.</summary>

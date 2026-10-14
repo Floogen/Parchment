@@ -16,6 +16,16 @@ namespace Parchment.Framework.Utilities.Helpers
         /// </summary>
         public static void ArrangeLinks(Element element, WrappedText? wrappedText, float measuredWidth, AlignmentType alignment)
         {
+            ArrangeLinks(element, wrappedText, measuredWidth, alignment, 0, wrappedText?.Lines.Count ?? 0);
+        }
+
+        /// <summary>Places the element's links over a run of its wrapped lines, measured as though the first of them sat at the top of the element, which is how a scrolling element lays out the lines in its window.
+        /// A link whose text is entirely outside the run is given empty bounds, the same as one with no text on screen at all.
+        /// </summary>
+        /// <param name="firstLine">The line sitting at the top of the element.</param>
+        /// <param name="lineCount">How many lines from there are on screen.</param>
+        public static void ArrangeLinks(Element element, WrappedText? wrappedText, float measuredWidth, AlignmentType alignment, int firstLine, int lineCount)
+        {
             if (element.Children.Count is 0)
             {
                 return;
@@ -25,7 +35,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             if (wrappedText is not null)
             {
-                CollectRegions(wrappedText, (int)measuredWidth, alignment, regionsByLink);
+                CollectRegions(wrappedText, (int)measuredWidth, alignment, firstLine, lineCount, regionsByLink);
             }
 
             for (int index = 0; index < element.Children.Count; index++)
@@ -56,12 +66,15 @@ namespace Parchment.Framework.Utilities.Helpers
             }
         }
 
-        private static void CollectRegions(WrappedText wrappedText, int measuredWidth, AlignmentType alignment, Dictionary<int, List<Rectangle>> regionsByLink)
+        private static void CollectRegions(WrappedText wrappedText, int measuredWidth, AlignmentType alignment, int firstLine, int lineCount, Dictionary<int, List<Rectangle>> regionsByLink)
         {
             float lineY = 0f;
+            int endLine = Math.Min(wrappedText.Lines.Count, Math.Max(0, firstLine) + Math.Max(0, lineCount));
 
-            foreach (WrappedLine line in wrappedText.Lines)
+            for (int lineIndex = Math.Max(0, firstLine); lineIndex < endLine; lineIndex++)
             {
+                WrappedLine line = wrappedText.Lines[lineIndex];
+
                 if (line.Segments is not null)
                 {
                     float lineX = AlignmentHelper.GetAlignedX(availableWidth: measuredWidth, contentWidth: line.Size.X, alignment: alignment);

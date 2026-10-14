@@ -289,7 +289,9 @@ Most methods are named after the field they set, so anything you've written in a
 | `Lifetime(lifetime)` | `Lifetime` |
 | `FadeAfter(fadeAfter)` | `FadeAfter` |
 | `Sizing(mode)` | `Sizing`, one of `"Fill"`, `"ShrinkToFit"`, `"Fixed"` |
-| `Width(width)` / `Height(height)` | `Width` and `Height`. `Width` is taken by a [`Panel`](elements/panel.md), [`Divider`](elements/divider.md), [`Banner`](elements/banner.md) or [`Input`](elements/input.md) with a `Fixed` `Sizing`, and by a [`Paragraph`](elements/paragraph.md) on its own. `Height` is a Panel's or an `Input`'s. |
+| `Width(width)` / `Height(height)` | `Width` and `Height`. `Width` is taken by a [`Panel`](elements/panel.md), [`Divider`](elements/divider.md), [`Banner`](elements/banner.md) or [`Input`](elements/input.md) with a `Fixed` `Sizing`, and by a [`Paragraph`](elements/paragraph.md) on its own. `Height` is a Panel's, an `Input`'s or a `Paragraph`'s, where it makes the text [scroll](elements/paragraph.md#scrolling). |
+| `Overflow(overflow)` | A `Paragraph`'s `Overflow`, either `"Scroll"` or `"Truncate"` |
+| `ScrollBar(width, gap, color, hoverColor, activeColor, trackColor)` | A `Paragraph`'s [`ScrollBar`](elements/paragraph.md#scroll-bar). Every argument is optional and one left out keeps its default. |
 | `Padding(padding)` | `Padding` |
 | `Columns(columns)` / `Rows(rows)` | A [`Grid`](elements/grid.md)'s `Columns` and `Rows` |
 | `CellWidth(width)` / `CellHeight(height)` | A `Grid`'s `CellWidth` and `CellHeight` |
