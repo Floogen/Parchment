@@ -6,7 +6,7 @@ Almost every number in a book is in one of two units, and knowing which is which
 
 **Anything measured against art.** You read these off your PNG at 1× (the size you drew it) and Parchment multiplies by `Scale` when it draws.
 
-This covers `Padding`, `Width`, `Height`, `CapWidth`, `Thickness`, `TextArea`, `SpacingAfter`, `MarginLeft`, `MarginRight`, the book's `Layout` margins and the page curl offsets.
+This covers `Padding`, `Width`, `Height`, `CapWidth`, `Thickness`, `TextArea`, `SpacingAfter`, `MarginLeft`, `MarginRight`, a scroll bar's `Gap`, the book's `Layout` margins and the page curl offsets.
 
 The point is that they track the art. Double a panel's `Scale` and its padding doubles with it, so the frame still looks the same, just bigger.
 

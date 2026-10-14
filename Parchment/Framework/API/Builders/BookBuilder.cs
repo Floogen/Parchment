@@ -18,6 +18,9 @@ namespace Parchment.Framework.API.Builders
         private readonly string _modId;
         private readonly string _bookId;
         private readonly List<(string Field, object? Value)> _fields = new List<(string Field, object? Value)>();
+
+        // Whether ScrollBar has put a bar in place for its fields to be set on
+        private bool _hasScrollBar;
         private readonly List<PageBuilder> _pages = new List<PageBuilder>();
         private readonly List<ElementBuilder> _underlay = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _overlay = new List<ElementBuilder>();
@@ -51,6 +54,59 @@ namespace Parchment.Framework.API.Builders
         }
 
         public IBookBuilder Sprite(string spritePath) { return Set("SpritePath", spritePath); }
+
+        public IBookBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null, bool? autoHide = null, float? hideAfter = null)
+        {
+            // The book's bar starts unset, so one is put in place the first time this is called and every later call adds to it
+            if (_hasScrollBar is false)
+            {
+                Set("ScrollBar", new ScrollBarData());
+                _hasScrollBar = true;
+            }
+
+            // Only what was given is set, so each field left out keeps the default the bar already holds
+            if (width is int givenWidth)
+            {
+                Set("ScrollBar.Width", givenWidth);
+            }
+
+            if (gap is int givenGap)
+            {
+                Set("ScrollBar.Gap", givenGap);
+            }
+
+            if (color is not null)
+            {
+                Set("ScrollBar.Color", color);
+            }
+
+            if (hoverColor is not null)
+            {
+                Set("ScrollBar.HoverColor", hoverColor);
+            }
+
+            if (activeColor is not null)
+            {
+                Set("ScrollBar.ActiveColor", activeColor);
+            }
+
+            if (trackColor is not null)
+            {
+                Set("ScrollBar.TrackColor", trackColor);
+            }
+
+            if (autoHide is bool givenAutoHide)
+            {
+                Set("ScrollBar.AutoHide", givenAutoHide);
+            }
+
+            if (hideAfter is float givenHideAfter)
+            {
+                Set("ScrollBar.HideAfter", givenHideAfter);
+            }
+
+            return this;
+        }
 
         public IBookBuilder OnRefresh(Action onRefresh)
         {

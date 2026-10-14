@@ -58,10 +58,18 @@ namespace Parchment.Framework.Utilities.Helpers
         // The rings of copies drawn behind the segment being drawn, each a color and how far out it sits, in the order they go down: glows from the outside in and then outlines
         private static readonly List<(Color Color, int Distance)> _haloLayers = new List<(Color Color, int Distance)>();
 
-        // A haloed segment's characters, gathered while it draws so every halo goes down before any letter, keeping one letter's outline or glow off the letter beside it
-        private static readonly List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha, float Rotation, float Scale)> _pendingHaloedCharacters = new List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha, float Rotation, float Scale)>();
+        // A haloed segment's characters, gathered while it draws so every halo goes down before any letter, keeping one letter's outline or glow off the letter beside it. Each notes whether markup colored it, which Junimo script follows
+        private static readonly List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha, float Rotation, float Scale, bool IsColored)> _pendingHaloedCharacters = new List<(string Text, Vector2 Position, Color Color, Color ShadowColor, float Alpha, float Rotation, float Scale, bool IsColored)>();
 
         public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale)
+        {
+            DrawLines(spriteBatch, element, wrappedText, bounds, alignment, textColor, scale, 0, wrappedText.Lines.Count);
+        }
+
+        /// <summary>Draws a run of the wrapped lines, the first of them at the top of the bounds, which is how a scrolling element shows only what is in its window.</summary>
+        /// <param name="firstLine">The line drawn at the top.</param>
+        /// <param name="lineCount">How many lines to draw from there, cut short at the last line there is.</param>
+        public static void DrawLines(SpriteBatch spriteBatch, Element element, WrappedText wrappedText, Rectangle bounds, AlignmentType alignment, Color textColor, float scale, int firstLine, int lineCount)
         {
             // Every text element draws through here, so this is the only place text has to be told about a fade
             Color fadedColor = textColor * element.DrawAlpha;
@@ -77,9 +85,13 @@ namespace Parchment.Framework.Utilities.Helpers
             // Noted so a condition that changes while the reader is looking can be told apart from one that changed off screen
             element.LastDrawnAt = effectTime;
 
+            int endLine = Math.Min(wrappedText.Lines.Count, Math.Max(0, firstLine) + Math.Max(0, lineCount));
+
             float currentY = bounds.Y;
-            foreach (WrappedLine line in wrappedText.Lines)
+            for (int lineIndex = Math.Max(0, firstLine); lineIndex < endLine; lineIndex++)
             {
+                WrappedLine line = wrappedText.Lines[lineIndex];
+
                 if (element.Font is null)
                 {
                     continue;
@@ -179,7 +191,8 @@ namespace Parchment.Framework.Utilities.Helpers
                         DrawHalos(spriteBatch, element, segment.Text, segmentPosition, stretchAlpha, scale, boldness);
                     }
 
-                    element.Font!.DrawString(spriteBatch, segment.Text, segmentPosition, segmentColor * stretchAlpha, isOutlined ? Color.Transparent : segmentShadowColor * stretchAlpha, scale, boldness);
+                    // Junimo script keeps its own look unless markup or a link colors it, so it is told which this is
+                    element.Font!.DrawString(spriteBatch, segment.Text, segmentPosition, segmentColor * stretchAlpha, isOutlined ? Color.Transparent : segmentShadowColor * stretchAlpha, scale, boldness, isColored: runColor is not null);
 
                     DrawDecorations(spriteBatch, decoration, segment.Effects, stretchAlpha, isBehindText: false);
                     DrawDecorations(spriteBatch, decoration, hoverEffects, hoverStrength * stretchAlpha, isBehindText: false);
@@ -245,6 +258,12 @@ namespace Parchment.Framework.Utilities.Helpers
                     // A scrambled character shows a random glyph centred in the room its real one was laid out with, so a wider glyph spills evenly rather than into one neighbour
                     if (segment.Effects is not null && TextEffectHelper.TryGetScrambleGlyph(element, segment.Effects, position, effectTime, out string glyph))
                     {
+                        // A scrambled letter of Junimo script scrambles through the script too, so the random glyphs never give away that it hides plain text
+                        if (character.Length is 1 && JunimoScript.IsGlyph(character[0]))
+                        {
+                            glyph = JunimoScript.ToGlyphs(glyph);
+                        }
+
                         characterX += (slotWidth - GetGlyphWidth(element.Font!, glyph, scale)) / 2f;
                         drawnCharacter = glyph;
                     }
@@ -269,22 +288,24 @@ namespace Parchment.Framework.Utilities.Helpers
 
                     Color characterColor = segmentColor;
                     Color characterShadowColor = segmentShadowColor;
+                    bool isCharacterColored = runColor is not null;
 
                     if (keepsOwnColor is false && TryGetEffectColor(segment, hoverEffects, position, effectTime, hoverTime, hoverStrength, runColor ?? element.TextColor, hoveredLinkColor is not null, out Color effectColor))
                     {
                         // Faded with the element, so one that is fading out takes its effect colors down with it
                         characterColor = effectColor * element.DrawAlpha;
                         characterShadowColor = element.GetShadowColor(characterColor);
+                        isCharacterColored = true;
                     }
 
                     if (isHaloed)
                     {
-                        _pendingHaloedCharacters.Add((drawnCharacter, characterPosition, characterColor * characterAlpha, isOutlined ? Color.Transparent : characterShadowColor * characterAlpha, characterAlpha, rotation, characterScale));
+                        _pendingHaloedCharacters.Add((drawnCharacter, characterPosition, characterColor * characterAlpha, isOutlined ? Color.Transparent : characterShadowColor * characterAlpha, characterAlpha, rotation, characterScale, isCharacterColored));
                     }
                     else
                     {
                         // Faded together with its shadow, so a character fading in (or flickering) doesn't leave its shadow standing at full strength behind it
-                        element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * characterAlpha, characterShadowColor * characterAlpha, characterScale, boldness, rotation);
+                        element.Font!.DrawString(spriteBatch, drawnCharacter, characterPosition, characterColor * characterAlpha, characterShadowColor * characterAlpha, characterScale, boldness, rotation, isColored: isCharacterColored);
                     }
 
                     if (sparkleTexture is not null)
@@ -372,7 +393,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 foreach (Vector2 direction in _haloDirections)
                 {
-                    element.Font!.DrawString(spriteBatch, text, position + direction * distance, layerColor, Color.Transparent, scale, boldness, rotation);
+                    element.Font!.DrawString(spriteBatch, text, position + direction * distance, layerColor, Color.Transparent, scale, boldness, rotation, isHalo: true);
                 }
             }
         }
@@ -380,14 +401,14 @@ namespace Parchment.Framework.Utilities.Helpers
         /// <summary>Draws the gathered characters of a haloed segment, every halo first and then every letter over them, without a shadow when the segment is outlined.</summary>
         private static void DrawHaloedCharacters(SpriteBatch spriteBatch, Element element, int boldness)
         {
-            foreach ((string text, Vector2 position, Color _, Color _, float alpha, float rotation, float characterScale) in _pendingHaloedCharacters)
+            foreach ((string text, Vector2 position, Color _, Color _, float alpha, float rotation, float characterScale, bool _) in _pendingHaloedCharacters)
             {
                 DrawHalos(spriteBatch, element, text, position, alpha, characterScale, boldness, rotation);
             }
 
-            foreach ((string text, Vector2 position, Color color, Color shadowColor, float _, float rotation, float characterScale) in _pendingHaloedCharacters)
+            foreach ((string text, Vector2 position, Color color, Color shadowColor, float _, float rotation, float characterScale, bool isColored) in _pendingHaloedCharacters)
             {
-                element.Font!.DrawString(spriteBatch, text, position, color, shadowColor, characterScale, boldness, rotation);
+                element.Font!.DrawString(spriteBatch, text, position, color, shadowColor, characterScale, boldness, rotation, isColored: isColored);
             }
 
             _pendingHaloedCharacters.Clear();

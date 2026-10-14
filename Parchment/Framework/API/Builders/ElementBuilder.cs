@@ -18,6 +18,9 @@ namespace Parchment.Framework.API.Builders
     {
         private readonly string _elementType;
         private readonly List<(string Field, object? Value)> _fields = new List<(string Field, object? Value)>();
+
+        // Whether ScrollBar has put a bar in place for its fields to be set on
+        private bool _hasScrollBar;
         private readonly List<ElementBuilder> _children = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _background = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _foreground = new List<ElementBuilder>();
@@ -152,6 +155,60 @@ namespace Parchment.Framework.API.Builders
         public IElementBuilder Format(string format) { return Set("Format", format); }
         public IElementBuilder Width(int width) { return Set("Width", width); }
         public IElementBuilder Height(int height) { return Set("Height", height); }
+        public IElementBuilder Overflow(string overflow) { return Set("Overflow", overflow); }
+
+        public IElementBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null, bool? autoHide = null, float? hideAfter = null)
+        {
+            // A paragraph's bar starts unset so the book's can apply, so one is put in place the first time this is called and every later call adds to it
+            if (_hasScrollBar is false)
+            {
+                Set("ScrollBar", new ScrollBarData());
+                _hasScrollBar = true;
+            }
+
+            // Only what was given is set, so each field left out keeps the default the bar already holds
+            if (width is int givenWidth)
+            {
+                Set("ScrollBar.Width", givenWidth);
+            }
+
+            if (gap is int givenGap)
+            {
+                Set("ScrollBar.Gap", givenGap);
+            }
+
+            if (color is not null)
+            {
+                Set("ScrollBar.Color", color);
+            }
+
+            if (hoverColor is not null)
+            {
+                Set("ScrollBar.HoverColor", hoverColor);
+            }
+
+            if (activeColor is not null)
+            {
+                Set("ScrollBar.ActiveColor", activeColor);
+            }
+
+            if (trackColor is not null)
+            {
+                Set("ScrollBar.TrackColor", trackColor);
+            }
+
+            if (autoHide is bool givenAutoHide)
+            {
+                Set("ScrollBar.AutoHide", givenAutoHide);
+            }
+
+            if (hideAfter is float givenHideAfter)
+            {
+                Set("ScrollBar.HideAfter", givenHideAfter);
+            }
+
+            return this;
+        }
         public IElementBuilder Padding(int padding) { return Set("Padding", padding); }
         public IElementBuilder Columns(int columns) { return Set("Columns", columns); }
         public IElementBuilder Rows(int rows) { return Set("Rows", rows); }

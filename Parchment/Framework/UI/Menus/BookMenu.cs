@@ -8,6 +8,7 @@ using Parchment.Framework.Models.Data.Books;
 using Parchment.Framework.Models.Data.Elements;
 using Parchment.Framework.Models.Data.Pages;
 using Parchment.Framework.Models.Enums;
+using Parchment.Framework.UI.Layouts;
 using Parchment.Framework.UI.Rendering;
 using Parchment.Framework.Utilities.Helpers;
 using StardewModdingAPI;
@@ -18,6 +19,7 @@ using StardewValley.Menus;
 using StardewValley.Triggers;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Parchment.Framework.UI.Menus
@@ -114,6 +116,33 @@ namespace Parchment.Framework.UI.Menus
 
         private bool _isHoveringPreviousPage;
         private bool _isHoveringNextPage;
+
+        // How many lines one notch of the mouse wheel scrolls
+        private const int WHEEL_SCROLL_LINE_COUNT = 1;
+
+        // How far a notch of the mouse wheel reports itself as having turned, which a wheel that skips notches reports a multiple of
+        private const int WHEEL_NOTCH_DELTA = 120;
+
+        // How far the right stick has to be pushed to scroll, how long it waits before repeating and how quickly it repeats from just past that to full tilt, in milliseconds
+        private const float STICK_SCROLL_THRESHOLD = 0.4f;
+        private const float STICK_SCROLL_INITIAL_DELAY = 250f;
+        private const float STICK_SCROLL_SLOWEST_INTERVAL = 150f;
+        private const float STICK_SCROLL_FASTEST_INTERVAL = 50f;
+
+        // Which way the right stick last scrolled (0 while it rests) and how long until it scrolls again
+        private int _stickScrollDirection;
+        private float _stickScrollTimer;
+
+        // The element whose scroll bar thumb is being dragged, where it sat on screen when it was taken hold of and how far down the thumb the cursor took hold of it
+        private Element? _draggedScrollElement;
+        private Rectangle _draggedScrollBounds;
+        private int _scrollGrabOffset;
+
+        // The element whose scroll bar the cursor is over, so the bar it leaves can be told to stop showing it
+        private Element? _hoveredScrollBarElement;
+
+        // The scrolling element the cursor is anywhere over, so the one it leaves can start counting down to hiding its bar
+        private Element? _hoveredScrollAreaElement;
 
         // Everywhere the cursor can be sent, rebuilt whenever it is asked for rather than held between passes, since a condition can take an element away between one step and the next
         private readonly List<SnapTarget> _snapTargets = new List<SnapTarget>();
@@ -321,6 +350,11 @@ namespace Parchment.Framework.UI.Menus
             SetHoveredElement(null);
             ClearInputFocus();
 
+            // The same goes for the scrolling elements, so a drag doesn't carry on moving one that is no longer on screen. The cursor finds their rebuilt counterparts on its next move
+            EndScrollBarDrag();
+            _hoveredScrollBarElement = null;
+            _hoveredScrollAreaElement = null;
+
             Book previousBook = Book;
 
             ApplyBook(book);
@@ -434,6 +468,11 @@ namespace Parchment.Framework.UI.Menus
 
                 // Carried for the same reason, so an effect that has played its duration doesn't play again
                 element.TimedEffectStarts = previousElement.TimedEffectStarts;
+
+                // Carried so a refresh leaves the reader where they were in a scrolling element's text, without handing it back to a typewriter they had taken it over from
+                element.ScrollLine = previousElement.ScrollLine;
+                element.HasScrolledByHand = previousElement.HasScrolledByHand;
+                element.ScrollBarShownAt = previousElement.ScrollBarShownAt;
 
                 CarryElementState(previousElement.Children, element.Children);
                 CarryElementState(previousElement.Background, element.Background);
@@ -1289,6 +1328,270 @@ namespace Parchment.Framework.UI.Menus
             return hitElement ?? Page.HitTest(page.Background, pageBounds, screenPosition, interactiveOnly: true);
         }
 
+        /// <summary>Finds the element under a point whose text can be scrolled, looking through the same lists in the same order as <see cref="GetElementAt"/>.</summary>
+        /// <param name="bounds">Where the element found sits on screen, which its scroll bar is placed against.</param>
+        private bool TryGetScrollableAt(Point screenPosition, [NotNullWhen(true)] out Element? element, out Rectangle bounds)
+        {
+            element = null;
+            bounds = Rectangle.Empty;
+
+            if (CurrentState is not (MenuState.Ready or MenuState.Cover or MenuState.Turning))
+            {
+                return false;
+            }
+
+            Rectangle bookBounds = GetBookScreenBounds();
+
+            element = Page.FindScrollableAt(Book.Overlay, bookBounds, screenPosition, out bounds);
+
+            // There are no pages to scroll while the book is shut or turning, only the book's own layers
+            if (element is null && CurrentState is MenuState.Ready)
+            {
+                element = FindScrollableOnPage(GetLeftPageIndex(), GetLeftPageBounds(), screenPosition, out bounds) ?? FindScrollableOnPage(GetRightPageIndex(), GetRightPageBounds(), screenPosition, out bounds);
+            }
+
+            if (element is null)
+            {
+                element = Page.FindScrollableAt(Book.Underlay, bookBounds, screenPosition, out bounds);
+            }
+
+            return element is not null;
+        }
+
+        private Element? FindScrollableOnPage(int pageIndex, Rectangle pageBounds, Point screenPosition, out Rectangle bounds)
+        {
+            bounds = Rectangle.Empty;
+
+            if (pageIndex >= _pages.Count)
+            {
+                return null;
+            }
+
+            Page page = _pages[pageIndex];
+
+            return Page.FindScrollableAt(page.Foreground, pageBounds, screenPosition, out bounds) ?? Page.FindScrollableAt(page.Elements, pageBounds, screenPosition, out bounds) ?? Page.FindScrollableAt(page.Background, pageBounds, screenPosition, out bounds);
+        }
+
+        /// <summary>Scrolls whatever scrolling element sits under the cursor by a number of lines. Reports whether anything moved.
+        /// Only a scroll that moved counts as the reader taking over from a typewriter, so pushing down against the bottom while a typewriter is being followed doesn't stop it being followed.
+        /// </summary>
+        /// <param name="isFromStick">Whether the right stick asked for it, which under snappy menus also puts the cursor back on the element, as the link it was standing on may have scrolled away.</param>
+        private bool TryScrollAtCursor(int lineCount, bool isFromStick)
+        {
+            Point cursorPosition = new Point(Game1.getMouseX(true), Game1.getMouseY(true));
+
+            if (TryGetScrollableAt(cursorPosition, out Element? element, out _) is false)
+            {
+                return false;
+            }
+
+            if (ScrollHelper.TryScrollBy(element, lineCount) is false)
+            {
+                return false;
+            }
+
+            element.HasScrolledByHand = true;
+
+            if (isFromStick && IsSnappingActive())
+            {
+                SnapToElement(element);
+            }
+
+            RefreshHoverAfterScroll();
+
+            return true;
+        }
+
+        /// <summary>Takes hold of the scroll bar under a press, if there is one. A press on the thumb starts dragging it and a press either side of it moves a page that way.
+        /// Reports whether the press landed on a bar, in which case nothing else is pressed by it.
+        /// </summary>
+        private bool TryPressScrollBar(int x, int y)
+        {
+            Point pressPosition = new Point(x, y);
+
+            if (TryGetScrollableAt(pressPosition, out Element? element, out Rectangle bounds) is false || element.ScrollLayout is not ScrollLayout scrollLayout)
+            {
+                return false;
+            }
+
+            ScrollHelper.ScrollBarGeometry geometry = ScrollHelper.GetScrollBarGeometry(element, scrollLayout, bounds);
+
+            if (geometry.HitArea.Contains(pressPosition) is false)
+            {
+                return false;
+            }
+
+            // Taking hold of the bar is the reader taking over, whether or not the text then moves
+            element.HasScrolledByHand = true;
+
+            if (y >= geometry.Thumb.Top && y < geometry.Thumb.Bottom)
+            {
+                _draggedScrollElement = element;
+                _draggedScrollBounds = bounds;
+                _scrollGrabOffset = y - geometry.Thumb.Top;
+                element.IsScrollBarDragging = true;
+
+                return true;
+            }
+
+            int pageLineCount = ScrollHelper.GetPageLineCount(element);
+
+            if (ScrollHelper.TryScrollBy(element, y < geometry.Thumb.Top ? -pageLineCount : pageLineCount))
+            {
+                RefreshHoverAfterScroll();
+            }
+
+            return true;
+        }
+
+        private void EndScrollBarDrag()
+        {
+            if (_draggedScrollElement is null)
+            {
+                return;
+            }
+
+            _draggedScrollElement.IsScrollBarDragging = false;
+
+            // Let go of, the bar waits from now before hiding rather than from when the drag last moved it
+            ScrollHelper.ShowScrollBar(_draggedScrollElement);
+            _draggedScrollElement = null;
+        }
+
+        /// <summary>Marks the scrolling element under the cursor and its scroll bar as hovered and the ones it left as not, so each bar draws its thumb in the right color and a bar that hides itself stays up while the cursor is on its text.</summary>
+        private void UpdateScrollBarHover(int x, int y)
+        {
+            Point cursorPosition = new Point(x, y);
+            Element? hoveredElement = null;
+            Element? hoveredAreaElement = null;
+
+            if (TryGetScrollableAt(cursorPosition, out Element? element, out Rectangle bounds) && element.ScrollLayout is ScrollLayout scrollLayout)
+            {
+                hoveredAreaElement = element;
+
+                if (ScrollHelper.GetScrollBarGeometry(element, scrollLayout, bounds).HitArea.Contains(cursorPosition))
+                {
+                    hoveredElement = element;
+                }
+            }
+
+            UpdateScrollAreaHover(hoveredAreaElement);
+
+            if (ReferenceEquals(_hoveredScrollBarElement, hoveredElement))
+            {
+                return;
+            }
+
+            if (_hoveredScrollBarElement is not null)
+            {
+                _hoveredScrollBarElement.IsScrollBarHovered = false;
+            }
+
+            _hoveredScrollBarElement = hoveredElement;
+
+            if (_hoveredScrollBarElement is not null)
+            {
+                _hoveredScrollBarElement.IsScrollBarHovered = true;
+            }
+        }
+
+        /// <summary>Moves the scroll area hover from one element to another. Both ends restart the bar's wait, so the one the cursor left holds a moment before hiding.</summary>
+        private void UpdateScrollAreaHover(Element? hoveredAreaElement)
+        {
+            if (ReferenceEquals(_hoveredScrollAreaElement, hoveredAreaElement))
+            {
+                return;
+            }
+
+            if (_hoveredScrollAreaElement is not null)
+            {
+                _hoveredScrollAreaElement.IsScrollAreaHovered = false;
+                ScrollHelper.ShowScrollBar(_hoveredScrollAreaElement);
+            }
+
+            _hoveredScrollAreaElement = hoveredAreaElement;
+
+            if (_hoveredScrollAreaElement is not null)
+            {
+                _hoveredScrollAreaElement.IsScrollAreaHovered = true;
+                ScrollHelper.ShowScrollBar(_hoveredScrollAreaElement);
+            }
+        }
+
+        /// <summary>Looks again at what is under the cursor once text has scrolled beneath it, so a link that scrolled away stops showing as hovered and one that scrolled in starts to.</summary>
+        private void RefreshHoverAfterScroll()
+        {
+            performHoverAction(Game1.getMouseX(true), Game1.getMouseY(true));
+        }
+
+        private static bool IsRightStickPushed()
+        {
+            return Math.Abs(Game1.input.GetGamePadState().ThumbSticks.Right.Y) > STICK_SCROLL_THRESHOLD;
+        }
+
+        /// <summary>Scrolls whatever scrolling element is under the cursor while the right stick is pushed up or down, once straight away and then repeating for as long as it's held.
+        /// The further it's pushed the quicker it repeats.
+        /// </summary>
+        private void UpdateStickScroll(float elapsedMilliseconds)
+        {
+            float stickY = Game1.input.GetGamePadState().ThumbSticks.Right.Y;
+
+            // Pushed up is positive, which moves back up the text
+            int direction = 0;
+
+            if (stickY > STICK_SCROLL_THRESHOLD)
+            {
+                direction = -1;
+            }
+            else if (stickY < -STICK_SCROLL_THRESHOLD)
+            {
+                direction = 1;
+            }
+
+            // A focused input has the stick for the same reason it has the keyboard
+            if (direction is 0 || _focusedInput is not null || CurrentState is not (MenuState.Ready or MenuState.Cover))
+            {
+                _stickScrollDirection = 0;
+                return;
+            }
+
+            if (direction != _stickScrollDirection)
+            {
+                _stickScrollDirection = direction;
+                _stickScrollTimer = STICK_SCROLL_INITIAL_DELAY;
+
+                TryScrollAtCursor(direction, isFromStick: true);
+                return;
+            }
+
+            _stickScrollTimer -= elapsedMilliseconds;
+
+            if (_stickScrollTimer > 0f)
+            {
+                return;
+            }
+
+            float tilt = Math.Clamp((Math.Abs(stickY) - STICK_SCROLL_THRESHOLD) / (1f - STICK_SCROLL_THRESHOLD), 0f, 1f);
+            _stickScrollTimer = MathHelper.Lerp(STICK_SCROLL_SLOWEST_INTERVAL, STICK_SCROLL_FASTEST_INTERVAL, tilt);
+
+            TryScrollAtCursor(direction, isFromStick: true);
+        }
+
+        /// <summary>Puts a controller's cursor on an element, so after scrolling the reader is standing on the text they scrolled rather than on a link that has moved out from under them.</summary>
+        private void SnapToElement(Element element)
+        {
+            CollectSnapTargets();
+
+            foreach (SnapTarget candidate in _snapTargets)
+            {
+                if (ReferenceEquals(candidate.Element, element))
+                {
+                    ApplySnapTarget(candidate);
+                    return;
+                }
+            }
+        }
+
         // The vanilla direction values, as they arrive through applyMovementKey
         private const int DIRECTION_UP = 0;
         private const int DIRECTION_RIGHT = 1;
@@ -1867,6 +2170,15 @@ namespace Parchment.Framework.UI.Menus
 
             TypewriterHelper.RefreshLinkReveal(spreadElements, time);
 
+            // A scrolling element moves down to a line in the same tick its first character appears, so the reader never watches text type out of view
+            bool hasFollowedTyping = FollowTyping(Book.TypewriterElements, time);
+            hasFollowedTyping |= FollowTyping(spreadElements, time);
+
+            if (hasFollowedTyping)
+            {
+                RefreshHoverAfterScroll();
+            }
+
             string? sound = TypewriterHelper.TakeSound(Book.TypewriterElements, time) ?? (isSpreadSettled ? TypewriterHelper.TakeSound(spreadElements, time) : null);
 
             // The player's own typing sound option decides, the same as it does for the game's dialogue
@@ -1880,6 +2192,19 @@ namespace Parchment.Framework.UI.Menus
             {
                 RunTypedActions(CollectSpreadTypewriterElements());
             }
+        }
+
+        /// <summary>Scrolls each scrolling element among the given ones down to whatever its typewriter is typing. Reports whether any of them moved.</summary>
+        private static bool FollowTyping(IReadOnlyList<Element> elements, double time)
+        {
+            bool hasAnyMoved = false;
+
+            foreach (Element element in elements)
+            {
+                hasAnyMoved |= ScrollHelper.FollowTyping(element, time);
+            }
+
+            return hasAnyMoved;
         }
 
         /// <summary>Runs the typed actions of every element whose typewriters have all finished and haven't run them yet this reading. Only called for what is on screen and settled,
@@ -2905,6 +3230,12 @@ namespace Parchment.Framework.UI.Menus
                 return;
             }
 
+            // A scroll bar is taken hold of before anything else, so pressing it moves the text rather than finishing a typewriter or clicking through to the page
+            if (CurrentState is (MenuState.Ready or MenuState.Cover) && TryPressScrollBar(x, y))
+            {
+                return;
+            }
+
             if (CurrentState == MenuState.Cover)
             {
                 if (TryFinishTyping(includeSpread: false))
@@ -2997,8 +3328,57 @@ namespace Parchment.Framework.UI.Menus
             }
         }
 
+        public override void leftClickHeld(int x, int y)
+        {
+            base.leftClickHeld(x, y);
+
+            if (_draggedScrollElement is not Element element || element.ScrollLayout is not ScrollLayout scrollLayout)
+            {
+                return;
+            }
+
+            // Measured from where the cursor took hold of the thumb, so the thumb doesn't jump to put its top under the cursor
+            int line = ScrollHelper.GetLineAtThumbTop(element, scrollLayout, _draggedScrollBounds, y - _scrollGrabOffset);
+
+            if (ScrollHelper.TryScrollTo(element, line))
+            {
+                RefreshHoverAfterScroll();
+            }
+        }
+
+        public override void releaseLeftClick(int x, int y)
+        {
+            base.releaseLeftClick(x, y);
+
+            EndScrollBarDrag();
+        }
+
+        public override void receiveScrollWheelAction(int direction)
+        {
+            base.receiveScrollWheelAction(direction);
+
+            if (direction is 0 || CurrentState is not (MenuState.Ready or MenuState.Cover))
+            {
+                return;
+            }
+
+            // The right stick is read on its own every tick, so a wheel turn arriving while it's pushed is taken as the game handing the stick along rather than a second scroll
+            if (IsRightStickPushed())
+            {
+                return;
+            }
+
+            int lineCount = Math.Max(1, Math.Abs(direction) / WHEEL_NOTCH_DELTA) * WHEEL_SCROLL_LINE_COUNT;
+
+            // A positive turn is the wheel rolled away from the reader, which moves back up the text
+            TryScrollAtCursor(direction > 0 ? -lineCount : lineCount, isFromStick: false);
+        }
+
         public override void performHoverAction(int x, int y)
         {
+            // Followed in every state, so a bar the book stops showing (once it starts to turn or shut) doesn't keep its hover color for when it comes back
+            UpdateScrollBarHover(x, y);
+
             // Neither state has pages to hover, one because the book is shut and the other because they are mid-turn, so only the book's own layers are followed and the corner hotspots stay dark
             if (CurrentState is MenuState.Cover or MenuState.Turning)
             {
@@ -3051,6 +3431,8 @@ namespace Parchment.Framework.UI.Menus
 
             // Followed in every state too, as the keyboard is put up over whatever the book was doing and the text it holds is wanted back either way
             UpdateTextEntry();
+
+            UpdateStickScroll(elapsedMilliseconds);
 
             if (CurrentState is MenuState.Sliding)
             {

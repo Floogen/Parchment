@@ -38,6 +38,19 @@ namespace Parchment.Framework.API
         /// <param name="linkId">The id the markup names, as in [link=linkId]...[/link].</param>
         ILinkBuilder AddLink(string linkId);
 
+        /// <summary>How the scroll bar looks on any Paragraph in the book that scrolls without a ScrollBar of its own. A paragraph's own replaces this one whole, the same as a link does.
+        /// Every argument is optional, one left out keeps its default and calling this again adds to what earlier calls set.
+        /// </summary>
+        /// <param name="width">How wide the bar is drawn, in unscaled pixels multiplied by the paragraph's scale.</param>
+        /// <param name="gap">The room left between the text and the bar, in unscaled pixels multiplied by the paragraph's scale.</param>
+        /// <param name="color">The thumb's color. Defaults to the paragraph's text color at a low strength.</param>
+        /// <param name="hoverColor">The thumb's color while the cursor is over the bar.</param>
+        /// <param name="activeColor">The thumb's color while it is being dragged.</param>
+        /// <param name="trackColor">The color of the channel the thumb runs along. Without one, only the thumb is drawn.</param>
+        /// <param name="autoHide">Whether the bar fades out while the reader leaves the text alone, coming back while the cursor is over the text and whenever it scrolls.</param>
+        /// <param name="hideAfter">How long the bar stays up once left alone before it starts to fade, in seconds.</param>
+        IBookBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null, bool? autoHide = null, float? hideAfter = null);
+
         /// <summary>Adds a keybind pressed on any page of this book and returns its builder, taking the button over from the menu.
         /// A page binding the same button wins, and this is left alone while that page is on screen.
         /// At least one Action is required, and a keybind without one is reported when the book is registered.

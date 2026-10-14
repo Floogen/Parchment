@@ -1,11 +1,13 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Parchment.Framework.Models;
 using Parchment.Framework.Models.Data;
 using Parchment.Framework.Models.Data.Links;
 using Parchment.Framework.Models.Enums;
 using Parchment.Framework.Models.Interfaces;
+using Parchment.Framework.UI.Fonts;
 using Parchment.Framework.UI.Layouts;
 using StardewModdingAPI;
+using StardewValley;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -15,7 +17,7 @@ using System.Text.RegularExpressions;
 
 namespace Parchment.Framework.Utilities.Helpers
 {
-    /// <summary>Reads the [color=...], [link=...] and effect markup (such as [wave] or [gradient]) an author can write into an element's text.
+    /// <summary>Reads the [color=...], [link=...], effect (such as [wave] or [gradient]) and language (such as [dwarvish]) markup an author can write into an element's text.
     /// The markup is read out of the authored text before any token resolves. It stands in the text as marker characters while the tokens do.
     /// That keeps the game from ever seeing it as one of its [Token] forms. It also means a value a token brings in (out of something the player typed, say) can never open a run of its own.
     /// </summary>
@@ -28,6 +30,12 @@ namespace Parchment.Framework.Utilities.Helpers
         public const char EFFECT_OPEN_MARKER = '\u0006';
         public const char EFFECT_CLOSE_MARKER = '\u0007';
         public const char PAUSE_MARKER = '\u0008';
+
+        // Skips tab through carriage return (\u0009 to \u000D), as those are characters the text can hold for itself
+        public const char DWARVISH_OPEN_MARKER = '\u000E';
+        public const char DWARVISH_CLOSE_MARKER = '\u000F';
+        public const char JUNIMO_OPEN_MARKER = '\u0010';
+        public const char JUNIMO_CLOSE_MARKER = '\u0011';
 
         public const float DEFAULT_WAVE_AMPLITUDE = 2f;
         public const float DEFAULT_WAVE_PERIOD = 1000f;
@@ -87,12 +95,20 @@ namespace Parchment.Framework.Utilities.Helpers
 
         private const string COLOR_TAG = "color";
         private const string LINK_TAG = "link";
+        private const string DWARVISH_TAG = "dwarvish";
+        private const string JUNIMO_TAG = "junimo";
+
+        // The mail flag the game sets once the Wizard has taught the player to read the Junimos' notes
+        private const string JUNIMO_READING_MAIL = "canReadJunimoText";
+
+        // The part of a language tag's value that forces its text to stay unreadable whether or not the player knows the language, leaving only its condition to decide, such as [junimo=force]
+        private const string LANGUAGE_FORCE_OPTION = "force";
 
         // An opening [color] or [link] always carries a value and a closing tag never does, so a bare [color] or [link] is left as the text it is.
-        // An effect such as [wave] may go bare, since its value only adjusts it
-        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow|wobble|pop)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow|wobble|pop)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        // An effect such as [wave] may go bare, since its value only adjusts it. So may a language such as [dwarvish] or [junimo], whose only part is a condition
+        private static readonly Regex _markupPattern = new Regex(@"\[(?<tag>color|link)=(?<value>[^\[\]]*)\]|\[(?<effect>wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow|wobble|pop)(?:=(?<effectValue>[^\[\]]*))?\]|\[/(?<closingTag>color|link|wave|shake|rainbow|bounce|gradient|pulse|typewriter|underline|strike|highlight|redact|scramble|bold|shimmer|flicker|fade|sparkle|outline|glow|wobble|pop|dwarvish|junimo)\]|\[(?<pause>pause)(?:=(?<pauseValue>[^\[\]]*))?\]|\[(?<language>dwarvish|junimo)(?:=(?<languageValue>[^\[\]]*))?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER };
+        private static readonly char[] _markerCharacters = new char[] { COLOR_OPEN_MARKER, COLOR_CLOSE_MARKER, LINK_OPEN_MARKER, LINK_CLOSE_MARKER, EFFECT_OPEN_MARKER, EFFECT_CLOSE_MARKER, PAUSE_MARKER, DWARVISH_OPEN_MARKER, DWARVISH_CLOSE_MARKER, JUNIMO_OPEN_MARKER, JUNIMO_CLOSE_MARKER };
 
         /// <summary>A link tag as it was read, being which occurrence it is (-1 for one that names nothing the element defines) and the color it draws its text in.</summary>
         private readonly record struct OpenedLink(int Occurrence, Color? Color, IReadOnlyList<OpenedEffect> HoverEffects)
@@ -132,7 +148,13 @@ namespace Parchment.Framework.Utilities.Helpers
             public List<TextEffectType> ClosedEffects { get; } = new List<TextEffectType>();
             public List<(float Duration, string? Condition)> Pauses { get; } = new List<(float Duration, string? Condition)>();
 
-            public bool IsEmpty => OpenedColors.Count is 0 && OpenedLinks.Count is 0 && OpenedEffects.Count is 0;
+            // Whether each [dwarvish] converts its text, being false when its condition failed or the player already understands the dwarves
+            public List<bool> OpenedDwarvish { get; } = new List<bool>();
+
+            // Whether each [junimo] writes its text in the Junimo script, being false when its condition failed or the player can already read it
+            public List<bool> OpenedJunimo { get; } = new List<bool>();
+
+            public bool IsEmpty => OpenedColors.Count is 0 && OpenedLinks.Count is 0 && OpenedEffects.Count is 0 && OpenedDwarvish.Count is 0 && OpenedJunimo.Count is 0;
         }
 
         /// <summary>The conditions written into authored text's tags with a "condition=" part, in the order the tags appear, leaving out a typewriter's.
@@ -160,7 +182,7 @@ namespace Parchment.Framework.Utilities.Helpers
                     continue;
                 }
 
-                string? value = match.Groups["value"].Success ? match.Groups["value"].Value : match.Groups["effectValue"].Success ? match.Groups["effectValue"].Value : null;
+                string? value = match.Groups["value"].Success ? match.Groups["value"].Value : match.Groups["effectValue"].Success ? match.Groups["effectValue"].Value : match.Groups["languageValue"].Success ? match.Groups["languageValue"].Value : null;
                 ExtractCondition(value, out string? condition);
 
                 if (condition is not null)
@@ -456,6 +478,8 @@ namespace Parchment.Framework.Utilities.Helpers
             int colorDepth = 0;
             int linkDepth = 0;
             Dictionary<TextEffectType, int> effectDepths = new Dictionary<TextEffectType, int>();
+            int dwarvishDepth = 0;
+            int junimoDepth = 0;
             int nextOccurrence = 0;
             int nextConditionIndex = 0;
             bool hasStrayClose = false;
@@ -531,7 +555,56 @@ namespace Parchment.Framework.Utilities.Helpers
                     return PAUSE_MARKER.ToString();
                 }
 
+                if (match.Groups["language"].Success)
+                {
+                    bool isJunimo = string.Equals(match.Groups["language"].Value, JUNIMO_TAG, StringComparison.OrdinalIgnoreCase);
+                    string languageTag = isJunimo ? JUNIMO_TAG : DWARVISH_TAG;
+
+                    string? languageValue = ExtractCondition(match.Groups["languageValue"].Success ? match.Groups["languageValue"].Value : null, out string? languageCondition);
+                    bool isForced = ReadLanguageOptions(languageValue, languageTag, text);
+
+                    // The condition is checked first and always, so it keeps its place among the element's conditions even when the player already knows the language
+                    bool isConditionMet = IsConditionMet(languageCondition, element, ref nextConditionIndex);
+
+                    if (isJunimo)
+                    {
+                        junimoDepth++;
+                        record.OpenedJunimo.Add(isConditionMet && (isForced || CanReadJunimo() is false));
+
+                        return JUNIMO_OPEN_MARKER.ToString();
+                    }
+
+                    dwarvishDepth++;
+                    record.OpenedDwarvish.Add(isConditionMet && (isForced || CanUnderstandDwarves() is false));
+
+                    return DWARVISH_OPEN_MARKER.ToString();
+                }
+
                 string closingTag = match.Groups["closingTag"].Value;
+
+                if (string.Equals(closingTag, DWARVISH_TAG, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (dwarvishDepth is 0)
+                    {
+                        hasStrayClose = true;
+                        return string.Empty;
+                    }
+
+                    dwarvishDepth--;
+                    return DWARVISH_CLOSE_MARKER.ToString();
+                }
+
+                if (string.Equals(closingTag, JUNIMO_TAG, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (junimoDepth is 0)
+                    {
+                        hasStrayClose = true;
+                        return string.Empty;
+                    }
+
+                    junimoDepth--;
+                    return JUNIMO_CLOSE_MARKER.ToString();
+                }
 
                 if (string.Equals(closingTag, COLOR_TAG, StringComparison.OrdinalIgnoreCase))
                 {
@@ -574,7 +647,7 @@ namespace Parchment.Framework.Utilities.Helpers
                 Parchment.monitor.LogOnce($"'{text}' has a closing tag with nothing open before it, so it was dropped.", LogLevel.Warn);
             }
 
-            if (colorDepth > 0 || linkDepth > 0 || effectDepths.Values.Any(depth => depth > 0))
+            if (colorDepth > 0 || linkDepth > 0 || dwarvishDepth > 0 || junimoDepth > 0 || effectDepths.Values.Any(depth => depth > 0))
             {
                 Parchment.monitor.LogOnce($"'{text}' has a tag that is never closed, so it runs to the end of the text.", LogLevel.Warn);
             }
@@ -585,6 +658,42 @@ namespace Parchment.Framework.Utilities.Helpers
         private static bool TryGetEffectType(string tag, out TextEffectType effectType)
         {
             return Enum.TryParse(tag, ignoreCase: true, out effectType);
+        }
+
+        /// <summary>Reads a language tag's value once its condition is taken out, being whether it holds "force". Any other part is ignored with a warning, as a language tag takes nothing else.</summary>
+        private static bool ReadLanguageOptions(string? value, string tag, string source)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            bool isForced = false;
+
+            foreach (string part in value.Split(VALUE_SEPARATOR, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (string.Equals(part, LANGUAGE_FORCE_OPTION, StringComparison.OrdinalIgnoreCase))
+                {
+                    isForced = true;
+                    continue;
+                }
+
+                Parchment.monitor.LogOnce($"'{source}' has a [{tag}] part of '{part}', which isn't one it takes, so it was ignored. Try \"{LANGUAGE_FORCE_OPTION}\" or \"{CONDITION_PART}=...\".{GetSeparatorHint(part, tag)}", LogLevel.Warn);
+            }
+
+            return isForced;
+        }
+
+        /// <summary>Whether the player can read the dwarves' language, which they learn from the Dwarvish Translation Guide. No player (as on the title screen) can't.</summary>
+        private static bool CanUnderstandDwarves()
+        {
+            return Game1.player?.canUnderstandDwarves is true;
+        }
+
+        /// <summary>Whether the player can read the Junimo script, which the Wizard teaches them before they first read the Junimos' notes. No player (as on the title screen) can't.</summary>
+        private static bool CanReadJunimo()
+        {
+            return Game1.player?.hasOrWillReceiveMail(JUNIMO_READING_MAIL) is true;
         }
 
         /// <summary>Reads an effect tag's optional value, whose parts are always separated by a |. A wave, shake or bounce takes its amplitude and then its period, a wobble takes its angle in degrees and then its period, a pop takes how much it swells and then its period, a rainbow takes only its period,
@@ -1228,6 +1337,19 @@ namespace Parchment.Framework.Utilities.Helpers
             int nextTypingOrdinal = 0;
             int nextTimedOrdinal = 0;
             int nextPauseIndex = 0;
+            int nextDwarvishIndex = 0;
+
+            // Whether each [dwarvish] still open converts its text, innermost last. Nested ones convert only once, however many are open
+            List<bool> openDwarvish = new List<bool>();
+            int activeDwarvishDepth = 0;
+
+            // Converted a stretch at a time rather than a character at a time, as the game's conversion doesn't always turn one character into one character
+            StringBuilder pendingDwarvish = new StringBuilder();
+
+            // Whether each [junimo] still open writes in the script, innermost last. One inside another changes nothing more
+            int nextJunimoIndex = 0;
+            List<bool> openJunimo = new List<bool>();
+            int activeJunimoDepth = 0;
 
             Color? currentColor = null;
             int colorRunStart = 0;
@@ -1238,6 +1360,16 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (char character in resolvedText)
             {
+                // A line break is kept as it is, so the converted text still breaks where the author put it
+                if (activeDwarvishDepth > 0 && character is not '\n' && Array.IndexOf(_markerCharacters, character) < 0)
+                {
+                    pendingDwarvish.Append(character);
+                    continue;
+                }
+
+                // Every marker counts its place from the plain text, so whatever is waiting to be converted goes in first
+                FlushDwarvish();
+
                 switch (character)
                 {
                     case COLOR_OPEN_MARKER:
@@ -1280,6 +1412,56 @@ namespace Parchment.Framework.Utilities.Helpers
 
                         // Takes no room in the text, so nothing about the runs around it changes
                         continue;
+                    case DWARVISH_OPEN_MARKER:
+                        bool isDwarvishActive = nextDwarvishIndex < record.OpenedDwarvish.Count && record.OpenedDwarvish[nextDwarvishIndex];
+                        nextDwarvishIndex++;
+
+                        openDwarvish.Add(isDwarvishActive);
+
+                        if (isDwarvishActive)
+                        {
+                            activeDwarvishDepth++;
+                        }
+
+                        // Changes the characters rather than how they draw, so nothing about the runs around it changes
+                        continue;
+                    case DWARVISH_CLOSE_MARKER:
+                        if (openDwarvish.Count is not 0)
+                        {
+                            if (openDwarvish[^1])
+                            {
+                                activeDwarvishDepth--;
+                            }
+
+                            openDwarvish.RemoveAt(openDwarvish.Count - 1);
+                        }
+
+                        continue;
+                    case JUNIMO_OPEN_MARKER:
+                        bool isJunimoActive = nextJunimoIndex < record.OpenedJunimo.Count && record.OpenedJunimo[nextJunimoIndex];
+                        nextJunimoIndex++;
+
+                        openJunimo.Add(isJunimoActive);
+
+                        if (isJunimoActive)
+                        {
+                            activeJunimoDepth++;
+                        }
+
+                        // Swaps the characters for the script's stand-ins without changing their count, so nothing about the runs around it changes
+                        continue;
+                    case JUNIMO_CLOSE_MARKER:
+                        if (openJunimo.Count is not 0)
+                        {
+                            if (openJunimo[^1])
+                            {
+                                activeJunimoDepth--;
+                            }
+
+                            openJunimo.RemoveAt(openJunimo.Count - 1);
+                        }
+
+                        continue;
                     case COLOR_CLOSE_MARKER:
                         CloseInnermost(tag => tag.Kind is TagKind.Color);
                         break;
@@ -1306,7 +1488,7 @@ namespace Parchment.Framework.Utilities.Helpers
                         nextClosedEffectIndex++;
                         break;
                     default:
-                        plainText.Append(character);
+                        AppendPlain(character);
                         continue;
                 }
 
@@ -1314,6 +1496,9 @@ namespace Parchment.Framework.Utilities.Helpers
                 ChangeOccurrence(GetInnermostOccurrence());
                 ChangeEffects(GetOpenEffects());
             }
+
+            // A [dwarvish] left open runs to the end of the text, so its last stretch is still waiting here
+            FlushDwarvish();
 
             ChangeColor(null);
             ChangeOccurrence(-1);
@@ -1329,6 +1514,27 @@ namespace Parchment.Framework.Utilities.Helpers
             }
 
             return new StyledText(plainText.ToString(), colorRuns, linkRuns, effectRuns, BuildLinkHoverEffects(hoverLinkSpans, plainText.Length));
+
+            void FlushDwarvish()
+            {
+                if (pendingDwarvish.Length is 0)
+                {
+                    return;
+                }
+
+                foreach (char convertedCharacter in Dialogue.convertToDwarvish(pendingDwarvish.ToString()))
+                {
+                    AppendPlain(convertedCharacter);
+                }
+
+                pendingDwarvish.Clear();
+            }
+
+            // Inside a [junimo] each character becomes its stand-in, one for one, which is what lets the font tell the script apart from the rest of the text
+            void AppendPlain(char plainCharacter)
+            {
+                plainText.Append(activeJunimoDepth > 0 ? JunimoScript.ToGlyph(plainCharacter) : plainCharacter);
+            }
 
             OpenTag? CloseInnermost(Predicate<OpenTag> isMatch)
             {

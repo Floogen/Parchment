@@ -10,6 +10,7 @@ Every book Parchment opens can be read on a controller. Nothing has to be author
 | ++"A"++ | Acts on whatever the cursor is standing on, the same as a left click. |
 | ++"B"++ | Closes the book. Held for three seconds when a page has taken the button over. |
 | ++"LT"++ / ++"RT"++ | Turns back a page and forward a page. |
+| Right stick | Scrolls a [scrolling paragraph](../reference/elements/paragraph.md#scrolling) under the cursor. Pushed further, it scrolls faster. |
 
 The triggers are offered after the page's own [keybinds](../reference/page.md), so a book that binds `LeftTrigger` or `RightTrigger` for itself keeps them and no page is turned underneath it.
 
@@ -24,11 +25,14 @@ An element is worth stopping at when hovering or clicking it would do something,
 - a `HoverTextureSourceRectangle` or `HoverFrames`
 - any `Tags`
 - `IsAlwaysInteractive` set to `true`
+- text to scroll, being a [`Paragraph`](../reference/elements/paragraph.md#scrolling) with a `Height` its text runs past
 
 Everything else is stepped over. `IgnoreCursor` takes an element out of the walk entirely, the same as it does for the mouse.
 
 !!! tip
-    A page of nothing but paragraphs has nothing to stop at, which is correct: there is nothing on it to press. The reader turns through it with the triggers.
+    A page of nothing but paragraphs has nothing to stop at, which is correct: there is nothing on it to press. The reader turns through it with the triggers. The exception is a paragraph with text to scroll, which the reader needs to reach before the right stick can scroll it.
+
+Scrolling with the right stick puts the cursor back on the paragraph being scrolled, since the link it was standing on may have scrolled out of view.
 
 The page turn corners are stepped onto like anything else, while there is a page that way, so a reader can reach them without knowing the triggers exist.
 

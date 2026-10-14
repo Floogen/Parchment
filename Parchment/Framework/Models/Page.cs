@@ -60,13 +60,14 @@ namespace Parchment.Framework.Models
         public List<Element> FrameActionElements { get; }
 
         /// <param name="bookLinks">The links the book defines, which any text element on the page can point at alongside its own.</param>
-        public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null)
+        /// <param name="bookScrollBar">The scroll bar the book defines, which any Paragraph on the page falls back to when it doesn't give its own.</param>
+        public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null, ScrollBarData? bookScrollBar = null)
         {
             Data = data;
             Index = index;
-            Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver, bookLinks);
-            Background = ElementFactory.CreateList(Data.Background, registry, fontResolver, bookLinks);
-            Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver, bookLinks);
+            Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver, bookLinks, bookScrollBar);
+            Background = ElementFactory.CreateList(Data.Background, registry, fontResolver, bookLinks, bookScrollBar);
+            Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver, bookLinks, bookScrollBar);
 
             FrameActionElements = new List<Element>();
             AnimationHelper.CollectFrameActionElements(Elements, FrameActionElements);
@@ -404,6 +405,46 @@ namespace Parchment.Framework.Models
 
                 return element;
             }
+
+            return null;
+        }
+
+        /// <summary>Finds the innermost element under a point whose text can be scrolled, walking the lists in the same order <see cref="HitTest"/> does.
+        /// Looked for separately from what the cursor is over, as the cursor usually rests on a link inside the text rather than on the element scrolling it.
+        /// An element with <see cref="ElementData.IgnoreCursor"/> is passed by, the same as it is for a click.
+        /// </summary>
+        /// <param name="scrollableBounds">Where the element found sits on screen (an empty rectangle when nothing was).</param>
+        public static Element? FindScrollableAt(IReadOnlyList<Element> elements, Rectangle containerBounds, Point screenPosition, out Rectangle scrollableBounds)
+        {
+            foreach (Element element in elements)
+            {
+                if (element.Bounds == Rectangle.Empty)
+                {
+                    continue;
+                }
+
+                Rectangle screenBounds = new Rectangle(element.Bounds.X + containerBounds.X, element.Bounds.Y + containerBounds.Y, element.Bounds.Width, element.Bounds.Height);
+                Rectangle contentBounds = element.Renderer.GetContentBounds(element, screenBounds);
+
+                if (GetHitBounds(element, screenBounds, contentBounds).Contains(screenPosition) is false)
+                {
+                    continue;
+                }
+
+                Element? nestedElement = FindScrollableAt(element.Foreground, contentBounds, screenPosition, out scrollableBounds) ?? FindScrollableAt(element.Children, contentBounds, screenPosition, out scrollableBounds) ?? FindScrollableAt(element.Background, contentBounds, screenPosition, out scrollableBounds);
+                if (nestedElement is not null)
+                {
+                    return nestedElement;
+                }
+
+                if (ScrollHelper.CanScroll(element) && element.Data.IgnoreCursor is false && screenBounds.Contains(screenPosition))
+                {
+                    scrollableBounds = screenBounds;
+                    return element;
+                }
+            }
+
+            scrollableBounds = Rectangle.Empty;
 
             return null;
         }

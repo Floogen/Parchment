@@ -201,6 +201,38 @@ namespace Parchment.Framework.Models
         /// <summary>Whether this element currently has keyboard focus. Only an Input takes focus, and only one element in the book holds it at a time.</summary>
         public bool IsFocused { get; set; }
 
+        /// <summary>How this element's scroll bar looks, being its own when it has one and its book's otherwise. Null for anything that isn't a Paragraph. Also null for a Paragraph given neither, which then takes the default bar.
+        /// Settled once when the element is built, so the renderer never has to know which book it is in.
+        /// </summary>
+        public ScrollBarData? ScrollBar { get; init; }
+
+        /// <summary>How this element's text sits in its window, for an element given a fixed height to show its text through. Null for everything else, which shows all of its text at once.
+        /// Rebuilt whenever the element is laid out, while <see cref="ScrollLine"/> is kept on the element so the reader's place survives the layout running again.
+        /// </summary>
+        public ScrollLayout? ScrollLayout { get; set; }
+
+        /// <summary>The first line in view of a scrolling element's text, as the reader last left it. Read through <see cref="ScrollHelper.GetFirstLine"/>, which holds it to the lines the window can start from as the text stands now.
+        /// Carried across a refresh so rebuilding the book doesn't send the reader back to the top.
+        /// </summary>
+        public int ScrollLine { get; set; }
+
+        /// <summary>Whether the reader has scrolled this element themselves, which stops it following a typewriter down its text. Carried across a refresh for the same reason as <see cref="ScrollLine"/>.</summary>
+        public bool HasScrolledByHand { get; set; }
+
+        /// <summary>Whether the cursor is over this element's scroll bar, which draws the thumb in its hover color.</summary>
+        public bool IsScrollBarHovered { get; set; }
+
+        /// <summary>Whether this element's scroll bar thumb is being dragged, which draws it in its active color.</summary>
+        public bool IsScrollBarDragging { get; set; }
+
+        /// <summary>Whether the cursor is anywhere over this scrolling element, links in its text included, which keeps a bar that hides itself in view.</summary>
+        public bool IsScrollAreaHovered { get; set; }
+
+        /// <summary>When this element's scroll bar was last brought into view, on the animation clock, being the last time the text scrolled or the cursor left it.
+        /// A bar that hides itself starts counting down from here. Carried across a refresh so rebuilding the book doesn't bring every bar back up.
+        /// </summary>
+        public double ScrollBarShownAt { get; set; } = double.MinValue;
+
         /// <summary>Whether an element on a timer is still within it. Always true for one without a <see cref="ElementData.Lifetime"/>, which is every element that stays put.</summary>
         public bool IsWithinLifetime
         {
@@ -251,11 +283,11 @@ namespace Parchment.Framework.Models
             }
         }
 
-        /// <summary>Whether this element does anything when the cursor reaches it, whether that is a tooltip, an action, a swap to hover art or a hover text color.
+        /// <summary>Whether this element does anything when the cursor reaches it, whether that is a tooltip, an action, a swap to hover art, a hover text color or text to scroll through.
         /// Absolutely positioned layers such as <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/> use this so purely decorative art passes the cursor through to whatever sits under it.
         /// Always false when <see cref="ElementData.IgnoreCursor"/> is set, since that element is stepped over wherever it sits.
         /// </summary>
-        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data.Tags is not null && Data.Tags.Count is not 0) || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0) || HoverTextColor is not null);
+        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data.Tags is not null && Data.Tags.Count is not 0) || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0) || HoverTextColor is not null || ScrollHelper.CanScroll(this));
 
         /// <summary>The shadow to draw behind text of the given color, where <paramref name="drawnTextColor"/> is the text color as it will actually be drawn, after any fade.
         /// Without a given <see cref="ShadowColor"/> the game's own follows the text's alpha, which is what keeps a translucent or fading element from leaving its shadow behind.

@@ -125,7 +125,26 @@ namespace Parchment.Framework.API
         /// <summary>Sets the element's width, in unscaled pixels multiplied by its scale. On a Panel, Divider or Banner this is only used when Sizing is "Fixed".
         /// On a Paragraph it applies on its own, wrapping the text at that width and reserving it.</summary>
         IElementBuilder Width(int width);
+
+        /// <summary>Sets the element's height, in unscaled pixels multiplied by its scale. Taken by a Panel and an Input.
+        /// On a Paragraph it shows the text through a window that tall, with whatever runs past the bottom handled by Overflow.</summary>
         IElementBuilder Height(int height);
+
+        /// <summary>What a Paragraph with a Height does with text that runs past the bottom: "Scroll" (the default) to let the reader scroll it into view or "Truncate" to leave it out.</summary>
+        IElementBuilder Overflow(string overflow);
+
+        /// <summary>How a scrolling Paragraph's scroll bar looks. This replaces the book's ScrollBar whole for this paragraph, the same as a link does, so an argument left out keeps the built-in default rather than the book's.
+        /// Every argument is optional and calling this again adds to what earlier calls set.
+        /// </summary>
+        /// <param name="width">How wide the bar is drawn, in unscaled pixels multiplied by the element's scale.</param>
+        /// <param name="gap">The room left between the text and the bar, in unscaled pixels multiplied by the element's scale.</param>
+        /// <param name="color">The thumb's color. Defaults to the text color at a low strength.</param>
+        /// <param name="hoverColor">The thumb's color while the cursor is over the bar.</param>
+        /// <param name="activeColor">The thumb's color while it is being dragged.</param>
+        /// <param name="trackColor">The color of the channel the thumb runs along. Without one, only the thumb is drawn.</param>
+        /// <param name="autoHide">Whether the bar fades out while the reader leaves the text alone, coming back while the cursor is over the text and whenever it scrolls.</param>
+        /// <param name="hideAfter">How long the bar stays up once left alone before it starts to fade, in seconds.</param>
+        IElementBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null, bool? autoHide = null, float? hideAfter = null);
         IElementBuilder Padding(int padding);
 
         /// <summary>How many cells sit side by side in a Grid before the next row starts.</summary>
