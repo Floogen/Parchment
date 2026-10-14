@@ -18,6 +18,9 @@ namespace Parchment.Framework.API.Builders
     {
         private readonly string _elementType;
         private readonly List<(string Field, object? Value)> _fields = new List<(string Field, object? Value)>();
+
+        // Whether ScrollBar has put a bar in place for its fields to be set on
+        private bool _hasScrollBar;
         private readonly List<ElementBuilder> _children = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _background = new List<ElementBuilder>();
         private readonly List<ElementBuilder> _foreground = new List<ElementBuilder>();
@@ -156,6 +159,13 @@ namespace Parchment.Framework.API.Builders
 
         public IElementBuilder ScrollBar(int? width = null, int? gap = null, string? color = null, string? hoverColor = null, string? activeColor = null, string? trackColor = null, bool? autoHide = null, float? hideAfter = null)
         {
+            // A paragraph's bar starts unset so the book's can apply, so one is put in place the first time this is called and every later call adds to it
+            if (_hasScrollBar is false)
+            {
+                Set("ScrollBar", new ScrollBarData());
+                _hasScrollBar = true;
+            }
+
             // Only what was given is set, so each field left out keeps the default the bar already holds
             if (width is int givenWidth)
             {

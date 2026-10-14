@@ -174,6 +174,7 @@ A callback which throws is logged and the book opens as it stood, rather than th
 | `AddVariable(variableId)` | Declares a [variable](variables.md) and returns its builder. Readable straight away, before the book is registered or opened. |
 | `OnKeyPress(keybind)` | Adds a key pressed on any page of the book, or on its shut cover, and returns its [keybind builder](#the-keybind-builder). A page binding the same key takes it over. |
 | `AddLink(linkId)` | Adds a [shared link](elements/index.md#shared-links) any text element in the book can point at. Returns its [link builder](#the-link-builder). An element's own link with the same id replaces it for that element. |
+| `ScrollBar(width, gap, color, hoverColor, activeColor, trackColor, autoHide, hideAfter)` | The book's [`ScrollBar`](elements/paragraph.md#one-bar-for-the-whole-book), used by any scrolling paragraph without one of its own. Every argument is optional and one left out keeps its default. |
 | `OnRefresh(onRefresh)` | What to run when the book is asked to rebuild. See [Refreshing an open book](#refreshing-an-open-book). |
 | `OnOpening(onOpening)` | What to run just before the book is put on screen. See [Rebuilding before the book opens](#rebuilding-before-the-book-opens). |
 | `TryRegister(out error)` | Validates and registers the book. |
@@ -358,6 +359,8 @@ cover.AddImage("you.CampingGuide/tent").Set("Rotation", 0.2f).Set("SpriteEffects
 ```
 
 Names are matched ignoring case, and enums are given as strings. A dotted path walks into a nested group, which is how the book's `Appearance`, `Layout`, `PageCurl` and `Animation` groups are reached.
+
+A `ScrollBar`, on the book or on a paragraph, starts unset so a paragraph can fall back to the book's. Call `ScrollBar(...)` before reaching into one with a dotted path such as `"ScrollBar.Color"`, since there is nothing there to set until it does.
 
 Because `Set` reads the field names off the model, anything the JSON schema gains works here immediately, without waiting for a matching builder method.
 

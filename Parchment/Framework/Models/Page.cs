@@ -60,13 +60,14 @@ namespace Parchment.Framework.Models
         public List<Element> FrameActionElements { get; }
 
         /// <param name="bookLinks">The links the book defines, which any text element on the page can point at alongside its own.</param>
-        public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null)
+        /// <param name="bookScrollBar">The scroll bar the book defines, which any Paragraph on the page falls back to when it doesn't give its own.</param>
+        public Page(PageData data, int index, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null, ScrollBarData? bookScrollBar = null)
         {
             Data = data;
             Index = index;
-            Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver, bookLinks);
-            Background = ElementFactory.CreateList(Data.Background, registry, fontResolver, bookLinks);
-            Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver, bookLinks);
+            Elements = ElementFactory.CreateList(Data.Elements, registry, fontResolver, bookLinks, bookScrollBar);
+            Background = ElementFactory.CreateList(Data.Background, registry, fontResolver, bookLinks, bookScrollBar);
+            Foreground = ElementFactory.CreateList(Data.Foreground, registry, fontResolver, bookLinks, bookScrollBar);
 
             FrameActionElements = new List<Element>();
             AnimationHelper.CollectFrameActionElements(Elements, FrameActionElements);
@@ -436,7 +437,7 @@ namespace Parchment.Framework.Models
                     return nestedElement;
                 }
 
-                if (element.ScrollLayout is { CanScroll: true } && element.Data.IgnoreCursor is false && screenBounds.Contains(screenPosition))
+                if (ScrollHelper.CanScroll(element) && element.Data.IgnoreCursor is false && screenBounds.Contains(screenPosition))
                 {
                     scrollableBounds = screenBounds;
                     return element;

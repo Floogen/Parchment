@@ -26,7 +26,8 @@ namespace Parchment.Framework.Utilities.Helpers
         private static readonly LinkElementRenderer _linkRenderer = new LinkElementRenderer();
 
         /// <param name="bookLinks">The links the book defines, which a text element falls back to when its own Links don't have the id its markup names.</param>
-        public static List<Element> CreateList(List<ElementData>? elementDataCollection, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null)
+        /// <param name="bookScrollBar">The scroll bar the book defines, which a Paragraph falls back to when it doesn't give its own.</param>
+        public static List<Element> CreateList(List<ElementData>? elementDataCollection, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null, ScrollBarData? bookScrollBar = null)
         {
             var elements = new List<Element>();
 
@@ -37,7 +38,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (var elementData in elementDataCollection)
             {
-                var element = Create(elementData, registry, fontResolver, bookLinks);
+                var element = Create(elementData, registry, fontResolver, bookLinks, bookScrollBar);
                 if (element is not null)
                 {
                     elements.Add(element);
@@ -48,7 +49,8 @@ namespace Parchment.Framework.Utilities.Helpers
         }
 
         /// <param name="bookLinks">The links the book defines, which a text element falls back to when its own Links don't have the id its markup names.</param>
-        public static Element? Create(ElementData data, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null)
+        /// <param name="bookScrollBar">The scroll bar the book defines, which a Paragraph falls back to when it doesn't give its own.</param>
+        public static Element? Create(ElementData data, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks = null, ScrollBarData? bookScrollBar = null)
         {
             if (registry.TryResolve(data.Type, out ElementRegistration registration) is false)
             {
@@ -136,9 +138,11 @@ namespace Parchment.Framework.Utilities.Helpers
                 AssignedItemData = assignedItemData,
                 AssignedItem = assignedItem,
                 InlineConditions = TextMarkupHelper.GetInlineConditions(GetAuthoredText(data)),
-                Children = data is ILinkHost linkHost ? CreateLinks(data, linkHost, bookLinks) : CreateChildren(data, registry, fontResolver, bookLinks),
-                Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver, bookLinks),
-                Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver, bookLinks)
+                // A paragraph's own bar replaces the book's whole, the same as a link, so the two are never mixed field by field
+                ScrollBar = data is ParagraphElementData paragraphData ? paragraphData.ScrollBar ?? bookScrollBar : null,
+                Children = data is ILinkHost linkHost ? CreateLinks(data, linkHost, bookLinks) : CreateChildren(data, registry, fontResolver, bookLinks, bookScrollBar),
+                Background = CreateLayer(data is ILayeredContainer backgroundContainer ? backgroundContainer.Background : null, registry, fontResolver, bookLinks, bookScrollBar),
+                Foreground = CreateLayer(data is ILayeredContainer foregroundContainer ? foregroundContainer.Foreground : null, registry, fontResolver, bookLinks, bookScrollBar)
             };
 
             // Set after construction, as the children are built inside the initializer above and have nothing to point at until it finishes
@@ -313,17 +317,17 @@ namespace Parchment.Framework.Utilities.Helpers
             Parchment.monitor.LogOnce($"{elementLabel} has a \"TypedAction\" or \"TypedActions\" but no [typewriter] in its text, so it never finishes typing and they never run.", LogLevel.Warn);
         }
 
-        private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks)
+        private static IReadOnlyList<Element> CreateLayer(List<ElementData>? layerData, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks, ScrollBarData? bookScrollBar)
         {
             if (layerData is null || layerData.Count is 0)
             {
                 return Array.Empty<Element>();
             }
 
-            return CreateList(layerData, registry, fontResolver, bookLinks);
+            return CreateList(layerData, registry, fontResolver, bookLinks, bookScrollBar);
         }
 
-        private static IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks)
+        private static IReadOnlyList<Element> CreateChildren(ElementData data, ElementRegistry registry, FontResolver fontResolver, Dictionary<string, LinkData>? bookLinks, ScrollBarData? bookScrollBar)
         {
             if (data is not IContainer container || (container.Children is null && data is not GridElementData { Source: not null }))
             {
@@ -338,7 +342,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
                 for (int index = 0; index < slotCount; index++)
                 {
-                    var slot = Create(template, registry, fontResolver, bookLinks);
+                    var slot = Create(template, registry, fontResolver, bookLinks, bookScrollBar);
                     if (slot is not null)
                     {
                         // A cell starts empty and is shown once the filter hands it an item, so a grid never flashes a full set of blanks before its first assignment
@@ -352,7 +356,7 @@ namespace Parchment.Framework.Utilities.Helpers
 
             foreach (ElementData childData in container.Children)
             {
-                var child = Create(childData, registry, fontResolver, bookLinks);
+                var child = Create(childData, registry, fontResolver, bookLinks, bookScrollBar);
                 if (child is not null)
                 {
                     children.Add(child);

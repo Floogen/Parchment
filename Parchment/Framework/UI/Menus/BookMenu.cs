@@ -350,6 +350,11 @@ namespace Parchment.Framework.UI.Menus
             SetHoveredElement(null);
             ClearInputFocus();
 
+            // The same goes for the scrolling elements, so a drag doesn't carry on moving one that is no longer on screen. The cursor finds their rebuilt counterparts on its next move
+            EndScrollBarDrag();
+            _hoveredScrollBarElement = null;
+            _hoveredScrollAreaElement = null;
+
             Book previousBook = Book;
 
             ApplyBook(book);

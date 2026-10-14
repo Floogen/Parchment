@@ -133,7 +133,9 @@ namespace Parchment.Framework.API
         /// <summary>What a Paragraph with a Height does with text that runs past the bottom: "Scroll" (the default) to let the reader scroll it into view or "Truncate" to leave it out.</summary>
         IElementBuilder Overflow(string overflow);
 
-        /// <summary>How a scrolling Paragraph's scroll bar looks. Every argument is optional and one left out keeps its default.</summary>
+        /// <summary>How a scrolling Paragraph's scroll bar looks. This replaces the book's ScrollBar whole for this paragraph, the same as a link does, so an argument left out keeps the built-in default rather than the book's.
+        /// Every argument is optional and calling this again adds to what earlier calls set.
+        /// </summary>
         /// <param name="width">How wide the bar is drawn, in unscaled pixels multiplied by the element's scale.</param>
         /// <param name="gap">The room left between the text and the bar, in unscaled pixels multiplied by the element's scale.</param>
         /// <param name="color">The thumb's color. Defaults to the text color at a low strength.</param>

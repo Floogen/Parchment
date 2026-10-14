@@ -53,8 +53,10 @@ namespace Parchment.Framework.Models.Data
         /// <summary>What happens to text that runs past <see cref="Height"/>: scrolled into view or left out. Ignored without a <see cref="Height"/>, as the paragraph then grows to fit everything.</summary>
         public OverflowMode Overflow { get; set; } = OverflowMode.Scroll;
 
-        /// <summary>How the scroll bar looks, drawn beside the text whenever <see cref="Overflow"/> is Scroll and there is more text than fits. Always present, so a single field of it can be set on its own.</summary>
-        public ScrollBarData ScrollBar { get; set; } = new ScrollBarData();
+        /// <summary>How the scroll bar looks, drawn beside the text whenever <see cref="Overflow"/> is Scroll and there is more text than fits.
+        /// Left unset, the book's <see cref="BookData.ScrollBar"/> is used (the default bar when the book has none either). One given here replaces the book's whole, the same as a link does.
+        /// </summary>
+        public ScrollBarData? ScrollBar { get; set; }
 
         public override (bool Result, string Error) IsValid()
         {
@@ -73,15 +75,13 @@ namespace Parchment.Framework.Models.Data
                 return (false, $"\"Height\" must be positive.");
             }
 
-            if (ScrollBar is null)
+            if (ScrollBar is not null)
             {
-                return (false, $"\"ScrollBar\" can't be null. Leave it out to keep the default bar.");
-            }
-
-            (bool isScrollBarValid, string scrollBarError) = ScrollBar.IsValid();
-            if (isScrollBarValid is false)
-            {
-                return (false, scrollBarError);
+                (bool isScrollBarValid, string scrollBarError) = ScrollBar.IsValid();
+                if (isScrollBarValid is false)
+                {
+                    return (false, scrollBarError);
+                }
             }
 
             return base.IsValid();

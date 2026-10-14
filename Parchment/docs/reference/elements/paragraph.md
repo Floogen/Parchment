@@ -21,7 +21,7 @@ Use `\n` for a deliberate line break, and `\n\n` for a blank line between paragr
 | `Width` <span class="opt">optional</span> | `int?` | *the available width* | The width the paragraph occupies, in unscaled pixels × `Scale`. Text wraps at it and the paragraph reserves it. Clamped to the width available, so it can only narrow the paragraph and never widen it. |
 | `Height` <span class="opt">optional</span> | `int?` | *as tall as its text* | The height the paragraph occupies, in unscaled pixels × `Scale`. The paragraph reserves it whether or not its text fills it. Text that runs past the bottom is handled by `Overflow`. Clamped to the height left on the page. See [Scrolling](#scrolling). |
 | `Overflow` <span class="opt">optional</span> | `string` | `Scroll` | What happens to text that runs past `Height`. `Scroll` lets the reader scroll it into view and `Truncate` leaves it out. Ignored without a `Height`. |
-| `ScrollBar` <span class="opt">optional</span> | [`ScrollBar`](#scroll-bar) | *a thin bar in the text color* | How the scroll bar looks. |
+| `ScrollBar` <span class="opt">optional</span> | [`ScrollBar`](#scroll-bar) | *the book's (a thin bar in the text color without one)* | How the scroll bar looks. Replaces the book's [`ScrollBar`](../book.md) whole when given. |
 
 Give `Width` when you want a narrower column than the page provides, such as text set beside an image or a short line you want broken at a particular point.
 
@@ -113,6 +113,24 @@ A flat bar in a single color. Every field is optional. The colors follow the par
 ```
 
 The cursor reaches the bar through a strip at least 16 pixels wide down the paragraph's right side, so a thin bar is still easy to take hold of.
+
+#### One bar for the whole book
+
+Give the book a [`ScrollBar`](../book.md) and every scrolling paragraph without one of its own takes it, so a book's bars can be styled once.
+
+```json title="books.json"
+{
+  "Id": "you.CampingGuide",
+  "ScrollBar": {
+    "Color": "139 90 43 120",
+    "HoverColor": "139 90 43",
+    "AutoHide": true
+  },
+  "Pages": [ ... ]
+}
+```
+
+A paragraph's own `ScrollBar` replaces the book's whole rather than adding to it, the same as an element's own [link](index.md#shared-links) does. A paragraph that gives only a `Width` gets the default colors, not the book's, so copy across whatever it should keep.
 
 !!! note "Give `HoverColor` when you give `Color`"
     The default highlight is built from the text color, so once you choose the thumb's `Color` the bar no longer changes on hover until you choose a `HoverColor` too.

@@ -27,6 +27,9 @@ namespace Parchment.Framework.UI.Rendering.Elements
         // The narrowest strip down the right side that reaches the scroll bar for the cursor, in screen pixels, so a thin bar can still be taken hold of
         private const int MIN_BAR_HIT_WIDTH = 16;
 
+        // The bar a paragraph takes when neither it nor its book gives one, holding the defaults ScrollBarData starts with
+        private static readonly ScrollBarData _defaultScrollBar = new ScrollBarData();
+
         protected override string GetText(ParagraphElementData data, ElementRenderContext context)
         {
             return data.Text ?? string.Empty;
@@ -61,7 +64,8 @@ namespace Parchment.Framework.UI.Rendering.Elements
             string text = GetText(data, context);
             WrappedText wrappedText = TextWrapper.WrapElementText(text, element, element.Font, availableWidth, data.Scale);
 
-            ScrollBarData scrollBar = data.ScrollBar ?? new ScrollBarData();
+            // Already settled between the paragraph's own and its book's when the element was built
+            ScrollBarData scrollBar = element.ScrollBar ?? _defaultScrollBar;
             int barWidth = Math.Max(1, (int)Math.Round(scrollBar.Width * data.Scale));
             int gutterWidth = barWidth + (int)Math.Round(scrollBar.Gap * data.Scale);
 

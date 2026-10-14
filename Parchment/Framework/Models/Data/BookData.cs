@@ -57,6 +57,11 @@ namespace Parchment.Framework.Models.Data
         /// </summary>
         public Dictionary<string, LinkData>? Links { get; set; }
 
+        /// <summary>How the scroll bar looks on any Paragraph in the book that scrolls without a <see cref="ParagraphElementData.ScrollBar"/> of its own.
+        /// A paragraph's own replaces this one whole, the same as a link does, so a bar's values always come from one place. Left unset, those paragraphs take the default bar.
+        /// </summary>
+        public ScrollBarData? ScrollBar { get; set; }
+
         /// <summary>Whether the book arrives shut, holding on its cover until the reader clicks it open, rather than opening itself once it
         /// has slid into place. Independent of <see cref="ExitToCover"/>, which governs the other end of the reading.</summary>
         public bool StartOnCover { get; set; } = false;
@@ -132,6 +137,15 @@ namespace Parchment.Framework.Models.Data
                     {
                         return (false, $"[Variables] More than one variable is named \"{variable.Id}\".");
                     }
+                }
+            }
+
+            if (ScrollBar is not null)
+            {
+                var scrollBarIsValidData = ScrollBar.IsValid();
+                if (scrollBarIsValidData.Result is false)
+                {
+                    return (false, $"[ScrollBar] {scrollBarIsValidData.Error}");
                 }
             }
 

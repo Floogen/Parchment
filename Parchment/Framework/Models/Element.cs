@@ -201,6 +201,11 @@ namespace Parchment.Framework.Models
         /// <summary>Whether this element currently has keyboard focus. Only an Input takes focus, and only one element in the book holds it at a time.</summary>
         public bool IsFocused { get; set; }
 
+        /// <summary>How this element's scroll bar looks, being its own when it has one and its book's otherwise. Null for anything that isn't a Paragraph. Also null for a Paragraph given neither, which then takes the default bar.
+        /// Settled once when the element is built, so the renderer never has to know which book it is in.
+        /// </summary>
+        public ScrollBarData? ScrollBar { get; init; }
+
         /// <summary>How this element's text sits in its window, for an element given a fixed height to show its text through. Null for everything else, which shows all of its text at once.
         /// Rebuilt whenever the element is laid out, while <see cref="ScrollLine"/> is kept on the element so the reader's place survives the layout running again.
         /// </summary>
@@ -282,7 +287,7 @@ namespace Parchment.Framework.Models
         /// Absolutely positioned layers such as <see cref="PageData.Background"/> and <see cref="PageData.Foreground"/> use this so purely decorative art passes the cursor through to whatever sits under it.
         /// Always false when <see cref="ElementData.IgnoreCursor"/> is set, since that element is stepped over wherever it sits.
         /// </summary>
-        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data.Tags is not null && Data.Tags.Count is not 0) || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0) || HoverTextColor is not null || ScrollLayout is { CanScroll: true });
+        public bool IsInteractive => Data.IgnoreCursor is false && (Data.IsAlwaysInteractive || string.IsNullOrEmpty(DisplayName) is false || string.IsNullOrEmpty(Description) is false || Data.HasActions || Data.HasHoverActions || (Data.Tags is not null && Data.Tags.Count is not 0) || (Data is ISprite sprite && sprite.HoverTextureSourceRectangle is not null) || (Data.HoverFrames is not null && Data.HoverFrames.Count is not 0) || HoverTextColor is not null || ScrollHelper.CanScroll(this));
 
         /// <summary>The shadow to draw behind text of the given color, where <paramref name="drawnTextColor"/> is the text color as it will actually be drawn, after any fade.
         /// Without a given <see cref="ShadowColor"/> the game's own follows the text's alpha, which is what keeps a translucent or fading element from leaving its shadow behind.
