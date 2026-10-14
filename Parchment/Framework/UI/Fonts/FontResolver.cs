@@ -33,11 +33,11 @@ namespace Parchment.Framework.UI.Fonts
                 case FontType.SpriteText:
                     return new SpriteTextAdapter();
                 case FontType.Small:
-                    return new SpriteFontAdapter(Game1.smallFont);
+                    return new SpriteFontAdapter(() => Game1.smallFont);
                 case FontType.Tiny:
-                    return new SpriteFontAdapter(Game1.tinyFont);
+                    return new SpriteFontAdapter(() => Game1.tinyFont);
                 default:
-                    return new SpriteFontAdapter(Game1.dialogueFont);
+                    return new SpriteFontAdapter(() => Game1.dialogueFont);
             }
         }
     }
