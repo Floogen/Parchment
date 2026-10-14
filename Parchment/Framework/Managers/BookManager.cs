@@ -541,7 +541,7 @@ namespace Parchment.Framework.Managers
                 return;
             }
 
-            helper.GameContent.InvalidateCache(BOOKS_DATA_PATH);
+            helper.GameContent.InvalidateCache(asset => asset.NameWithoutLocale.IsEquivalentTo(BOOKS_DATA_PATH));
         }
 
         public bool HasSeenChapter(Farmer who, string bookId, string chapter)
